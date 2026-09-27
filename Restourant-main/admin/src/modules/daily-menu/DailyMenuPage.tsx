@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
 import { apiClient } from '../../api/client';
 import { MenuItem, MenuCategory, DayOfWeek, DailyMenu } from '../../types';
 import { getBackendOrigin } from '../../api/client';
@@ -10,8 +10,6 @@ import {
   Plus,
   Trash2,
   Search,
-  ShieldCheck,
-  ShieldAlert,
   Utensils,
   RefreshCw,
   AlertCircle,
@@ -21,6 +19,10 @@ import {
   X,
   Loader2
 } from 'lucide-react';
+import { appCache } from '../../api/cache';
+import { useAutoRefresh } from '../../hooks/useAutoRefresh';
+
+type MealPeriod = 'LUNCH' | 'DINNER';
 
 const DAYS_LIST: Array<{ key: DayOfWeek; label: string; short: string }> = [
   { key: 'MONDAY', label: 'Monday (સોમવાર)', short: 'Mon' },
@@ -32,11 +34,7 @@ const DAYS_LIST: Array<{ key: DayOfWeek; label: string; short: string }> = [
   { key: 'SUNDAY', label: 'Sunday (રવિવાર)', short: 'Sun' }
 ];
 
-import { appCache } from '../../api/cache';
-import { useAutoRefresh } from '../../hooks/useAutoRefresh';
-
 export const DailyMenuPage: React.FC = () => {
-
   const cachedCats = appCache.get('/masters/menu-categories')?.data || appCache.get('/masters/menu-categories');
   const cachedItems = appCache.get('/masters/menu-items')?.data || appCache.get('/masters/menu-items');
   const cachedDaily = appCache.get('/daily-menu')?.data || appCache.get('/daily-menu');
@@ -46,34 +44,26 @@ export const DailyMenuPage: React.FC = () => {
   const [dailyMenus, setDailyMenus] = useState<DailyMenu[]>(() => cachedDaily?.menus || []);
   const [selectedDay, setSelectedDay] = useState<DayOfWeek>(() => cachedDaily?.currentDay || 'MONDAY');
 
-  // Compute the REAL current day dynamically in the browser using JavaScript Date.
-  // This ensures the TODAY badge always matches the user's actual system clock,
-  // regardless of any stale server cache.
+  // Strict Meal Timing selector: ONLY LUNCH or DINNER (no 'both' or 'all')
+  const [selectedMealPeriod, setSelectedMealPeriod] = useState<MealPeriod>('LUNCH');
+
+  // Compute the REAL current day dynamically in the browser
   const JS_TODAY_KEYS: DayOfWeek[] = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
   const systemToday: DayOfWeek = JS_TODAY_KEYS[new Date().getDay()];
 
-  const [isStrictEnforced, setIsStrictEnforced] = useState(() => cachedDaily ? cachedDaily.isStrictEnforced !== false : true);
+  // Separate Lunch and Dinner active dish IDs for the selected day
+  const [lunchItemIds, setLunchItemIds] = useState<string[]>([]);
+  const [dinnerItemIds, setDinnerItemIds] = useState<string[]>([]);
+  const [notes, setNotes] = useState<string>('');
 
-  // Selected Day's active item IDs (editable state)
-  const [activeItemIds, setActiveItemIds] = useState<string[]>(() => {
-    const initDay = cachedDaily?.currentDay || 'MONDAY';
-    const currentMenu = cachedDaily?.menus?.find((m: any) => m.dayOfWeek === initDay);
-    return currentMenu?.itemIds || [];
-  });
-  const [notes, setNotes] = useState<string>(() => {
-    const initDay = cachedDaily?.currentDay || 'MONDAY';
-    const currentMenu = cachedDaily?.menus?.find((m: any) => m.dayOfWeek === initDay);
-    return currentMenu?.notes || '';
-  });
-
-  // Track unsaved changes
+  // Track unsaved modifications
   const [isDirty, setIsDirty] = useState(false);
   const isDirtyRef = useRef(false);
   const isInitialLoadRef = useRef(true);
   const prevSelectedDayRef = useRef<DayOfWeek>(selectedDay);
   const hasInitializedRef = useRef(Boolean(cachedDaily?.menus && cachedDaily.menus.length > 0));
 
-  // Filtering states for Master Catalog (Left column)
+  // Catalog search and category filter (Left panel)
   const [catalogSearch, setCatalogSearch] = useState('');
   const [selectedCategoryId, setSelectedCategoryId] = useState<string>('ALL');
 
@@ -81,12 +71,12 @@ export const DailyMenuPage: React.FC = () => {
   const [isCopyModalOpen, setIsCopyModalOpen] = useState(false);
   const [copyTargetDays, setCopyTargetDays] = useState<DayOfWeek[]>([]);
 
-  // Confirmation state keeps menu edits intentional and prevents accidental loss.
+  // Confirmation state
   const [isSaveConfirmOpen, setIsSaveConfirmOpen] = useState(false);
   const [pendingRemoval, setPendingRemoval] = useState<
-    | { type: 'item'; itemId: string; itemName: string }
-    | { type: 'category'; categoryId: string; categoryName: string; itemCount: number }
-    | { type: 'day' }
+    | { type: 'item'; itemId: string; itemName: string; mealPeriod: MealPeriod }
+    | { type: 'category'; categoryId: string; categoryName: string; itemCount: number; mealPeriod: MealPeriod }
+    | { type: 'day'; mealPeriod: MealPeriod }
     | null
   >(null);
 
@@ -106,6 +96,30 @@ export const DailyMenuPage: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
 
+  // Helper to extract lunch and dinner IDs from a menu record
+  const parseMenuDishIds = (menu?: DailyMenu, itemsList: MenuItem[] = allMenuItems) => {
+    if (!menu) return { lunch: [], dinner: [] };
+    if (Array.isArray(menu.lunchItemIds) || Array.isArray(menu.dinnerItemIds)) {
+      return {
+        lunch: menu.lunchItemIds || [],
+        dinner: menu.dinnerItemIds || []
+      };
+    }
+    // Fallback if legacy record only had itemIds
+    const rawIds = menu.itemIds || [];
+    const lunch: string[] = [];
+    const dinner: string[] = [];
+    rawIds.forEach(id => {
+      const it = itemsList.find(m => m.id === id);
+      if (it?.mealPeriod === 'DINNER') {
+        dinner.push(id);
+      } else {
+        lunch.push(id);
+      }
+    });
+    return { lunch, dinner };
+  };
+
   const loadAllData = async (showSpinner = false, forceFresh = false) => {
     if (showSpinner || allMenuItems.length === 0) {
       setLoading(true);
@@ -118,18 +132,26 @@ export const DailyMenuPage: React.FC = () => {
         apiClient.get('/daily-menu', config)
       ]);
 
+      let freshItems: MenuItem[] = [];
       if (catRes.success) setCategories(catRes.data);
-      if (itemRes.success) setAllMenuItems(itemRes.data);
+      if (itemRes.success) {
+        freshItems = itemRes.data;
+        setAllMenuItems(freshItems);
+      }
 
       if (dailyRes.success && dailyRes.data) {
-        setDailyMenus(dailyRes.data.menus || []);
-        setIsStrictEnforced(dailyRes.data.isStrictEnforced !== false);
+        const menus: DailyMenu[] = dailyRes.data.menus || [];
+        setDailyMenus(menus);
 
-        // Default active day to today ONLY on initial load
         if (isInitialLoadRef.current) {
           isInitialLoadRef.current = false;
           const todayKey = JS_TODAY_KEYS[new Date().getDay()];
           setSelectedDay(todayKey);
+          const currentMenu = menus.find(m => m.dayOfWeek === todayKey);
+          const { lunch, dinner } = parseMenuDishIds(currentMenu, freshItems);
+          setLunchItemIds(lunch);
+          setDinnerItemIds(dinner);
+          setNotes(currentMenu?.notes || '');
         }
       }
     } catch (err) {
@@ -149,111 +171,178 @@ export const DailyMenuPage: React.FC = () => {
     refreshOnFocus: true
   });
 
-  // When selectedDay changes or dailyMenus is reloaded, sync activeItemIds and notes safely
+  // When selectedDay changes or dailyMenus updates, sync lunchItemIds and dinnerItemIds
   useEffect(() => {
     const dayChanged = prevSelectedDayRef.current !== selectedDay;
     prevSelectedDayRef.current = selectedDay;
 
-    // 1. If day changed: always load the newly selected day's saved menu
     if (dayChanged) {
       const currentMenu = dailyMenus.find(m => m.dayOfWeek === selectedDay);
-      setActiveItemIds(currentMenu?.itemIds || []);
+      const { lunch, dinner } = parseMenuDishIds(currentMenu);
+      setLunchItemIds(lunch);
+      setDinnerItemIds(dinner);
       setNotes(currentMenu?.notes || '');
       setIsDirty(false);
       isDirtyRef.current = false;
       setSaveSuccessMsg(null);
+      setSelectedCategoryId('ALL');
       return;
     }
 
-    // 2. If user has unsaved modifications on current day, NEVER let background sync wipe them out
-    if (isDirtyRef.current) {
-      return;
-    }
+    if (isDirtyRef.current) return;
 
-    // 3. Initial load when dailyMenus becomes available
     if (!hasInitializedRef.current && dailyMenus.length > 0) {
       const currentMenu = dailyMenus.find(m => m.dayOfWeek === selectedDay);
-      setActiveItemIds(currentMenu?.itemIds || []);
+      const { lunch, dinner } = parseMenuDishIds(currentMenu);
+      setLunchItemIds(lunch);
+      setDinnerItemIds(dinner);
       setNotes(currentMenu?.notes || '');
       hasInitializedRef.current = true;
       return;
     }
 
-    // 4. Background refresh when NOT dirty: only update if server actually has different data
     const currentMenu = dailyMenus.find(m => m.dayOfWeek === selectedDay);
-    const serverItemIds = currentMenu?.itemIds || [];
+    const { lunch: serverLunch, dinner: serverDinner } = parseMenuDishIds(currentMenu);
     const serverNotes = currentMenu?.notes || '';
 
-    const isSame =
-      activeItemIds.length === serverItemIds.length &&
-      activeItemIds.every((id, idx) => serverItemIds[idx] === id) &&
-      notes === serverNotes;
+    const lunchSame = lunchItemIds.length === serverLunch.length && lunchItemIds.every((id, idx) => serverLunch[idx] === id);
+    const dinnerSame = dinnerItemIds.length === serverDinner.length && dinnerItemIds.every((id, idx) => serverDinner[idx] === id);
 
-    if (!isSame) {
-      setActiveItemIds(serverItemIds);
+    if (!lunchSame || !dinnerSame || notes !== serverNotes) {
+      setLunchItemIds(serverLunch);
+      setDinnerItemIds(serverDinner);
       setNotes(serverNotes);
     }
   }, [selectedDay, dailyMenus]);
 
-  // Add a single dish to the editable day's menu.
+  // Active item IDs for the currently active meal period
+  const activeItemIds = selectedMealPeriod === 'LUNCH' ? lunchItemIds : dinnerItemIds;
+
+  // STRICTLY filter categories matching the active meal period
+  const timingCategories = useMemo(() => {
+    return categories.filter(category => (category.mealPeriod || 'LUNCH') === selectedMealPeriod);
+  }, [categories, selectedMealPeriod]);
+
+  // STRICTLY filter catalog items matching the active meal period
+  const timingCatalogItems = useMemo(() => {
+    return allMenuItems.filter(item => {
+      const itemCat = categories.find(c => c.id === item.categoryId);
+      const itemMeal = item.mealPeriod || itemCat?.mealPeriod || 'LUNCH';
+      return itemMeal === selectedMealPeriod;
+    });
+  }, [allMenuItems, categories, selectedMealPeriod]);
+
+  // Filter catalog items by search & category filter
+  const filteredCatalog = useMemo(() => {
+    return timingCatalogItems.filter(item => {
+      const matchCat = selectedCategoryId === 'ALL' || item.categoryId === selectedCategoryId;
+      const matchSearch =
+        item.name.toLowerCase().includes(catalogSearch.toLowerCase()) ||
+        item.code.toLowerCase().includes(catalogSearch.toLowerCase());
+      return matchCat && matchSearch;
+    });
+  }, [timingCatalogItems, selectedCategoryId, catalogSearch]);
+
+  // Scheduled dishes for currently selected day & active meal period
+  const selectedDishes = useMemo(() => {
+    return activeItemIds
+      .map(id => allMenuItems.find(m => m.id === id))
+      .filter(Boolean) as MenuItem[];
+  }, [activeItemIds, allMenuItems]);
+
+  // Meal timing switcher: when clicked, reset category filter
+  const handleMealTimingSwitch = (timing: MealPeriod) => {
+    setSelectedMealPeriod(timing);
+    setSelectedCategoryId('ALL');
+  };
+
+  // Add a single dish to active meal period
   const handleAddItem = (itemId: string) => {
     setIsDirty(true);
     isDirtyRef.current = true;
-    setActiveItemIds(prev => prev.includes(itemId) ? prev : [...prev, itemId]);
+    if (selectedMealPeriod === 'LUNCH') {
+      setLunchItemIds(prev => prev.includes(itemId) ? prev : [...prev, itemId]);
+    } else {
+      setDinnerItemIds(prev => prev.includes(itemId) ? prev : [...prev, itemId]);
+    }
   };
 
-  // Add all dishes of a category
+  // Add all dishes of a category to active meal period
   const handleAddCategoryItems = (catId: string) => {
-    const itemsInCat = allMenuItems.filter(m => m.categoryId === catId).map(m => m.id);
+    const itemsInCat = timingCatalogItems.filter(m => m.categoryId === catId).map(m => m.id);
     setIsDirty(true);
     isDirtyRef.current = true;
-    setActiveItemIds(prev => Array.from(new Set([...prev, ...itemsInCat])));
+    if (selectedMealPeriod === 'LUNCH') {
+      setLunchItemIds(prev => Array.from(new Set([...prev, ...itemsInCat])));
+    } else {
+      setDinnerItemIds(prev => Array.from(new Set([...prev, ...itemsInCat])));
+    }
   };
 
-  // Removal actions are confirmed before they change the editable day's menu.
+  // Removal requests with confirmation
   const requestRemoveCategoryItems = (catId: string) => {
     const category = categories.find(c => c.id === catId);
-    const itemCount = activeItemIds.filter(id => allMenuItems.some(m => m.id === id && m.categoryId === catId)).length;
-    if (itemCount === 0) return;
+    const count = activeItemIds.filter(id => timingCatalogItems.some(m => m.id === id && m.categoryId === catId)).length;
+    if (count === 0) return;
     setPendingRemoval({
       type: 'category',
       categoryId: catId,
       categoryName: category?.name || 'this category',
-      itemCount
+      itemCount: count,
+      mealPeriod: selectedMealPeriod
     });
   };
 
   const requestRemoveItem = (item: MenuItem) => {
-    setPendingRemoval({ type: 'item', itemId: item.id, itemName: item.name });
+    setPendingRemoval({
+      type: 'item',
+      itemId: item.id,
+      itemName: item.name,
+      mealPeriod: selectedMealPeriod
+    });
   };
 
-  const requestClearDay = () => {
-    if (activeItemIds.length > 0) setPendingRemoval({ type: 'day' });
+  const requestClearTiming = () => {
+    if (activeItemIds.length > 0) {
+      setPendingRemoval({ type: 'day', mealPeriod: selectedMealPeriod });
+    }
   };
 
   const confirmRemoval = () => {
     if (!pendingRemoval) return;
     setIsDirty(true);
     isDirtyRef.current = true;
-    setActiveItemIds(prev => {
-      if (pendingRemoval.type === 'day') return [];
-      if (pendingRemoval.type === 'item') return prev.filter(id => id !== pendingRemoval.itemId);
-      const itemsInCategory = new Set(allMenuItems.filter(m => m.categoryId === pendingRemoval.categoryId).map(m => m.id));
-      return prev.filter(id => !itemsInCategory.has(id));
-    });
+
+    if (pendingRemoval.mealPeriod === 'LUNCH') {
+      setLunchItemIds(prev => {
+        if (pendingRemoval.type === 'day') return [];
+        if (pendingRemoval.type === 'item') return prev.filter(id => id !== pendingRemoval.itemId);
+        const inCat = new Set(timingCatalogItems.filter(m => m.categoryId === pendingRemoval.categoryId).map(m => m.id));
+        return prev.filter(id => !inCat.has(id));
+      });
+    } else {
+      setDinnerItemIds(prev => {
+        if (pendingRemoval.type === 'day') return [];
+        if (pendingRemoval.type === 'item') return prev.filter(id => id !== pendingRemoval.itemId);
+        const inCat = new Set(timingCatalogItems.filter(m => m.categoryId === pendingRemoval.categoryId).map(m => m.id));
+        return prev.filter(id => !inCat.has(id));
+      });
+    }
     setPendingRemoval(null);
   };
 
   // Discard changes & reset to last saved state
   const handleResetChanges = () => {
     const currentMenu = dailyMenus.find(m => m.dayOfWeek === selectedDay);
-    setActiveItemIds(currentMenu?.itemIds || []);
+    const { lunch, dinner } = parseMenuDishIds(currentMenu);
+    setLunchItemIds(lunch);
+    setDinnerItemIds(dinner);
     setNotes(currentMenu?.notes || '');
     setIsDirty(false);
     isDirtyRef.current = false;
   };
 
-  // Day selector change with unsaved changes prompt
+  // Day selector change with unsaved changes check
   const handleSelectDay = (dayKey: DayOfWeek) => {
     if (dayKey === selectedDay) return;
     if (isDirtyRef.current) {
@@ -265,14 +354,17 @@ export const DailyMenuPage: React.FC = () => {
     setSelectedDay(dayKey);
   };
 
-  // Save current day's menu
+  // Save menu for selected day
   const handleConfirmSaveMenu = async () => {
     setSaving(true);
     setSaveSuccessMsg(null);
     try {
+      const allItemIds = Array.from(new Set([...lunchItemIds, ...dinnerItemIds]));
       const res: any = await apiClient.post('/daily-menu', {
         dayOfWeek: selectedDay,
-        itemIds: activeItemIds,
+        lunchItemIds: lunchItemIds,
+        dinnerItemIds: dinnerItemIds,
+        itemIds: allItemIds,
         notes,
         isActive: true
       });
@@ -283,10 +375,25 @@ export const DailyMenuPage: React.FC = () => {
         setIsSaveConfirmOpen(false);
         setShowPosterPanel(true);
         setPosterDataUrl(null);
-        setSaveSuccessMsg(`✓ ${selectedDay} Daily Menu saved with ${activeItemIds.length} items.`);
-        // Update local dailyMenus list
+        setSaveSuccessMsg(
+          `✓ ${selectedDay} Menu saved (Lunch: ${lunchItemIds.length}, Dinner: ${dinnerItemIds.length}).`
+        );
+        // Update local dailyMenus state
         setDailyMenus(prev =>
-          prev.map(m => m.dayOfWeek === selectedDay ? { ...m, itemIds: activeItemIds, notes, itemCount: activeItemIds.length } : m)
+          prev.map(m =>
+            m.dayOfWeek === selectedDay
+              ? {
+                  ...m,
+                  lunchItemIds,
+                  dinnerItemIds,
+                  itemIds: allItemIds,
+                  lunchItemCount: lunchItemIds.length,
+                  dinnerItemCount: dinnerItemIds.length,
+                  itemCount: allItemIds.length,
+                  notes
+                }
+              : m
+          )
         );
         setTimeout(() => setSaveSuccessMsg(null), 4000);
       }
@@ -294,21 +401,6 @@ export const DailyMenuPage: React.FC = () => {
       alert(err.message || 'Failed to save daily menu.');
     } finally {
       setSaving(false);
-    }
-  };
-
-  // Toggle Strict Daily Menu Enforcement
-  const handleToggleStrict = async () => {
-    const nextStrict = !isStrictEnforced;
-    try {
-      const res: any = await apiClient.post('/daily-menu/toggle-strict', {
-        isStrictEnforced: nextStrict
-      });
-      if (res.success) {
-        setIsStrictEnforced(nextStrict);
-      }
-    } catch (err: any) {
-      alert(err.message || 'Failed to toggle strict mode.');
     }
   };
 
@@ -339,23 +431,10 @@ export const DailyMenuPage: React.FC = () => {
     }
   };
 
-  // Filter master catalog
-  const filteredCatalog = allMenuItems.filter(item => {
-    const matchCat = selectedCategoryId === 'ALL' || item.categoryId === selectedCategoryId;
-    const matchSearch =
-      item.name.toLowerCase().includes(catalogSearch.toLowerCase()) ||
-      item.code.toLowerCase().includes(catalogSearch.toLowerCase());
-    return matchCat && matchSearch;
-  });
-  const selectedDishes = activeItemIds
-    .map(id => allMenuItems.find(m => m.id === id))
-    .filter(Boolean) as MenuItem[];
-
-  // Poster design is intentionally fixed to the approved restaurant menu card.
+  // Poster preview & saving
   const POSTER_THEME = 'royal_maroon';
   const POSTER_FORMAT = 'FORMAT_KATHIYAWADI_CARD';
 
-  // Generate poster preview
   const handleGeneratePreview = async () => {
     setPosterLoading(true);
     setPosterError(null);
@@ -378,7 +457,6 @@ export const DailyMenuPage: React.FC = () => {
     }
   };
 
-  // Save generated poster to server
   const handleSavePoster = async () => {
     if (!posterDataUrl) {
       setPosterError('Please generate a poster first.');
@@ -395,7 +473,6 @@ export const DailyMenuPage: React.FC = () => {
         previewDataUrl: posterDataUrl
       });
       if (res.success) {
-        // Refresh saved posters list
         loadSavedPosters(selectedDay);
         setPosterDataUrl(null);
       } else {
@@ -408,7 +485,6 @@ export const DailyMenuPage: React.FC = () => {
     }
   };
 
-  // Download poster image
   const handleDownloadPoster = () => {
     if (!posterDataUrl) return;
     const link = document.createElement('a');
@@ -419,13 +495,11 @@ export const DailyMenuPage: React.FC = () => {
     document.body.removeChild(link);
   };
 
-  // Copy poster image URL
   const handleCopyPosterUrl = async () => {
     if (!posterDataUrl) return;
     try {
       await navigator.clipboard.writeText(posterDataUrl);
     } catch {
-      // Fallback
       const ta = document.createElement('textarea');
       ta.value = posterDataUrl;
       document.body.appendChild(ta);
@@ -435,7 +509,6 @@ export const DailyMenuPage: React.FC = () => {
     }
   };
 
-  // Load saved posters for a day
   const loadSavedPosters = async (day: DayOfWeek) => {
     try {
       const res: any = await apiClient.get(`/daily-menu/${day}/posters`);
@@ -447,7 +520,6 @@ export const DailyMenuPage: React.FC = () => {
     }
   };
 
-  // Delete a saved poster after the branded confirmation modal is approved.
   const handleDeletePoster = async () => {
     if (!pendingPosterDelete) return;
     setDeletingPoster(true);
@@ -465,22 +537,22 @@ export const DailyMenuPage: React.FC = () => {
     }
   };
 
-  // Auto-load saved posters when day changes
   useEffect(() => {
     loadSavedPosters(selectedDay);
   }, [selectedDay]);
 
+  const timingName = selectedMealPeriod === 'LUNCH' ? 'Lunch (બપોર)' : 'Dinner (સાંજ)';
   const removalTitle = pendingRemoval?.type === 'day'
-    ? `Clear ${selectedDay} menu?`
+    ? `Clear ${selectedDay} ${timingName} menu?`
     : pendingRemoval?.type === 'category'
       ? `Remove ${pendingRemoval.categoryName}?`
       : 'Remove dish from menu?';
   const removalDescription = pendingRemoval?.type === 'day'
-    ? `This removes all ${activeItemIds.length} scheduled dishes from ${selectedDay}.`
+    ? `This removes all ${activeItemIds.length} scheduled ${timingName} dishes from ${selectedDay}.`
     : pendingRemoval?.type === 'category'
-      ? `This removes ${pendingRemoval.itemCount} scheduled dish${pendingRemoval.itemCount === 1 ? '' : 'es'} from ${pendingRemoval.categoryName}.`
+      ? `This removes ${pendingRemoval.itemCount} scheduled ${timingName} dishes from ${pendingRemoval.categoryName}.`
       : pendingRemoval
-        ? `${pendingRemoval.itemName} will be removed from ${selectedDay}.`
+        ? `${pendingRemoval.itemName} will be removed from ${selectedDay} ${timingName} menu.`
         : '';
 
   return (
@@ -491,60 +563,48 @@ export const DailyMenuPage: React.FC = () => {
           <div className="d-flex flex-wrap justify-content-between align-items-center gap-3">
             <div>
               <div className="d-flex align-items-center gap-2 mb-1">
-                <Calendar className="text-primary" size={26} />
-                <h4 className="fw-bold mb-0 text-dark">Daily Menu Scheduler (રોજિંદુ મેનુ)</h4>
+                <Calendar className="text-primary" size={24} />
+                <h4 className="fw-bold mb-0 text-dark">Daily Menu Scheduler</h4>
                 <span className="badge bg-primary-subtle text-primary border border-primary-subtle">
-                  Day-Wise Rotating Catalog
+                  Day-Wise Catalog
                 </span>
               </div>
               <p className="text-muted small mb-0">
-                Configure fixed dish availability per day of the week. In <strong>Strict Mode</strong>, only these selected dishes will be available in POS for order taking; all other dishes will be hidden.
+                Configure day-wise food availability for Lunch and Dinner.
               </p>
             </div>
 
-            {/* Strict Enforcement Mode Switch */}
-            <div className="d-flex align-items-center justify-content-between gap-3 bg-light p-2 px-3 rounded-3 border w-100 w-md-auto">
-              <div>
-                <div className="d-flex align-items-center gap-1">
-                  {isStrictEnforced ? (
-                    <ShieldCheck size={18} className="text-success" />
-                  ) : (
-                    <ShieldAlert size={18} className="text-warning" />
-                  )}
-                  <span className="fw-bold small text-dark">Strict Daily Menu Mode</span>
-                </div>
-                <div className="text-muted" style={{ fontSize: '0.72rem' }}>
-                  {isStrictEnforced ? 'Only day-wise dishes available in POS' : 'All master dishes browsable in POS'}
-                </div>
-              </div>
-              <div className="form-check form-switch m-0 flex-shrink-0">
-                <input
-                  className="form-check-input"
-                  type="checkbox"
-                  role="switch"
-                  id="strictMenuSwitch"
-                  checked={isStrictEnforced}
-                  onChange={handleToggleStrict}
-                  style={{ width: '2.5em', height: '1.3em', cursor: 'pointer' }}
-                />
-              </div>
+            {/* Refresh Button */}
+            <div>
+              <button
+                className="btn btn-outline-secondary btn-sm d-inline-flex align-items-center justify-content-center gap-1.5 px-3 py-2 rounded-3 text-nowrap shadow-xs"
+                onClick={() => loadAllData(true, true)}
+                disabled={loading}
+                title="Refresh Menu Data"
+              >
+                <RefreshCw size={14} className={loading ? 'spin' : ''} />
+                <span>{loading ? 'Refreshing...' : 'Refresh'}</span>
+              </button>
             </div>
           </div>
 
-          {/* 7-Days Navigation Tabs */}
+          {/* 7-Days Navigation Tabs - Clean Professional Pills */}
           <div className="mt-3 pt-3 border-top">
             <div className="d-flex flex-column flex-md-row gap-2 align-items-md-center justify-content-between">
-              <div className="scrollable-pills-container gap-1 py-1 flex-grow-1" style={{ minWidth: 0 }}>
+              <div className="scrollable-pills-container gap-1.5 py-1 flex-grow-1" style={{ minWidth: 0 }}>
                 {DAYS_LIST.map(day => {
                   const menuObj = dailyMenus.find(m => m.dayOfWeek === day.key);
                   const isToday = day.key === systemToday;
                   const isSelected = day.key === selectedDay;
-                  const count = isSelected ? activeItemIds.length : (menuObj?.itemIds?.length || 0);
+                  
+                  const dayLunchCount = isSelected ? lunchItemIds.length : (menuObj?.lunchItemCount ?? (menuObj?.lunchItemIds?.length || 0));
+                  const dayDinnerCount = isSelected ? dinnerItemIds.length : (menuObj?.dinnerItemCount ?? (menuObj?.dinnerItemIds?.length || 0));
+                  const currentActiveCount = selectedMealPeriod === 'LUNCH' ? dayLunchCount : dayDinnerCount;
 
                   return (
                     <button
                       key={day.key}
-                      className={`btn btn-sm px-2 px-sm-3 py-2 rounded-3 d-flex align-items-center gap-1 gap-sm-2 flex-shrink-0 transition-all ${
+                      className={`btn btn-sm px-3 py-2 rounded-3 d-flex align-items-center gap-2 flex-shrink-0 transition-all ${
                         isSelected
                           ? 'btn-primary shadow-sm fw-bold'
                           : 'btn-white border text-dark hover-bg-light'
@@ -557,13 +617,13 @@ export const DailyMenuPage: React.FC = () => {
                         className={`badge rounded-pill ${
                           isSelected
                             ? 'bg-white text-primary'
-                            : count > 0
-                            ? 'bg-primary-subtle text-primary border'
-                            : 'bg-secondary-subtle text-muted'
+                            : currentActiveCount > 0
+                            ? 'bg-light text-dark border'
+                            : 'bg-light text-muted'
                         }`}
-                        style={{ fontSize: '0.72rem' }}
+                        style={{ fontSize: '0.75rem', fontWeight: 600 }}
                       >
-                        {count}
+                        {currentActiveCount}
                       </span>
                       {isToday && (
                         <span className="badge bg-warning text-dark small" style={{ fontSize: '0.65rem' }}>
@@ -574,22 +634,50 @@ export const DailyMenuPage: React.FC = () => {
                   );
                 })}
               </div>
-
-              <div className="align-self-end align-self-md-center flex-shrink-0 ms-md-2 mt-1 mt-md-0">
-                <button
-                  className="btn btn-outline-secondary btn-sm d-inline-flex align-items-center justify-content-center gap-1.5 px-3 py-2 rounded-3 text-nowrap flex-shrink-0 shadow-xs"
-                  onClick={() => loadAllData(true)}
-                  disabled={loading}
-                  title="Refresh Menu Data"
-                  style={{ whiteSpace: 'nowrap', minHeight: '38px', lineHeight: 1 }}
-                >
-                  <RefreshCw size={14} className={`flex-shrink-0 ${loading ? 'spin' : ''}`} />
-                  <span className="text-nowrap fw-medium" style={{ whiteSpace: 'nowrap' }}>
-                    {loading ? 'Refreshing...' : 'Refresh'}
-                  </span>
-                </button>
-              </div>
             </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Clean Segmented Control: STRICT LUNCH vs DINNER (NO EMOJIS) */}
+      <div className="card border-0 shadow-sm bg-white">
+        <div className="card-body p-3 d-flex flex-wrap justify-content-between align-items-center gap-3">
+          <div className="d-flex align-items-center gap-3">
+            <span className="fw-bold text-dark small">સમય પસંદ કરો (Timing):</span>
+            <div className="d-inline-flex bg-light p-1 rounded-3 border" role="group">
+              <button
+                type="button"
+                className={`btn btn-sm px-4 py-2 fw-bold rounded-2 transition-all ${
+                  selectedMealPeriod === 'LUNCH'
+                    ? 'btn-white bg-white text-primary shadow-xs'
+                    : 'text-muted border-0 bg-transparent'
+                }`}
+                onClick={() => handleMealTimingSwitch('LUNCH')}
+              >
+                <span>બપોર (Lunch)</span>
+                <span className={`badge ms-2 rounded-pill ${selectedMealPeriod === 'LUNCH' ? 'bg-primary text-white' : 'bg-secondary-subtle text-muted'}`}>
+                  {lunchItemIds.length}
+                </span>
+              </button>
+              <button
+                type="button"
+                className={`btn btn-sm px-4 py-2 fw-bold rounded-2 transition-all ${
+                  selectedMealPeriod === 'DINNER'
+                    ? 'btn-white bg-white text-dark shadow-xs'
+                    : 'text-muted border-0 bg-transparent'
+                }`}
+                onClick={() => handleMealTimingSwitch('DINNER')}
+              >
+                <span>સાંજ (Dinner)</span>
+                <span className={`badge ms-2 rounded-pill ${selectedMealPeriod === 'DINNER' ? 'bg-dark text-white' : 'bg-secondary-subtle text-muted'}`}>
+                  {dinnerItemIds.length}
+                </span>
+              </button>
+            </div>
+          </div>
+
+          <div className="text-muted small">
+            હાલમાં <strong className="text-dark">{selectedDay}</strong> માટે <strong className="text-primary">{selectedMealPeriod === 'LUNCH' ? 'બપોર (Lunch)' : 'સાંજ (Dinner)'}</strong> નું મેનુ ખુલ્લું છે
           </div>
         </div>
       </div>
@@ -601,20 +689,24 @@ export const DailyMenuPage: React.FC = () => {
             <CheckCircle2 size={18} className="text-success" />
             <span className="fw-bold small text-break">{saveSuccessMsg}</span>
           </div>
-          <span className="badge bg-success">Active Menu</span>
+          <span className="badge bg-success">Saved</span>
         </div>
       )}
 
       {/* Main Dual-Panel Section */}
       <div className="row g-3">
-        {/* LEFT PANEL: Master Menu Catalog */}
+        {/* LEFT PANEL: Master Menu Catalog (Filtered strictly by selected meal timing) */}
         <div className="col-12 col-lg-7">
           <div className="card shadow-sm border-0 h-100 bg-white">
             <div className="card-header bg-white py-3 border-bottom">
               <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
                 <div>
-                  <h6 className="fw-bold mb-0 text-dark">Master Restaurant Catalog</h6>
-                  <span className="text-muted small">Select dishes to include in <strong>{selectedDay}</strong></span>
+                  <h6 className="fw-bold mb-0 text-dark">
+                    {selectedMealPeriod === 'LUNCH' ? 'મેનુ કેટાલોગ - બપોર (Lunch Catalog)' : 'મેનુ કેટાલોગ - સાંજ (Dinner Catalog)'}
+                  </h6>
+                  <span className="text-muted small">
+                    વાનગી પસંદ કરીને {selectedDay} ના {selectedMealPeriod === 'LUNCH' ? 'બપોરના' : 'સાંજના'} મેનુમાં ઉમેરો
+                  </span>
                 </div>
                 {/* Search Bar */}
                 <div className="input-group input-group-sm" style={{ maxWidth: 240 }}>
@@ -629,22 +721,22 @@ export const DailyMenuPage: React.FC = () => {
                 </div>
               </div>
 
-              {/* Category Filter Pills */}
+              {/* Category Filter Pills (STRICTLY FOR CURRENT MEAL TIMING) */}
               <div className="scrollable-pills-container gap-1 mt-3" style={{ flexWrap: 'wrap', whiteSpace: 'normal', overflowX: 'visible' }}>
                 <button
-                  className={`btn btn-xs btn-sm py-1 px-2 rounded-2 ${
+                  className={`btn btn-xs btn-sm py-1 px-2.5 rounded-2 ${
                     selectedCategoryId === 'ALL' ? 'btn-dark' : 'btn-outline-secondary'
                   }`}
                   onClick={() => setSelectedCategoryId('ALL')}
                 >
-                  All Categories ({allMenuItems.length})
+                  All {selectedMealPeriod === 'LUNCH' ? 'Lunch' : 'Dinner'} ({timingCatalogItems.length})
                 </button>
-                {categories.map(cat => {
-                  const catItemsCount = allMenuItems.filter(m => m.categoryId === cat.id).length;
+                {timingCategories.map(cat => {
+                  const catItemsCount = timingCatalogItems.filter(m => m.categoryId === cat.id).length;
                   return (
                     <button
                       key={cat.id}
-                      className={`btn btn-xs btn-sm py-1 px-2 rounded-2 ${
+                      className={`btn btn-xs btn-sm py-1 px-2.5 rounded-2 ${
                         selectedCategoryId === cat.id ? 'btn-dark' : 'btn-outline-secondary'
                       }`}
                       onClick={() => setSelectedCategoryId(cat.id)}
@@ -658,7 +750,7 @@ export const DailyMenuPage: React.FC = () => {
               {/* Category Quick Actions */}
               {selectedCategoryId !== 'ALL' && (
                 <div className="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
-                  <span className="text-muted small">Quick Category Action:</span>
+                  <span className="text-muted small">Category Quick Action:</span>
                   <div className="d-flex gap-2">
                     <button
                       className="btn btn-outline-primary btn-xs btn-sm py-0 px-2"
@@ -682,7 +774,14 @@ export const DailyMenuPage: React.FC = () => {
               {filteredCatalog.length === 0 ? (
                 <div className="text-center py-5 text-muted">
                   <Utensils size={32} className="opacity-25 mb-2" />
-                  <div>No dishes found matching search criteria.</div>
+                  <div>
+                    {selectedMealPeriod === 'LUNCH'
+                      ? 'બપોર (Lunch) માટે કોઈ વાનગી મળી નથી.'
+                      : 'સાંજ (Dinner) માટે કોઈ વાનગી મળી નથી.'}
+                  </div>
+                  <div className="small text-muted mt-1">
+                    મેનુ બાર (Menu Bar) માં જઈને {selectedMealPeriod === 'LUNCH' ? 'બપોર' : 'સાંજ'} માટે વાનગી ઉમેરો.
+                  </div>
                 </div>
               ) : (
                 <div className="row g-2">
@@ -736,18 +835,19 @@ export const DailyMenuPage: React.FC = () => {
           </div>
         </div>
 
-        {/* RIGHT PANEL: Scheduled Dishes for Selected Day */}
+        {/* RIGHT PANEL: Scheduled Dishes for Selected Day & Timing */}
         <div className="col-12 col-lg-5">
           <div className="card shadow-sm border-0 h-100 bg-white d-flex flex-column">
             <div className="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
               <div>
                 <h6 className="fw-bold mb-0 text-dark">
-                  Scheduled for {selectedDay} ({activeItemIds.length})
+                  {selectedDay} - {selectedMealPeriod === 'LUNCH' ? 'બપોરનું મેનુ (Lunch)' : 'સાંજનું મેનુ (Dinner)'} ({activeItemIds.length})
                 </h6>
                 <span className="text-muted small">
-                  {selectedDay === systemToday ? 'Active Today' : 'Scheduled for future service'}
+                  {selectedDay === systemToday ? 'Active Today' : 'Scheduled for service'}
                 </span>
               </div>
+
               <div className="d-flex gap-1">
                 <button
                   className="btn btn-outline-primary btn-sm d-flex align-items-center gap-1"
@@ -759,9 +859,9 @@ export const DailyMenuPage: React.FC = () => {
                 </button>
                 <button
                   className="btn btn-outline-danger btn-sm p-1 px-2"
-                  onClick={requestClearDay}
+                  onClick={requestClearTiming}
                   disabled={activeItemIds.length === 0}
-                  title="Clear all items"
+                  title={`Clear all ${selectedMealPeriod === 'LUNCH' ? 'lunch' : 'dinner'} items`}
                 >
                   <Trash2 size={14} />
                 </button>
@@ -773,9 +873,11 @@ export const DailyMenuPage: React.FC = () => {
               {selectedDishes.length === 0 ? (
                 <div className="text-center py-5 text-muted">
                   <AlertCircle size={32} className="text-warning opacity-50 mb-2" />
-                  <div className="fw-bold">No dishes selected for {selectedDay}</div>
+                  <div className="fw-bold">
+                    {selectedDay} {selectedMealPeriod === 'LUNCH' ? 'બપોરે' : 'સાંજે'} કોઈ વાનગી સિલેક્ટ કરેલ નથી
+                  </div>
                   <p className="small text-muted mb-0">
-                    Click items from the catalog on the left to add dishes for this day.
+                    ડાબી બાજુના કેટાલોગમાંથી વાનગીઓ પર ક્લિક કરીને ઉમેરો.
                   </p>
                 </div>
               ) : (
@@ -822,12 +924,12 @@ export const DailyMenuPage: React.FC = () => {
             <div className="card-footer bg-light p-3 border-top">
               <div className="mb-2">
                 <label className="form-label small fw-bold mb-1">
-                  Day Menu Notes / Chef Specials (Optional):
+                  મેનુ નોંધ / સ્પેશિયલ વાનગી (Optional Notes):
                 </label>
                 <input
                   type="text"
                   className="form-control form-control-sm"
-                  placeholder="e.g. Tuesday Kathiyawadi Thali Special, Ringan No Olo"
+                  placeholder="e.g. કાઠિયાવાડી થાળી સ્પેશિયલ, રીંગણનો ઓળો"
                   value={notes}
                   onChange={e => {
                     setIsDirty(true);
@@ -840,7 +942,7 @@ export const DailyMenuPage: React.FC = () => {
               <div className="d-flex flex-wrap justify-content-between align-items-center gap-2 pt-2">
                 <div className="d-flex align-items-center gap-2">
                   <div className="small text-muted">
-                    Total <strong>{activeItemIds.length}</strong> items fixed
+                    બપોર: <strong>{lunchItemIds.length}</strong> | સાંજ: <strong>{dinnerItemIds.length}</strong> વાનગી
                   </div>
                   {isDirty && (
                     <span className="badge bg-warning text-dark border border-warning-subtle d-inline-flex align-items-center gap-1">
@@ -886,30 +988,28 @@ export const DailyMenuPage: React.FC = () => {
         </div>
       </div>
 
-      {/* SAVE MENU CONFIRMATION */}
+      {/* SAVE MENU CONFIRMATION MODAL - Clean right-aligned X */}
       {isSaveConfirmOpen && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(43,24,28,0.55)' }} tabIndex={-1} role="dialog" aria-modal="true">
           <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content shadow border-0">
-              <div className="modal-header bg-primary text-white">
-                <h5 className="modal-title fw-bold d-flex align-items-center gap-2">
+            <div className="modal-content shadow border-0" style={{ borderRadius: 14, overflow: 'hidden' }}>
+              <div className="modal-header bg-primary text-white d-flex align-items-center justify-content-between w-100 p-3">
+                <h5 className="modal-title fw-bold mb-0 d-flex align-items-center gap-2">
                   <CheckCircle2 size={19} /> Save {selectedDay} Menu
                 </h5>
-                <button type="button" className="btn-close btn-close-white" onClick={() => setIsSaveConfirmOpen(false)} disabled={saving} aria-label="Close" />
+                <button type="button" className="btn-close btn-close-white ms-auto" onClick={() => setIsSaveConfirmOpen(false)} disabled={saving} aria-label="Close" />
               </div>
-              <div className="modal-body">
+              <div className="modal-body p-3 p-sm-4">
                 <p className="mb-2">
-                  You are about to make <strong>{activeItemIds.length} dish{activeItemIds.length === 1 ? '' : 'es'}</strong> available for <strong>{selectedDay}</strong>.
+                  તમે <strong>{selectedDay}</strong> માટે:
                 </p>
-                {activeItemIds.length === 0 ? (
-                  <div className="alert alert-warning mb-0 small">
-                    This saves an empty menu. In Strict Daily Menu Mode, no dishes will be available for this day.
-                  </div>
-                ) : (
-                  <div className="text-muted small">The saved menu will be synchronized to all connected ERP screens.</div>
-                )}
+                <ul className="mb-2">
+                  <li><strong>બપોર (Lunch):</strong> {lunchItemIds.length} વાનગી</li>
+                  <li><strong>સાંજ (Dinner):</strong> {dinnerItemIds.length} વાનગી</li>
+                </ul>
+                <div className="text-muted small">મેનુ સેવ કરવા માટે Confirm પર ક્લિક કરો.</div>
               </div>
-              <div className="modal-footer">
+              <div className="modal-footer bg-light p-3">
                 <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setIsSaveConfirmOpen(false)} disabled={saving}>Cancel</button>
                 <button type="button" className="btn btn-success btn-sm d-flex align-items-center gap-1" onClick={handleConfirmSaveMenu} disabled={saving}>
                   {saving ? <><span className="spinner-border spinner-border-sm" /> Saving...</> : <><Check size={14} /> Confirm & Save</>}
@@ -920,22 +1020,22 @@ export const DailyMenuPage: React.FC = () => {
         </div>
       )}
 
-      {/* REMOVE / CLEAR CONFIRMATION */}
+      {/* REMOVE / CLEAR CONFIRMATION MODAL - Clean right-aligned X */}
       {pendingRemoval && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(43,24,28,0.55)' }} tabIndex={-1} role="dialog" aria-modal="true">
           <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content shadow border-0">
-              <div className="modal-header">
-                <h5 className="modal-title fw-bold text-danger d-flex align-items-center gap-2"><Trash2 size={18} /> {removalTitle}</h5>
-                <button type="button" className="btn-close" onClick={() => setPendingRemoval(null)} aria-label="Close" />
+            <div className="modal-content shadow border-0" style={{ borderRadius: 14, overflow: 'hidden' }}>
+              <div className="modal-header d-flex align-items-center justify-content-between w-100 p-3 bg-light border-bottom">
+                <h5 className="modal-title fw-bold text-danger mb-0 d-flex align-items-center gap-2"><Trash2 size={18} /> {removalTitle}</h5>
+                <button type="button" className="btn-close ms-auto" onClick={() => setPendingRemoval(null)} aria-label="Close" />
               </div>
-              <div className="modal-body">
+              <div className="modal-body p-3 p-sm-4">
                 <p className="mb-2">{removalDescription}</p>
                 <div className="alert alert-warning small mb-0">
-                  This is a pending change. Click <strong>Save {selectedDay} Menu</strong> afterwards to permanently update the daily menu.
+                  This change is pending. Click <strong>Save {selectedDay} Menu</strong> afterwards to permanently save.
                 </div>
               </div>
-              <div className="modal-footer">
+              <div className="modal-footer bg-light p-3">
                 <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setPendingRemoval(null)}>Cancel</button>
                 <button type="button" className="btn btn-danger btn-sm d-flex align-items-center gap-1" onClick={confirmRemoval}><Trash2 size={14} /> Remove</button>
               </div>
@@ -944,16 +1044,16 @@ export const DailyMenuPage: React.FC = () => {
         </div>
       )}
 
-      {/* SAVED POSTER DELETE CONFIRMATION */}
+      {/* SAVED POSTER DELETE CONFIRMATION - Clean right-aligned X */}
       {pendingPosterDelete && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(43,24,28,0.55)' }} tabIndex={-1} role="dialog" aria-modal="true">
           <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content shadow border-0 overflow-hidden">
-              <div className="modal-header bg-primary text-white">
-                <h5 className="modal-title fw-bold d-flex align-items-center gap-2"><Trash2 size={18} /> Delete Saved Poster</h5>
-                <button type="button" className="btn-close btn-close-white" onClick={() => setPendingPosterDelete(null)} disabled={deletingPoster} aria-label="Close" />
+            <div className="modal-content shadow border-0 overflow-hidden" style={{ borderRadius: 14 }}>
+              <div className="modal-header bg-primary text-white d-flex align-items-center justify-content-between w-100 p-3">
+                <h5 className="modal-title fw-bold mb-0 d-flex align-items-center gap-2"><Trash2 size={18} /> Delete Saved Poster</h5>
+                <button type="button" className="btn-close btn-close-white ms-auto" onClick={() => setPendingPosterDelete(null)} disabled={deletingPoster} aria-label="Close" />
               </div>
-              <div className="modal-body">
+              <div className="modal-body p-3 p-sm-4">
                 <div className="d-flex align-items-center gap-3 mb-3">
                   <img
                     src={`${getBackendOrigin()}${pendingPosterDelete.fileUrl}`}
@@ -970,7 +1070,7 @@ export const DailyMenuPage: React.FC = () => {
                   This permanently removes the saved poster file. This action cannot be undone.
                 </div>
               </div>
-              <div className="modal-footer">
+              <div className="modal-footer bg-light p-3">
                 <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setPendingPosterDelete(null)} disabled={deletingPoster}>Cancel</button>
                 <button type="button" className="btn btn-danger btn-sm d-flex align-items-center gap-1" onClick={handleDeletePoster} disabled={deletingPoster}>
                   {deletingPoster ? <><span className="spinner-border spinner-border-sm" /> Deleting...</> : <><Trash2 size={14} /> Delete Poster</>}
@@ -981,20 +1081,20 @@ export const DailyMenuPage: React.FC = () => {
         </div>
       )}
 
-      {/* COPY MENU MODAL */}
+      {/* COPY MENU MODAL - Clean right-aligned X */}
       {isCopyModalOpen && (
         <div className="modal show d-block" style={{ backgroundColor: 'rgba(0,0,0,0.5)' }} tabIndex={-1}>
           <div className="modal-dialog modal-dialog-centered">
-            <div className="modal-content shadow">
-              <div className="modal-header">
-                <h5 className="modal-title fw-bold d-flex align-items-center gap-2">
+            <div className="modal-content shadow border-0" style={{ borderRadius: 14, overflow: 'hidden' }}>
+              <div className="modal-header d-flex align-items-center justify-content-between w-100 p-3 bg-light border-bottom">
+                <h5 className="modal-title fw-bold mb-0 d-flex align-items-center gap-2">
                   <Copy size={18} /> Copy Menu from {selectedDay}
                 </h5>
-                <button type="button" className="btn-close" onClick={() => setIsCopyModalOpen(false)} />
+                <button type="button" className="btn-close ms-auto" onClick={() => setIsCopyModalOpen(false)} aria-label="Close" />
               </div>
-              <div className="modal-body">
+              <div className="modal-body p-3 p-sm-4">
                 <p className="small text-muted mb-3">
-                  Select which other days should have the exact same <strong>{activeItemIds.length} dishes</strong> as {selectedDay}:
+                  Select which other days should have the exact same menu (Lunch: {lunchItemIds.length}, Dinner: {dinnerItemIds.length}) as {selectedDay}:
                 </p>
 
                 <div className="d-flex flex-column gap-2">
@@ -1026,7 +1126,7 @@ export const DailyMenuPage: React.FC = () => {
                   })}
                 </div>
               </div>
-              <div className="modal-footer">
+              <div className="modal-footer bg-light p-3">
                 <button type="button" className="btn btn-secondary btn-sm" onClick={() => setIsCopyModalOpen(false)}>
                   Cancel
                 </button>
@@ -1044,20 +1144,19 @@ export const DailyMenuPage: React.FC = () => {
         </div>
       )}
 
-
       {/* POSTER GENERATION PANEL */}
       {showPosterPanel && (
         <div className="card shadow-sm border-0 mt-3">
           <div className="card-header bg-white py-3 border-bottom d-flex justify-content-between align-items-center">
             <div className="d-flex align-items-center gap-2">
               <ImageIcon className="text-success" size={22} />
-              <h6 className="fw-bold mb-0 text-dark">Automatic Poster Generator (પોસ્ટર જનરેટર)</h6>
+              <h6 className="fw-bold mb-0 text-dark">Automatic Poster Generator</h6>
               <span className="badge bg-success-subtle text-success border border-success-subtle">
                 Uses Saved Menu
               </span>
             </div>
             <button
-              className="btn btn-sm btn-outline-secondary p-1"
+              className="btn btn-sm btn-outline-secondary p-1 ms-auto"
               onClick={() => setShowPosterPanel(false)}
               title="Hide Poster Panel"
             >
@@ -1099,7 +1198,7 @@ export const DailyMenuPage: React.FC = () => {
                   </div>
 
                   <div className="rounded-3 border bg-primary-subtle p-3">
-                    <div className="fw-bold small text-primary">Fixed Restaurant Poster Design</div>
+                    <div className="fw-bold small text-primary">Kathiyawadi Restaurant Poster</div>
                     <div className="text-muted small mt-1">
                       Royal maroon, gold ribbons and Gujarati menu-card layout. The saved dishes, price and date are filled automatically.
                     </div>
@@ -1170,7 +1269,7 @@ export const DailyMenuPage: React.FC = () => {
                       ) : (
                         <div className="d-flex flex-column align-items-center justify-content-center h-100 text-muted">
                           <ImageIcon size={40} className="opacity-25 mb-2" />
-                          <div className="small">Click "Generate Preview" to create a poster for {selectedDay}</div>
+                          <div className="small">Click "Open Preview" to create a poster for {selectedDay}</div>
                         </div>
                       )}
                     </div>
@@ -1242,8 +1341,6 @@ export const DailyMenuPage: React.FC = () => {
           </div>
         </div>
       )}
-
-
     </div>
   );
 };

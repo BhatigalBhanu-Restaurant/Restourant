@@ -61,6 +61,7 @@ export interface MenuCategory {
   displayOrder: number;
   imageUrl?: string;
   isActive: boolean;
+  mealPeriod?: 'LUNCH' | 'DINNER';
 }
 
 export interface MenuItem {
@@ -77,6 +78,7 @@ export interface MenuItem {
   preparationTimeMinutes: number;
   imageUrl?: string;
   displayOrder: number;
+  mealPeriod?: 'LUNCH' | 'DINNER';
 }
 
 export type DayOfWeek = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDAY' | 'SATURDAY' | 'SUNDAY';
@@ -168,11 +170,41 @@ export interface Booking {
     selectedMenuIds?: string[];
   status: 'PENDING' | 'CONFIRMED' | 'LOCKED' | 'CHECKED_IN' | 'CHECKED_OUT' | 'CANCELLED' | 'NO_SHOW' | 'COMPLETED';
   specialRequests?: string;
-  checkedInAt?: string;
-  checkedInBy?: string;
-  checkedOutAt?: string;
-  checkedOutBy?: string;
-  billing?: any;
+  createdAt: string;
+  billing?: {
+    billNumber?: string;
+    billedAt?: string;
+    billedBy?: string;
+    dishes?: Array<{ name: string; qty: number; price: number; total: number }>;
+    subtotal?: number;
+    totalAmount?: number;
+    discount?: number;
+    taxAmount?: number;
+    advanceDeducted?: number;
+    advanceAmount?: number;
+    netPayable?: number;
+    paymentMode?: string;
+    paymentReference?: string;
+    notes?: string;
+  };
+}
+
+
+export interface QueueToken {
+  id: string;
+  tokenNumber: number;
+  tokenCode: string;
+  tokenDate?: string;
+  customerName: string;
+  customerPhone: string;
+  partySize: number;
+  status: 'WAITING' | 'CALLED' | 'RECALLED' | 'SKIPPED' | 'SEATED' | 'CANCELLED' | 'COMPLETED';
+  tableId?: string;
+  estimatedWaitMinutes: number;
+  calledAt?: string;
+  seatedAt?: string;
+  completedAt?: string;
+  cancelledAt?: string;
   createdAt: string;
 }
 
@@ -208,6 +240,26 @@ export interface Order {
   waiterId?: string;
   notes?: string;
   isHeld?: boolean;
+  createdAt: string;
+}
+
+export interface KOTTicket {
+  id: string;
+  kotNumber: string;
+  orderId: string;
+  tableId?: string;
+  tableNumber?: string;
+  orderType: string;
+  status: 'NEW' | 'ACCEPTED' | 'PREPARING' | 'READY' | 'SERVED' | 'CANCELLED';
+  priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
+  chefNotes?: string;
+  items: Array<{
+    id: string;
+    itemName: string;
+    quantity: number;
+    notes?: string;
+    status: string;
+  }>;
   createdAt: string;
 }
 

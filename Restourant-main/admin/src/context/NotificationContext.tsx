@@ -78,6 +78,14 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
   useEffect(() => {
     if (!socket) return;
 
+    socket.on('kot.created', (kot: any) => {
+      addToast('New KOT Created', `Ticket ${kot.kotNumber} for Table ${kot.tableNumber || 'Takeaway'}`, 'info');
+    });
+
+    socket.on('kot.ready_alert', (kot: any) => {
+      addToast('Food Ready to Serve!', `KOT ${kot.kotNumber} for Table ${kot.tableNumber} is ready.`, 'success');
+    });
+
     socket.on('inventory.low_stock', (item: any) => {
       addToast('Low Stock Alert', `${item.name} current stock (${item.currentStock}) is below minimum (${item.minimumStockLevel}).`, 'warning');
     });
@@ -87,6 +95,8 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
     });
 
     return () => {
+      socket.off('kot.created');
+      socket.off('kot.ready_alert');
       socket.off('inventory.low_stock');
       socket.off('system.status_changed');
     };

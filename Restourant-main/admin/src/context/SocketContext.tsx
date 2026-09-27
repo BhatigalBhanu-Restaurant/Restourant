@@ -138,7 +138,31 @@ export const SocketProvider: React.FC<{ children: React.ReactNode }> = ({ childr
       dispatchChange('orders', 'UPDATE', data);
     });
 
+    newSocket.on('kot.created', (data) => {
+      appCache.invalidateMatching('/kitchen');
+      dispatchChange('kitchen', 'CREATE', data);
+    });
 
+    newSocket.on('kot.updated', (data) => {
+      appCache.invalidateMatching('/kitchen');
+      dispatchChange('kitchen', 'UPDATE', data);
+    });
+
+    newSocket.on('kot.ready', (data) => {
+      appCache.invalidateMatching('/kitchen');
+      dispatchChange('kitchen', 'READY', data);
+    });
+
+    // 4. Token updates
+    newSocket.on('token.called', (data) => {
+      appCache.invalidateMatching('/tokens');
+      dispatchChange('tokens', 'CALLED', data);
+    });
+
+    newSocket.on('token.updated', (data) => {
+      appCache.invalidateMatching('/tokens');
+      dispatchChange('tokens', 'UPDATE', data);
+    });
 
     // 5. Payment & Billing
     newSocket.on('payment.completed', (data) => {

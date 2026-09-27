@@ -63,12 +63,13 @@ apiClient.interceptors.response.use(
     if (method && ['post', 'put', 'patch', 'delete'].includes(method) && url) {
       let entity = 'general';
 
-      if (url.includes('/orders') || url.includes('/tables') || url.includes('/billing')) {
+      if (url.includes('/orders') || url.includes('/tables') || url.includes('/billing') || url.includes('/kot')) {
         entity = url.includes('/tables') ? 'tables' : 'orders';
         appCache.invalidateMatching('/tables/floor-layout');
         appCache.invalidateMatching('/masters/tables');
         appCache.invalidateMatching('/orders');
         appCache.invalidateMatching('/dashboard');
+        appCache.invalidateMatching('/kitchen');
         appCache.invalidateMatching('/billing');
       } else if (url.includes('/daily-menu')) {
         entity = 'daily-menu';
@@ -87,6 +88,10 @@ apiClient.interceptors.response.use(
         appCache.invalidateMatching('/masters');
         appCache.invalidateMatching('/tables/floor-layout');
         appCache.invalidateMatching('/daily-menu');
+      } else if (url.includes('/tokens')) {
+        entity = 'tokens';
+        appCache.invalidateMatching('/tokens');
+        appCache.invalidateMatching('/dashboard');
       } else if (url.includes('/bookings')) {
         entity = 'bookings';
         appCache.invalidateMatching('/bookings');
