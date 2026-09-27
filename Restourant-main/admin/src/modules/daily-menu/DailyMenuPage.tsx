@@ -567,7 +567,7 @@ export const DailyMenuPage: React.FC = () => {
                       </span>
                       {isToday && (
                         <span className="badge bg-warning text-dark small" style={{ fontSize: '0.65rem' }}>
-                          ★ TODAY
+                          TODAY
                         </span>
                       )}
                     </button>
@@ -601,7 +601,7 @@ export const DailyMenuPage: React.FC = () => {
             <CheckCircle2 size={18} className="text-success" />
             <span className="fw-bold small text-break">{saveSuccessMsg}</span>
           </div>
-          <span className="badge bg-success">Live in POS</span>
+          <span className="badge bg-success">Active Menu</span>
         </div>
       )}
 
@@ -745,7 +745,7 @@ export const DailyMenuPage: React.FC = () => {
                   Scheduled for {selectedDay} ({activeItemIds.length})
                 </h6>
                 <span className="text-muted small">
-                  {selectedDay === systemToday ? '★ Active Today in POS' : 'Scheduled for future service'}
+                  {selectedDay === systemToday ? 'Active Today' : 'Scheduled for future service'}
                 </span>
               </div>
               <div className="d-flex gap-1">

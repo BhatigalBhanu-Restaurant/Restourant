@@ -1050,7 +1050,7 @@ export const BookingPage: React.FC = () => {
                 <div className="alert alert-warning border shadow-sm p-2.5 rounded-3 mb-3">
                   <div className="d-flex justify-content-between align-items-center mb-1">
                     <strong className="small text-dark">
-                      📅 આ તારીખે {selectedDateBookings.length} ફંક્શન નોંધાયેલ છે:
+                      આ તારીખે {selectedDateBookings.length} ફંક્શન નોંધાયેલ છે:
                     </strong>
                     <span className="badge bg-danger text-white">{selectedDate}</span>
                   </div>
@@ -1066,19 +1066,20 @@ export const BookingPage: React.FC = () => {
                           </div>
                           <button
                             type="button"
-                            className="btn btn-sm btn-outline-secondary py-0 px-2"
+                            className="btn btn-sm btn-outline-warning py-0 px-2 fw-semibold text-dark shadow-xs d-flex align-items-center gap-1"
                             style={{ fontSize: '0.72rem' }}
-                            onClick={() => setSelectedBookingForSlip(b)}
+                            onClick={() => setViewingLockedMenuBooking(b)}
                           >
-                            સ્લિપ જુઓ
+                            <Utensils size={11} />
+                            <span>મેનુ જુઓ</span>
                           </button>
                         </div>
 
                         {/* Display Booked Dishes */}
                         {b.selectedMenu && b.selectedMenu.length > 0 ? (
                           <div className="pt-1.5 border-top">
-                            <span className="text-secondary fw-bold d-block mb-1" style={{ fontSize: '0.7rem' }}>
-                              🍽️ પસંદ કરેલ ભોજન મેનુ ({b.selectedMenu.length} વાનગીઓ):
+                            <span className="text-secondary fw-semibold d-block mb-1" style={{ fontSize: '0.7rem' }}>
+                              પસંદ કરેલ મેનુ ({b.selectedMenu.length} વાનગીઓ):
                             </span>
                             <div className="d-flex flex-wrap gap-1">
                               {b.selectedMenu.map((dish, dIdx) => (
@@ -1103,7 +1104,7 @@ export const BookingPage: React.FC = () => {
                 {/* 1. Date Picker */}
                 <div>
                   <label className="form-label small fw-semibold text-secondary mb-1 d-flex align-items-center gap-1">
-                    <CalendarIcon size={12} /> Booking Date (તારીખ) <span className="text-danger">*</span>
+                    <CalendarIcon size={13} className="text-primary" /> Booking Date <span className="text-danger">*</span>
                   </label>
                   <input
                     type="date"
@@ -1125,17 +1126,17 @@ export const BookingPage: React.FC = () => {
                     style={{ borderColor: '#E8DCCF', fontSize: '0.9rem' }}
                   />
                   <small className="text-muted">
-                    તારીખનો વાર: <strong className="text-primary">{DAY_NAME_GUJARATI[bookingDayName] || bookingDayName}</strong>
+                    Day: <strong className="text-primary">{DAY_NAME_GUJARATI[bookingDayName] || bookingDayName}</strong>
                   </small>
                 </div>
 
-                {/* 2. TIME SLOT: STRICTLY 2 OPTIONS (બપોરે / સાંજે) + MANUAL TIME SELECT */}
+                {/* 2. TIME SLOT: STRICTLY 2 OPTIONS (Lunch / Dinner) + TIME SELECT */}
                 <div className="p-2.5 rounded-3 bg-light border">
                   <label className="form-label small fw-bold text-dark mb-1 d-flex align-items-center gap-1">
-                    <Clock size={13} className="text-danger" /> Time Slot (સમય ગાળો) & Manual Time <span className="text-danger">*</span>
+                    <Clock size={13} className="text-primary" /> Time Slot <span className="text-danger">*</span>
                   </label>
                   
-                  {/* Exactly 2 Time Slot Buttons: બપોરે (Lunch) / સાંજે (Dinner) */}
+                  {/* Exactly 2 Time Slot Buttons: Lunch / Dinner */}
                   <div className="btn-group w-100 mb-2 shadow-xs" role="group">
                     <button
                       type="button"
@@ -1150,7 +1151,7 @@ export const BookingPage: React.FC = () => {
                         bookingTime: formData.bookingTime?.includes('08:') || formData.bookingTime?.includes('07:') ? '01:00 PM' : (formData.bookingTime || '01:00 PM')
                       })}
                     >
-                      <span>☀️ બપોરે (Lunch)</span>
+                      <span>Lunch (બપોરે)</span>
                     </button>
                     <button
                       type="button"
@@ -1165,20 +1166,20 @@ export const BookingPage: React.FC = () => {
                         bookingTime: formData.bookingTime?.includes('01:') || formData.bookingTime?.includes('12:') ? '08:00 PM' : (formData.bookingTime || '08:00 PM')
                       })}
                     >
-                      <span>🌙 સાંજે (Dinner)</span>
+                      <span>Dinner (સાંજે)</span>
                     </button>
                   </div>
 
-                  {/* Manual Time Selection Field */}
+                  {/* Time Selection Field */}
                   <div className="row g-2 align-items-center">
                     <div className="col-7">
                       <label className="small text-secondary mb-0 fw-semibold" style={{ fontSize: '0.75rem' }}>
-                        Manual Exact Time (ચોક્કસ સમય):
+                        Event Time:
                       </label>
                       <input
                         type="text"
                         className="form-control form-control-sm border rounded-2 p-1.5 fw-bold text-dark font-monospace"
-                        placeholder={formData.timeSlot.includes('બપોરે') ? '01:00 PM' : '08:00 PM'}
+                        placeholder={formData.timeSlot.includes('Lunch') ? '01:00 PM' : '08:00 PM'}
                         required
                         value={formData.bookingTime}
                         onChange={e => setFormData({ ...formData, bookingTime: e.target.value })}
@@ -1186,8 +1187,8 @@ export const BookingPage: React.FC = () => {
                       />
                     </div>
                     <div className="col-5">
-                      <label className="small text-secondary mb-0" style={{ fontSize: '0.75rem' }}>
-                        Quick Presets:
+                      <label className="small text-secondary mb-0 fw-semibold" style={{ fontSize: '0.75rem' }}>
+                        Presets:
                       </label>
                       <select
                         className="form-select form-select-sm"
@@ -1195,7 +1196,7 @@ export const BookingPage: React.FC = () => {
                         onChange={e => setFormData({ ...formData, bookingTime: e.target.value })}
                         style={{ fontSize: '0.78rem' }}
                       >
-                        {formData.timeSlot.includes('બપોરે') ? (
+                        {formData.timeSlot.includes('Lunch') || formData.timeSlot.includes('બપોરે') ? (
                           <>
                             <option value="11:30 AM">11:30 AM</option>
                             <option value="12:00 PM">12:00 PM</option>
@@ -1226,12 +1227,12 @@ export const BookingPage: React.FC = () => {
                     <div className="d-flex align-items-center gap-1.5">
                       <Utensils size={16} className="text-warning" />
                       <span className="fw-bold text-dark small">
-                        Function Menu (ભોજન મેનુ)
+                        Catering Menu
                       </span>
                     </div>
                     {selectedDishes.length > 0 && (
                       <span className="badge bg-primary rounded-pill px-2 py-0.5" style={{ fontSize: '0.75rem' }}>
-                        {selectedDishes.length} વાનગીઓ
+                        {selectedDishes.length} Items
                       </span>
                     )}
                   </div>
@@ -1244,7 +1245,7 @@ export const BookingPage: React.FC = () => {
                     style={{ fontSize: '0.85rem' }}
                   >
                     <Utensils size={15} />
-                    <span>{selectedDishes.length > 0 ? 'Edit Menu (મેનુ બદલો)' : 'Select Menu (મેનુ પસંદ કરો)'}</span>
+                    <span>{selectedDishes.length > 0 ? 'Edit Catering Menu' : 'Select Catering Menu'}</span>
                   </button>
 
                   {selectedDishes.length > 0 && (
@@ -1262,7 +1263,7 @@ export const BookingPage: React.FC = () => {
                     <div className="p-2 bg-white rounded border mt-2">
                       <div className="d-flex justify-content-between align-items-center mb-1">
                         <span className="text-muted small" style={{ fontSize: '0.7rem' }}>
-                          પસંદ કરેલ વાનગીઓ ({selectedDishes.length}):
+                          Selected Dishes ({selectedDishes.length}):
                         </span>
                         <button
                           type="button"
@@ -1283,7 +1284,7 @@ export const BookingPage: React.FC = () => {
                             <span>{dish.name}</span>
                             <X 
                               size={12} 
-                              className="cursor-pointer text-danger" 
+                              className="cursor-pointer text-danger ms-1" 
                               style={{ cursor: 'pointer' }}
                               onClick={() => handleToggleItem(dish.id)}
                             />
@@ -1297,7 +1298,7 @@ export const BookingPage: React.FC = () => {
                 {/* 4. Guests Expected */}
                 <div>
                   <label className="form-label small fw-semibold text-secondary mb-1 d-flex align-items-center gap-1">
-                    <Users size={12} className="text-danger" /> Guests Expected (મહેમાનોની સંખ્યા) <span className="text-danger">*</span>
+                    <Users size={12} className="text-danger" /> Guests Expected <span className="text-danger">*</span>
                   </label>
                   <input
                     type="number"
@@ -1315,7 +1316,7 @@ export const BookingPage: React.FC = () => {
                 <div className="row g-2">
                   <div className="col-12 col-sm-6">
                     <label className="form-label small fw-semibold text-secondary mb-1">
-                      Host Name (યજમાનનું નામ) <span className="text-danger">*</span>
+                      Host Name <span className="text-danger">*</span>
                     </label>
                     <input
                       type="text"
@@ -1329,7 +1330,7 @@ export const BookingPage: React.FC = () => {
                   </div>
                   <div className="col-12 col-sm-6">
                     <label className="form-label small fw-semibold text-secondary mb-1">
-                      Mobile Phone (મોબાઈલ નંબર) <span className="text-danger">*</span>
+                      Mobile Phone <span className="text-danger">*</span>
                     </label>
                     <div className="input-group input-group-sm">
                       <span className="input-group-text bg-light text-muted border-end-0" style={{ fontSize: '0.8rem' }}>
@@ -1426,7 +1427,7 @@ export const BookingPage: React.FC = () => {
                 <div className="row g-2">
                   <div className="col-12 col-sm-6">
                     <label className="form-label small fw-semibold text-secondary mb-1">
-                      Function Type (પ્રસંગનો પ્રકાર)
+                      Function Type
                     </label>
                     <select
                       className="form-select form-select-sm border rounded-3 p-2"
@@ -1446,7 +1447,7 @@ export const BookingPage: React.FC = () => {
                   </div>
                   <div className="col-12 col-sm-6">
                     <label className="form-label small fw-semibold text-secondary mb-1">
-                      Accepted By (મેનેજર)
+                      Accepted By
                     </label>
                     <select
                       className="form-select form-select-sm border rounded-3 p-2"
@@ -1464,7 +1465,7 @@ export const BookingPage: React.FC = () => {
                 {/* 9. Notes / Instructions */}
                 <div>
                   <label className="form-label small fw-semibold text-secondary mb-1">
-                    Special Instructions (વિશેષ નોંધ)
+                    Special Instructions
                   </label>
                   <textarea
                     rows={2}
@@ -1497,7 +1498,7 @@ export const BookingPage: React.FC = () => {
                     ) : (
                       <>
                         <CalendarPlus size={16} />
-                        <span>Confirm Function Booking (ફંક્શન બુક કરો)</span>
+                        <span>Confirm Function Booking</span>
                       </>
                     )}
                   </button>
@@ -1731,13 +1732,13 @@ export const BookingPage: React.FC = () => {
               <div className="mt-3 p-3 rounded-3 border" style={{ backgroundColor: '#FAF7F2', borderColor: '#EADBC8' }}>
                 <div className="d-flex justify-content-between align-items-center">
                   <div>
-                    <span className="small text-muted d-block" style={{ fontSize: '0.75rem' }}>Selected Calendar Date (પસંદ કરેલ તારીખ)</span>
+                    <span className="small text-muted d-block" style={{ fontSize: '0.75rem' }}>Selected Date</span>
                     <h6 className="fw-bold mb-0 text-dark">
-                      📅 {selectedDate} ({DAY_NAME_GUJARATI[bookingDayName] || bookingDayName})
+                      {selectedDate} ({DAY_NAME_GUJARATI[bookingDayName] || bookingDayName})
                     </h6>
                   </div>
                   <span className={`badge ${selectedDateBookings.length > 0 ? 'bg-danger text-white' : 'bg-success text-white'} px-2.5 py-1 fw-bold`} style={{ fontSize: '0.75rem' }}>
-                    {selectedDateBookings.length > 0 ? `🔒 ${selectedDateBookings.length} ફંક્શન બુક છે` : '🟢 નવું બુકિંગ ઉપલબ્ધ'}
+                    {selectedDateBookings.length > 0 ? `${selectedDateBookings.length} Booked` : 'Available'}
                   </span>
                 </div>
 
@@ -1818,16 +1819,16 @@ export const BookingPage: React.FC = () => {
                           </div>
                         </div>
 
-                        {/* Selected Food Menu (વાનગીઓનું લિસ્ટ) */}
+                        {/* Selected Food Menu */}
                         {b.selectedMenu && b.selectedMenu.length > 0 ? (
                           <div className="p-2 rounded-2 bg-light border">
                             <div className="d-flex align-items-center justify-content-between mb-1.5 pb-1 border-bottom">
                               <span className="small fw-bold text-dark d-flex align-items-center gap-1.5" style={{ fontSize: '0.74rem' }}>
                                 <Utensils size={12} className="text-warning" />
-                                <span>નક્કી કરેલ ભોજન મેનુ (Catering Menu):</span>
+                                <span>Catering Menu:</span>
                               </span>
                               <span className="badge bg-secondary text-white px-2 py-0.5" style={{ fontSize: '0.68rem' }}>
-                                {b.selectedMenu.length} વાનગીઓ
+                                {b.selectedMenu.length} Items
                               </span>
                             </div>
                             <div className="d-flex flex-wrap gap-1">
@@ -1837,7 +1838,6 @@ export const BookingPage: React.FC = () => {
                                   className="badge bg-white text-dark border shadow-xs d-inline-flex align-items-center py-1 px-2 rounded-2"
                                   style={{ fontSize: '0.73rem', fontWeight: 500 }}
                                 >
-                                  <span className="text-warning me-1">✦</span>
                                   {dishName}
                                 </span>
                               ))}
@@ -2195,15 +2195,15 @@ export const BookingPage: React.FC = () => {
             {selectedBookingForSlip.selectedMenu && selectedBookingForSlip.selectedMenu.length > 0 && (
               <div className="p-2.5 rounded-3 mb-3 border" style={{ backgroundColor: '#F9F6F0', borderColor: '#E8DCCF' }}>
                 <div className="d-flex justify-content-between align-items-center mb-1.5 pb-1 border-bottom">
-                  <strong className="text-dark small">🍽️ પસંદ કરેલ ભોજન મેનુ (Selected Catering Menu):</strong>
+                  <strong className="text-dark small">Selected Catering Menu:</strong>
                   <span className="badge bg-secondary" style={{ fontSize: '0.68rem' }}>
-                    {selectedBookingForSlip.selectedMenu.length} વાનગીઓ
+                    {selectedBookingForSlip.selectedMenu.length} Items
                   </span>
                 </div>
                 <div className="row g-1">
                   {selectedBookingForSlip.selectedMenu.map((dishName, idx) => (
                     <div key={idx} className="col-6 col-sm-4 small text-dark d-flex align-items-center gap-1">
-                      <span className="text-warning">✦</span>
+                      <span className="text-secondary">•</span>
                       <span className="fw-medium">{dishName}</span>
                     </div>
                   ))}
@@ -2330,7 +2330,7 @@ export const BookingPage: React.FC = () => {
           size="xl"
           isOpen={isMenuModalOpen}
           onClose={finishMenuSelection}
-          title={`🍽️ ફંક્શન કેટરિંગ ભોજન મેનુ (Function Catering Menu) • ${formData.bookingDate} (${DAY_NAME_GUJARATI[bookingDayName] || bookingDayName})`}
+          title={`ફંક્શન કેટરિંગ મેનુ (Function Catering Menu) • ${formData.bookingDate} (${DAY_NAME_GUJARATI[bookingDayName] || bookingDayName})`}
         >
           <div className="d-flex flex-column gap-3 p-1">
             {/* Top Action Bar */}
@@ -2582,7 +2582,7 @@ export const BookingPage: React.FC = () => {
           size="md"
           isOpen={!!viewingLockedMenuBooking}
           onClose={() => setViewingLockedMenuBooking(null)}
-          title="🍽️ નક્કી કરેલ ભોજન મેનુ (Menu)"
+          title="નક્કી કરેલ મેનુ (Catering Menu)"
         >
           <div className="p-3">
             {/* Header info */}
@@ -2656,7 +2656,7 @@ export const BookingPage: React.FC = () => {
           size="xl"
           isOpen={isCheckOutModalOpen}
           onClose={() => setIsCheckOutModalOpen(false)}
-          title={`🏁 ફંક્શન ચેક આઉટ અને બિલ જનરેશન • ${checkoutState.booking.bookingNumber}`}
+          title={`ફંક્શન ચેક આઉટ અને બિલ • ${checkoutState.booking.bookingNumber}`}
         >
           <div className="p-2">
             {/* Host & Function Summary Bar */}
@@ -2665,7 +2665,7 @@ export const BookingPage: React.FC = () => {
                 <div className="col-12 col-md-4">
                   <div className="small text-muted">યજમાન (Host Name):</div>
                   <strong className="fs-6 text-dark">{checkoutState.booking.customerName}</strong>
-                  <div className="small text-muted">📞 +91 {checkoutState.booking.customerPhone}</div>
+                  <div className="small text-muted">Phone: +91 {checkoutState.booking.customerPhone}</div>
                 </div>
                 <div className="col-6 col-md-3">
                   <div className="small text-muted">તારીખ અને સમય:</div>
@@ -3079,7 +3079,7 @@ export const BookingPage: React.FC = () => {
                 <div className="col-6">
                   <span className="text-muted d-block">Host / Client:</span>
                   <strong className="fs-6">{viewingBillBooking.customerName}</strong>
-                  <div className="text-muted">📞 +91 {viewingBillBooking.customerPhone}</div>
+                  <div className="text-muted">Phone: +91 {viewingBillBooking.customerPhone}</div>
                 </div>
                 <div className="col-6 text-end">
                   <span className="text-muted d-block">Event Date & Period:</span>
@@ -3199,7 +3199,7 @@ export const BookingPage: React.FC = () => {
 
               {/* Thank you note & computer generated notice */}
               <div className="text-center pt-2 border-top small text-muted">
-                <div>🙏 ભાતીગળ ભાણુંની મુલાકાત બદલ આભાર! Visit Again.</div>
+                <div>ભાતીગળ ભાણુંની મુલાકાત બદલ આભાર! Visit Again.</div>
                 <div style={{ fontSize: '0.7rem' }}>This is a computer-generated invoice and does not require a physical signature.</div>
               </div>
             </div>

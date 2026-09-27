@@ -176,25 +176,6 @@ export interface Booking {
   createdAt: string;
 }
 
-
-export interface QueueToken {
-  id: string;
-  tokenNumber: number;
-  tokenCode: string;
-  tokenDate?: string;
-  customerName: string;
-  customerPhone: string;
-  partySize: number;
-  status: 'WAITING' | 'CALLED' | 'RECALLED' | 'SKIPPED' | 'SEATED' | 'CANCELLED' | 'COMPLETED';
-  tableId?: string;
-  estimatedWaitMinutes: number;
-  calledAt?: string;
-  seatedAt?: string;
-  completedAt?: string;
-  cancelledAt?: string;
-  createdAt: string;
-}
-
 export interface OrderItem {
   id: string;
   menuItemId: string;
@@ -227,26 +208,6 @@ export interface Order {
   waiterId?: string;
   notes?: string;
   isHeld?: boolean;
-  createdAt: string;
-}
-
-export interface KOTTicket {
-  id: string;
-  kotNumber: string;
-  orderId: string;
-  tableId?: string;
-  tableNumber?: string;
-  orderType: string;
-  status: 'NEW' | 'ACCEPTED' | 'PREPARING' | 'READY' | 'SERVED' | 'CANCELLED';
-  priority: 'LOW' | 'NORMAL' | 'HIGH' | 'URGENT';
-  chefNotes?: string;
-  items: Array<{
-    id: string;
-    itemName: string;
-    quantity: number;
-    notes?: string;
-    status: string;
-  }>;
   createdAt: string;
 }
 

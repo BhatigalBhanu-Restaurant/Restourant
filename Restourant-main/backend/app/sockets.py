@@ -102,47 +102,6 @@ async def broadcast_change(sid, change_data):
 
 class SocketEvents:
     @staticmethod
-    async def emit_order_created(order: Any):
-        await sio.emit("order.created", _safe(order))
-
-    @staticmethod
-    async def emit_order_updated(order: Any):
-        await sio.emit("order.updated", _safe(order))
-
-    @staticmethod
-    async def emit_kot_created(kot: Any):
-        safe_kot = _safe(kot)
-        await sio.emit("kot.created", safe_kot)
-        await sio.emit("kot.alert", safe_kot, room="role:Kitchen Staff")
-
-    @staticmethod
-    async def emit_kot_updated(kot: Any):
-        await sio.emit("kot.updated", _safe(kot))
-
-    @staticmethod
-    async def emit_kot_ready(kot: Any):
-        safe_kot = _safe(kot)
-        await sio.emit("kot.ready", safe_kot)
-        await sio.emit("kot.ready_alert", safe_kot, room="role:Waiter")
-        await sio.emit("kot.ready_alert", safe_kot, room="role:Manager")
-
-    @staticmethod
-    async def emit_token_called(token: Any):
-        await sio.emit("token.called", _safe(token))
-
-    @staticmethod
-    async def emit_token_updated(token: Any):
-        await sio.emit("token.updated", _safe(token))
-
-    @staticmethod
-    async def emit_table_updated(table: Any):
-        await sio.emit("table.updated", _safe(table))
-
-    @staticmethod
-    async def emit_payment_completed(payment: Any):
-        await sio.emit("payment.completed", _safe(payment))
-
-    @staticmethod
     async def emit_booking_updated(booking: Any):
         await sio.emit("booking.updated", _safe(booking))
 
