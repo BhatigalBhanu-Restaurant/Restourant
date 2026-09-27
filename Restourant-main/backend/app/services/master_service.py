@@ -137,12 +137,13 @@ class MasterService:
             raise HTTPException(status_code=400, detail="Category name and code are required")
         if db.menu_categories.find_one({"code": code}):
             raise HTTPException(status_code=400, detail="A category with this code already exists")
-        cat_id = data.get("id") or f"cat_{uuid.uuid4().hex[:8]}"
+        meal_period = data.get("mealPeriod") or "LUNCH"
         doc = {
             "id": cat_id,
             "name": name,
             "code": code,
             "description": str(data.get("description") or "").strip(),
+            "mealPeriod": meal_period,
             "displayOrder": int(data.get("displayOrder", 1)),
             "isActive": data.get("isActive", True),
             "createdAt": datetime.now(timezone.utc)
@@ -205,7 +206,10 @@ class MasterService:
             raise HTTPException(status_code=400, detail="Please select a valid menu category")
         if db.menu_items.find_one({"code": code}):
             raise HTTPException(status_code=400, detail="A food item with this code already exists")
-        item_id = data.get("id") or f"item_{uuid.uuid4().hex[:8]}"
+        meal_period = data.get("mealPeriod")
+        if not meal_period:
+            cat = db.menu_categories.find_one({"id": category_id})
+            meal_period = cat.get("mealPeriod", "LUNCH") if cat else "LUNCH"
         doc = {
             "id": item_id,
             "categoryId": category_id,
@@ -216,6 +220,7 @@ class MasterService:
             "costPrice": float(data.get("costPrice", 0)),
             "taxId": data.get("taxId", "tax_gst_5"),
             "isVeg": data.get("isVeg", True),
+            "mealPeriod": meal_period,
             "preparationTimeMinutes": int(data.get("preparationTimeMinutes", 10)),
             "displayOrder": int(data.get("displayOrder", 1)),
             "isAvailable": data.get("isAvailable", True),

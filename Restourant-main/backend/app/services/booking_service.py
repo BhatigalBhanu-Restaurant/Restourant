@@ -224,15 +224,26 @@ class BookingService:
         return booking
 
     @staticmethod
-    async def update_booking_status(booking_id: str, status: str, user_id: Optional[str] = None, username: Optional[str] = None, reason: Optional[str] = None) -> Dict[str, Any]:
+    async def update_booking_status(booking_id: str, status: str, user_id: Optional[str] = None, username: Optional[str] = None, reason: Optional[str] = None, extra_fields: Optional[Dict[str, Any]] = None) -> Dict[str, Any]:
         db = get_db()
         booking = db.bookings.find_one({"id": booking_id})
         if not booking:
             raise HTTPException(status_code=404, detail={"success": False, "message": "Booking not found."})
 
-        update_fields = {"status": status, "updatedAt": datetime.now(timezone.utc)}
+        now_utc = datetime.now(timezone.utc)
+        update_fields = {"status": status, "updatedAt": now_utc}
+        if status == "CHECKED_IN" and not booking.get("checkedInAt"):
+            update_fields["checkedInAt"] = now_utc.isoformat()
+            update_fields["checkedInBy"] = username or "Staff"
+        if status in ("COMPLETED", "CHECKED_OUT") and not booking.get("checkedOutAt"):
+            update_fields["checkedOutAt"] = now_utc.isoformat()
+            update_fields["checkedOutBy"] = username or "Staff"
         if reason:
             update_fields["notes"] = f"{booking.get('notes', '')}; Status {status}: {reason}".strip("; ")
+        if extra_fields:
+            for k, v in extra_fields.items():
+                if k not in update_fields:
+                    update_fields[k] = v
 
         db.bookings.update_one({"id": booking_id}, {"$set": update_fields})
         booking.update(update_fields)
@@ -258,6 +269,17 @@ class BookingService:
         })
         await SocketEvents.emit_data_changed("bookings")
         return booking
+
+    @staticmethod
+    async def checkout_booking(booking_id: str, bill_data: Dict[str, Any], user_id: Optional[str] = None, username: Optional[str] = None) -> Dict[str, Any]:
+        return await BookingService.update_booking_status(
+            booking_id=booking_id,
+            status="COMPLETED",
+            user_id=user_id,
+            username=username,
+            extra_fields={"billing": bill_data}
+        )
+
 
     @staticmethod
     async def assign_table(booking_id: str, table_id: str, user_id: Optional[str] = None, username: Optional[str] = None) -> Dict[str, Any]:

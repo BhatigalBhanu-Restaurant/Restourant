@@ -60,14 +60,28 @@ async def update_booking(booking_id: str, body: Dict[str, Any], current_user: Di
 async def update_status(booking_id: str, body: Dict[str, Any], current_user: Dict[str, Any] = Depends(get_current_user)):
     status = body.get("status", "CONFIRMED")
     reason = body.get("reason")
+    extra = {k: v for k, v in body.items() if k not in ("status", "reason")}
     res = await BookingService.update_booking_status(
         booking_id=booking_id,
         status=status,
         user_id=current_user["userId"],
         username=current_user["username"],
-        reason=reason
+        reason=reason,
+        extra_fields=extra if extra else None
     )
     return ApiResponse.success(data=res, message=f"Booking status changed to {status}")
+
+@router.post("/{booking_id}/checkout")
+async def checkout_booking(booking_id: str, body: Dict[str, Any], current_user: Dict[str, Any] = Depends(get_current_user)):
+    bill_data = body.get("billing") or body.get("bill") or body
+    res = await BookingService.checkout_booking(
+        booking_id=booking_id,
+        bill_data=bill_data,
+        user_id=current_user["userId"],
+        username=current_user["username"]
+    )
+    return ApiResponse.success(data=res, message="Booking checked out and completed successfully")
+
 
 @router.patch("/{booking_id}/cancel")
 async def cancel_booking(booking_id: str, body: Optional[Dict[str, Any]] = None, current_user: Dict[str, Any] = Depends(get_current_user)):

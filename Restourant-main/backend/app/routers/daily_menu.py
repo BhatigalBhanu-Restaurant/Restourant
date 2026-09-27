@@ -15,7 +15,6 @@ async def get_all_menus(current_user: Optional[Dict[str, Any]] = Depends(get_opt
 
 @router.get("/today")
 async def get_today_menu(day: Optional[str] = None):
-    # Public & POS terminal access
     data = await DailyMenuService.get_today_daily_menu(requested_day=day)
     return ApiResponse.success(data=data)
 
@@ -25,6 +24,8 @@ async def save_menu(body: Dict[str, Any], current_user: Optional[Dict[str, Any]]
     if not day:
         raise HTTPException(status_code=400, detail={"success": False, "message": "dayOfWeek is required."})
     
+    lunch_item_ids = body.get("lunchItemIds", [])
+    dinner_item_ids = body.get("dinnerItemIds", [])
     item_ids = body.get("itemIds", [])
     notes = body.get("notes", "")
     is_active = body.get("isActive", True)
@@ -34,7 +35,9 @@ async def save_menu(body: Dict[str, Any], current_user: Optional[Dict[str, Any]]
 
     res = await DailyMenuService.save_daily_menu(
         day=day,
-        item_ids=item_ids,
+        lunch_item_ids=lunch_item_ids,
+        dinner_item_ids=dinner_item_ids,
+        item_ids=item_ids if item_ids else None,
         notes=notes,
         is_active=is_active,
         user_id=user_id,
@@ -42,22 +45,9 @@ async def save_menu(body: Dict[str, Any], current_user: Optional[Dict[str, Any]]
     )
     return ApiResponse.success(data=res, message=f"{day} menu updated successfully")
 
-@router.post("/toggle-strict")
-async def toggle_strict(body: Dict[str, Any], current_user: Dict[str, Any] = Depends(get_current_user)):
-    db = get_db()
-    enforced = bool(body.get("isStrictEnforced", True))
-    db.daily_menu_configs.update_one(
-        {"id": "default_config"},
-        {"$set": {"isStrictEnforced": enforced}},
-        upsert=True
-    )
-    return ApiResponse.success(data={"isStrictEnforced": enforced}, message=f"Strict menu enforcement {'enabled' if enforced else 'disabled'}")
-
 @router.post("/copy")
 async def copy_menu(body: Dict[str, Any], current_user: Dict[str, Any] = Depends(get_current_user)):
     db = get_db()
-    # Support the current UI contract (fromDay/toDays) as well as the original
-    # single-target contract (sourceDay/targetDay).
     src = (body.get("fromDay") or body.get("sourceDay") or "").upper()
     target_days = body.get("toDays") or [body.get("targetDay")]
     target_days = [str(day).upper() for day in target_days if day]
@@ -68,14 +58,16 @@ async def copy_menu(body: Dict[str, Any], current_user: Dict[str, Any] = Depends
     if not src_menu:
         raise HTTPException(status_code=404, detail={"success": False, "message": f"Source menu for {src} not found."})
 
-    item_ids = src_menu.get("itemIds", [])
+    lunch_item_ids = src_menu.get("lunchItemIds", [])
+    dinner_item_ids = src_menu.get("dinnerItemIds", [])
     copied_menus = []
     for target_day in target_days:
         if target_day == src:
             continue
         copied_menus.append(await DailyMenuService.save_daily_menu(
             day=target_day,
-            item_ids=item_ids,
+            lunch_item_ids=lunch_item_ids,
+            dinner_item_ids=dinner_item_ids,
             notes=f"Copied from {src}",
             user_id=current_user["userId"],
             username=current_user["username"]
@@ -106,7 +98,6 @@ async def get_menu_poster(day: str, price: int = 250, theme: str = "maroon", for
 @router.post("/{day}/poster")
 async def create_custom_poster(day: str, body: Dict[str, Any] = {}):
     price = body.get("price", 250)
-    # Daily menu posters use one approved restaurant design only.
     theme = "royal_maroon"
     format_style = "FORMAT_KATHIYAWADI_CARD"
     custom_date = body.get("date")
@@ -163,7 +154,6 @@ async def delete_poster(poster_id: str, current_user: Dict[str, Any] = Depends(g
 
 @router.post("/sync-google-calendar")
 async def sync_daily_menus_to_google(current_user: Dict[str, Any] = Depends(get_current_user)):
-    """Sync all daily menus to Google Calendar with their real dates."""
     from ..services.google_calendar_service import GoogleCalendarService
     if not GoogleCalendarService.is_configured():
         return ApiResponse.success(data={"synced": 0, "message": "Google Calendar not configured"})
@@ -173,7 +163,6 @@ async def sync_daily_menus_to_google(current_user: Dict[str, Any] = Depends(get_
     synced = 0
     for menu in menus:
         try:
-            # Ensure realDate is set
             if not menu.get("realDate"):
                 from ..services.daily_menu_service import DailyMenuService
                 days_list = ["MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"]

@@ -30,7 +30,10 @@ import {
   Trash2,
   X,
   Eye,
-  Pencil
+  Pencil,
+  LogIn,
+  LogOut,
+  Receipt
 } from 'lucide-react';
 import { useAutoRefresh } from '../../hooks/useAutoRefresh';
 
@@ -145,6 +148,39 @@ export const BookingPage: React.FC = () => {
 
   // Slip / Receipt Modal
   const [selectedBookingForSlip, setSelectedBookingForSlip] = useState<Booking | null>(null);
+  const [isCheckOutModalOpen, setIsCheckOutModalOpen] = useState(false);
+  const [viewingBillBooking, setViewingBillBooking] = useState<Booking | null>(null);
+  const [viewingLockedMenuBooking, setViewingLockedMenuBooking] = useState<Booking | null>(null);
+
+  // Check-Out and Bill Generation Workflow State
+  const [checkoutState, setCheckoutState] = useState<{
+    booking: Booking | null;
+    dishes: Array<{ name: string; qty: number; price: number; total: number }>;
+    totalBillPrice: number;
+    discount: number;
+    advanceAmount: number;
+    paymentMode: string;
+    paymentReference: string;
+    notes: string;
+    newDishName: string;
+    newDishQty: number;
+    newDishPrice: number;
+    isCheckingOut: boolean;
+  }>({
+    booking: null,
+    dishes: [],
+    totalBillPrice: 0,
+    discount: 0,
+    advanceAmount: 0,
+    paymentMode: 'Cash',
+    paymentReference: '',
+    notes: '',
+    newDishName: '',
+    newDishQty: 1,
+    newDishPrice: 0,
+    isCheckingOut: false
+  });
+
   const [isBookingConfirmOpen, setIsBookingConfirmOpen] = useState(false);
   const [isCapacityOverrideOpen, setIsCapacityOverrideOpen] = useState(false);
   const [bookingToDelete, setBookingToDelete] = useState<Booking | null>(null);
@@ -613,6 +649,180 @@ export const BookingPage: React.FC = () => {
     }
   };
 
+  // 1. Function Check-In Handler
+  const handleCheckIn = async (b: Booking) => {
+    const confirmed = window.confirm(`Check-in ${b.customerName} for Booking #${b.bookingNumber}?`);
+    if (!confirmed) return;
+    try {
+      await apiClient.patch(`/bookings/${b.id}/status`, {
+        status: 'CHECKED_IN',
+        checkedInAt: new Date().toISOString()
+      });
+      setAlertMessage({
+        type: 'success',
+        text: `✓ ${b.customerName} (${b.bookingNumber}) Check-In successful. Function is now active!`
+      });
+      loadBookings(false, true);
+    } catch (err: any) {
+      alert(err.message || 'Check-in failed.');
+    }
+  };
+
+  // 2. Open Check-Out & Bill Generation Modal
+  const openCheckOutModal = (b: Booking) => {
+    const existingDishes: Array<{ name: string; qty: number; price: number; total: number }> =
+      b.billing?.dishes && b.billing.dishes.length > 0
+        ? b.billing.dishes.map((d: any) => ({
+            name: d.name,
+            qty: Number(d.qty) || 1,
+            price: Number(d.price) || 0,
+            total: Number(d.total) || (Number(d.qty) || 1) * (Number(d.price) || 0)
+          }))
+        : (b.selectedMenu || []).map(dishName => ({
+            name: dishName,
+            qty: b.guestCount || 1,
+            price: 0,
+            total: 0
+          }));
+
+    const initialAdvance = Number(b.advanceAmount) || 0;
+    const initialTotal = Number(b.billing?.totalAmount) || Number(b.estimatedTotal) || 0;
+    const initialDiscount = Number(b.billing?.discount) || 0;
+
+    setCheckoutState({
+      booking: b,
+      dishes: existingDishes,
+      totalBillPrice: initialTotal,
+      discount: initialDiscount,
+      advanceAmount: initialAdvance,
+      paymentMode: b.billing?.paymentMode || b.paymentMode || 'Cash',
+      paymentReference: b.billing?.paymentReference || b.referenceId || '',
+      notes: b.billing?.notes || b.notes || '',
+      newDishName: '',
+      newDishQty: b.guestCount || 1,
+      newDishPrice: 0,
+      isCheckingOut: false
+    });
+    setIsCheckOutModalOpen(true);
+  };
+
+  // 3. Add Custom Dish to Checkout
+  const handleAddDishToCheckout = () => {
+    if (!checkoutState.newDishName.trim()) {
+      alert('કૃપા કરીને વાનગી અથવા આઇટમનું નામ દાખલ કરો.');
+      return;
+    }
+    const q = Math.max(1, Number(checkoutState.newDishQty) || 1);
+    const p = Math.max(0, Number(checkoutState.newDishPrice) || 0);
+    const lineTotal = q * p;
+    const newDish = {
+      name: checkoutState.newDishName.trim(),
+      qty: q,
+      price: p,
+      total: lineTotal
+    };
+    const updated = [...checkoutState.dishes, newDish];
+    const sum = updated.reduce((acc, d) => acc + (d.total || 0), 0);
+
+    setCheckoutState(prev => ({
+      ...prev,
+      dishes: updated,
+      totalBillPrice: prev.totalBillPrice === 0 ? sum : prev.totalBillPrice + lineTotal,
+      newDishName: '',
+      newDishQty: prev.booking?.guestCount || 1,
+      newDishPrice: 0
+    }));
+  };
+
+  // 4. Update dish qty or price
+  const handleUpdateDish = (idx: number, field: 'name' | 'qty' | 'price', value: any) => {
+    const updated = [...checkoutState.dishes];
+    updated[idx] = { ...updated[idx], [field]: value };
+    const q = Number(updated[idx].qty) || 0;
+    const p = Number(updated[idx].price) || 0;
+    updated[idx].total = q * p;
+
+    setCheckoutState(prev => {
+      const sum = updated.reduce((acc, d) => acc + (d.total || 0), 0);
+      return {
+        ...prev,
+        dishes: updated,
+        totalBillPrice: sum > 0 ? sum : prev.totalBillPrice
+      };
+    });
+  };
+
+  // 5. Remove dish
+  const handleRemoveDish = (idx: number) => {
+    const updated = checkoutState.dishes.filter((_, i) => i !== idx);
+    const sum = updated.reduce((acc, d) => acc + (d.total || 0), 0);
+    setCheckoutState(prev => ({
+      ...prev,
+      dishes: updated,
+      totalBillPrice: sum > 0 ? sum : prev.totalBillPrice
+    }));
+  };
+
+  // 6. Confirm Check-Out & Generate Bill (Moves status to COMPLETED)
+  const handleConfirmCheckOut = async () => {
+    if (!checkoutState.booking) return;
+    const b = checkoutState.booking;
+    const itemsSum = checkoutState.dishes.reduce((sum, d) => sum + (d.total || 0), 0);
+    const total = Math.max(0, Number(checkoutState.totalBillPrice) || itemsSum);
+    const discount = Math.max(0, Number(checkoutState.discount) || 0);
+    const advance = Math.max(0, Number(checkoutState.advanceAmount) || 0);
+    const net = Math.max(0, total - discount - advance);
+    const now = new Date().toISOString();
+    const billNumber = b.billing?.billNumber || `BILL-${b.bookingNumber}`;
+
+    const billPayload = {
+      billNumber,
+      dishes: checkoutState.dishes,
+      guestCount: b.guestCount,
+      subtotal: itemsSum || total,
+      discount,
+      totalAmount: total,
+      advanceAmount: advance,
+      netPayable: net,
+      paymentMode: checkoutState.paymentMode,
+      paymentReference: checkoutState.paymentReference,
+      notes: checkoutState.notes,
+      billedAt: now,
+      billedBy: user?.username || 'Staff'
+    };
+
+    setCheckoutState(prev => ({ ...prev, isCheckingOut: true }));
+    try {
+      const res: any = await apiClient.post(`/bookings/${b.id}/checkout`, { billing: billPayload });
+      const updatedBooking = res.data || {
+        ...b,
+        status: 'COMPLETED',
+        billing: billPayload,
+        checkedOutAt: now
+      };
+
+      setIsCheckOutModalOpen(false);
+      setAlertMessage({
+        type: 'success',
+        text: `✓ ફંક્શન ${b.bookingNumber} Check Out થઈ ગયું છે અને બિલ ${billNumber} બની ગયું છે!`
+      });
+
+      // Automatically open the final bill modal for viewing and printing
+      setViewingBillBooking(updatedBooking);
+      loadBookings(false, true);
+    } catch (err: any) {
+      alert(err.message || 'Failed to check out booking.');
+    } finally {
+      setCheckoutState(prev => ({ ...prev, isCheckingOut: false }));
+    }
+  };
+
+  // 7. View Final Bill Modal
+  const openBillModal = (b: Booking) => {
+    setViewingBillBooking(b);
+  };
+
+
   // 1-Click Google Calendar Direct Web Link Generator
   const getGoogleCalendarUrl = (booking: Booking): string => {
     const dateClean = (booking.bookingDate || '').replace(/-/g, '');
@@ -730,8 +940,10 @@ export const BookingPage: React.FC = () => {
         statusFilter === 'ALL'
           ? true
           : statusFilter === 'ACTIVE'
-            ? b.status !== 'CANCELLED'
-            : b.status === statusFilter;
+            ? (b.status === 'CONFIRMED' || b.status === 'CHECKED_IN' || b.status === 'PENDING')
+            : statusFilter === 'COMPLETED'
+              ? (b.status === 'COMPLETED' || b.status === 'CHECKED_OUT')
+              : b.status === statusFilter;
       const matchesVenue = venueFilter === 'ALL' || b.venueArea === venueFilter;
       return matchesSearch && matchesStatus && matchesVenue;
     });
@@ -1404,7 +1616,7 @@ export const BookingPage: React.FC = () => {
                         setSelectedDate(item.dateStr);
                         setFormData(prev => ({ ...prev, bookingDate: item.dateStr }));
                         if (dayBookings.length > 0) {
-                          setSelectedBookingForSlip(dayBookings[0]);
+                          setViewingLockedMenuBooking(dayBookings[0]);
                         }
                       }}
                       className="p-1.5 rounded-3 d-flex flex-column justify-content-between position-relative"
@@ -1540,16 +1752,70 @@ export const BookingPage: React.FC = () => {
                             </span>
                             <span className="fw-bold text-dark small">{b.customerName}</span>
                             <span className="text-muted small">({b.guestCount} મહેમાન • {b.bookingTime || ''})</span>
+                            <span className={`badge ${
+                              b.status === 'CONFIRMED' ? 'bg-warning-subtle text-dark border border-warning-subtle' :
+                              b.status === 'CHECKED_IN' ? 'bg-info-subtle text-info border border-info-subtle' :
+                              b.status === 'COMPLETED' || b.status === 'CHECKED_OUT' ? 'bg-success-subtle text-success border border-success-subtle' :
+                              'bg-danger-subtle text-danger border border-danger-subtle'
+                            }`} style={{ fontSize: '0.68rem' }}>
+                              {b.status === 'CHECKED_OUT' ? 'COMPLETED' : b.status}
+                            </span>
                           </div>
-                          <button
-                            type="button"
-                            onClick={() => setSelectedBookingForSlip(b)}
-                            className="btn btn-sm btn-outline-secondary py-0.5 px-2.5 flex-shrink-0 d-flex align-items-center gap-1"
-                            style={{ fontSize: '0.72rem' }}
-                          >
-                            <Printer size={12} />
-                            <span>સ્લિપ જુઓ</span>
-                          </button>
+                          <div className="d-flex align-items-center gap-1">
+                            {/* View Menu Button */}
+                            <button
+                              type="button"
+                              onClick={() => setViewingLockedMenuBooking(b)}
+                              className="btn btn-sm btn-outline-warning py-0.5 px-2 flex-shrink-0 d-flex align-items-center gap-1 fw-semibold text-dark shadow-xs"
+                              style={{ fontSize: '0.72rem' }}
+                              title="નક્કી કરેલ ભોજન મેનુ જુઓ"
+                            >
+                              <Utensils size={12} className="text-warning" />
+                              <span>મેનુ જુઓ</span>
+                            </button>
+
+                            {/* Check In Action */}
+                            {(b.status === 'CONFIRMED' || b.status === 'PENDING') && (
+                              <button
+                                type="button"
+                                onClick={() => handleCheckIn(b)}
+                                className="btn btn-sm btn-outline-success py-0.5 px-2 flex-shrink-0 d-flex align-items-center gap-1 fw-bold shadow-xs"
+                                style={{ fontSize: '0.72rem' }}
+                                title="Check In guests"
+                              >
+                                <LogIn size={12} />
+                                <span>Check In</span>
+                              </button>
+                            )}
+
+                            {/* Check Out Action */}
+                            {b.status === 'CHECKED_IN' && (
+                              <button
+                                type="button"
+                                onClick={() => openCheckOutModal(b)}
+                                className="btn btn-sm btn-primary py-0.5 px-2 flex-shrink-0 d-flex align-items-center gap-1 fw-bold shadow-sm"
+                                style={{ fontSize: '0.72rem' }}
+                                title="Check Out & Bill"
+                              >
+                                <LogOut size={12} />
+                                <span>Check Out</span>
+                              </button>
+                            )}
+
+                            {/* Bill Action */}
+                            {(b.status === 'COMPLETED' || b.status === 'CHECKED_OUT') && (
+                              <button
+                                type="button"
+                                onClick={() => openBillModal(b)}
+                                className="btn btn-sm btn-outline-dark py-0.5 px-2 flex-shrink-0 d-flex align-items-center gap-1 fw-bold shadow-xs"
+                                style={{ fontSize: '0.72rem' }}
+                                title="View & Print Bill"
+                              >
+                                <Receipt size={12} />
+                                <span>Bill</span>
+                              </button>
+                            )}
+                          </div>
                         </div>
 
                         {/* Selected Food Menu (વાનગીઓનું લિસ્ટ) */}
@@ -1618,15 +1884,15 @@ export const BookingPage: React.FC = () => {
             {/* Status Filter */}
             <select
               className="form-select form-select-sm"
-              style={{ width: 160 }}
+              style={{ width: 180 }}
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
             >
-              <option value="ACTIVE">Active (સક્રિય - Default)</option>
+              <option value="ACTIVE">Active (સક્રિય બુકિંગ)</option>
+              <option value="COMPLETED">Completed (પૂર્ણ થયેલા / Billed)</option>
               <option value="ALL">All Status (બધા બુકિંગ)</option>
               <option value="CONFIRMED">Confirmed Only</option>
-              <option value="CHECKED_IN">Checked In</option>
-              <option value="COMPLETED">Completed</option>
+              <option value="CHECKED_IN">Checked In Only</option>
               <option value="CANCELLED">Cancelled (રદ થયેલા)</option>
             </select>
 
@@ -1708,42 +1974,63 @@ export const BookingPage: React.FC = () => {
                       <td className="text-end fw-bold small text-primary">{b.bookingPeriod || (b.timeSlot?.includes('Lunch') ? 'LUNCH' : 'DINNER')}</td>
                       <td className="text-center">
                         <span className={`badge ${
-                          b.status === 'CONFIRMED' ? 'bg-success-subtle text-success border border-success-subtle' :
-                          b.status === 'CHECKED_IN' ? 'bg-info-subtle text-info border border-info-subtle' :
-                          b.status === 'COMPLETED' ? 'bg-primary-subtle text-primary border border-primary-subtle' :
-                          'bg-danger-subtle text-danger border border-danger-subtle'
+                          b.status === 'CONFIRMED' ? 'bg-warning-subtle text-dark border border-warning-subtle fw-bold' :
+                          b.status === 'CHECKED_IN' ? 'bg-info-subtle text-info border border-info-subtle fw-bold' :
+                          b.status === 'COMPLETED' || b.status === 'CHECKED_OUT' ? 'bg-success-subtle text-success border border-success-subtle fw-bold' :
+                          b.status === 'CANCELLED' ? 'bg-danger-subtle text-danger border border-danger-subtle fw-bold' :
+                          'bg-secondary-subtle text-secondary border border-secondary-subtle fw-bold'
                         }`}>
-                          {b.status}
+                          {b.status === 'CONFIRMED' ? 'CONFIRMED' :
+                           b.status === 'CHECKED_IN' ? 'CHECKED IN' :
+                           (b.status === 'COMPLETED' || b.status === 'CHECKED_OUT') ? 'COMPLETED' :
+                           b.status === 'CANCELLED' ? 'CANCELLED' : b.status}
                         </span>
                       </td>
                       <td className="text-end">
                         <div className="d-flex gap-1 justify-content-end">
-                          <button onClick={() => setSelectedBookingForSlip(b)} className="btn btn-outline-primary btn-sm p-1" title="View booking details"><Eye size={14} /></button>
-                          {b.status !== 'CANCELLED' && <button onClick={() => openBookingEditor(b)} className="btn btn-outline-secondary btn-sm p-1" title="Edit booking"><Pencil size={14} /></button>}
-                          {/* View Slip Button */}
-                          <button
-                            onClick={() => setSelectedBookingForSlip(b)}
-                            className="btn btn-outline-secondary btn-sm p-1 px-2 d-flex align-items-center gap-1 shadow-xs"
-                            title="Print GST Function Confirmation Voucher Slip"
-                          >
-                            <Printer size={13} />
-                            <span className="small">Slip</span>
-                          </button>
+                          <button onClick={() => setViewingLockedMenuBooking(b)} className="btn btn-outline-warning btn-sm p-1 text-dark" title="View Catering Menu"><Utensils size={14} /></button>
+                          {b.status !== 'CANCELLED' && b.status !== 'COMPLETED' && b.status !== 'CHECKED_OUT' && (
+                            <button onClick={() => openBookingEditor(b)} className="btn btn-outline-secondary btn-sm p-1" title="Edit booking"><Pencil size={14} /></button>
+                          )}
 
-                          {/* Complete Status */}
+                          {/* 1. Check In Action */}
+                          {(b.status === 'CONFIRMED' || b.status === 'PENDING') && (
+                            <button
+                              onClick={() => handleCheckIn(b)}
+                              className="btn btn-outline-success btn-sm p-1 px-2.5 d-flex align-items-center gap-1 shadow-xs fw-bold"
+                              title="Check In guests for this function"
+                            >
+                              <LogIn size={13} />
+                              <span className="small">Check In</span>
+                            </button>
+                          )}
+
+                          {/* 2. Check Out Action */}
                           {b.status === 'CHECKED_IN' && (
                             <button
-                              onClick={() => handleStatusChange(b.id, 'COMPLETED')}
-                              className="btn btn-primary btn-sm p-1 px-2 d-flex align-items-center gap-1 shadow-sm"
-                              title="Mark Function Completed"
+                              onClick={() => openCheckOutModal(b)}
+                              className="btn btn-primary btn-sm p-1 px-2.5 d-flex align-items-center gap-1 shadow-sm fw-bold"
+                              title="Check Out and Generate Bill"
                             >
-                              <UserCheck size={13} />
-                              <span className="small">Done</span>
+                              <LogOut size={13} />
+                              <span className="small">Check Out</span>
+                            </button>
+                          )}
+
+                          {/* 3. Bill Action */}
+                          {(b.status === 'COMPLETED' || b.status === 'CHECKED_OUT') && (
+                            <button
+                              onClick={() => openBillModal(b)}
+                              className="btn btn-outline-dark btn-sm p-1 px-2.5 d-flex align-items-center gap-1 shadow-xs fw-bold"
+                              title="View & Print Bill"
+                            >
+                              <Receipt size={13} />
+                              <span className="small">Bill</span>
                             </button>
                           )}
 
                           {/* Cancel Function */}
-                          {b.status !== 'CANCELLED' && b.status !== 'COMPLETED' && (
+                          {b.status !== 'CANCELLED' && b.status !== 'COMPLETED' && b.status !== 'CHECKED_OUT' && (
                             <button
                               onClick={() => handleCancelBooking(b)}
                               className="btn btn-outline-danger btn-sm p-1 px-2 d-flex align-items-center gap-1"
@@ -2283,6 +2570,656 @@ export const BookingPage: React.FC = () => {
                 onClick={finishMenuSelection}
               >
                 Confirm & Apply Menu (મેનુ કન્ફર્મ કરો)
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* 6. DEDICATED LOCKED DATE MENU ONLY MODAL (ONLY SHOWS THE MENU, NO OTHER DETAILS) */}
+      {viewingLockedMenuBooking && (
+        <Modal
+          size="md"
+          isOpen={!!viewingLockedMenuBooking}
+          onClose={() => setViewingLockedMenuBooking(null)}
+          title="🍽️ નક્કી કરેલ ભોજન મેનુ (Menu)"
+        >
+          <div className="p-3">
+            {/* Header info */}
+            <div className="p-2.5 rounded-3 mb-3 border bg-light">
+              <div className="d-flex justify-content-between align-items-center">
+                <div>
+                  <span className="small text-muted d-block">તારીખ અને સમય:</span>
+                  <strong className="text-dark">
+                    {viewingLockedMenuBooking.bookingDate} ({viewingLockedMenuBooking.timeSlot || 'Dinner'})
+                  </strong>
+                </div>
+                <div className="text-end">
+                  <span className="small text-muted d-block">યજમાન:</span>
+                  <strong className="text-primary">{viewingLockedMenuBooking.customerName}</strong>
+                  <span className="text-muted small ms-1">({viewingLockedMenuBooking.guestCount} મહેમાન)</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Menu List */}
+            <div className="card border shadow-xs mb-3">
+              <div className="card-header bg-white py-2 d-flex justify-content-between align-items-center">
+                <span className="fw-bold small text-dark d-flex align-items-center gap-1.5">
+                  <Utensils size={14} className="text-warning" />
+                  <span>પસંદ કરેલી વાનગીઓ:</span>
+                </span>
+                <span className="badge bg-primary px-2 py-1">
+                  {viewingLockedMenuBooking.selectedMenu?.length || 0} વાનગીઓ
+                </span>
+              </div>
+
+              <div className="card-body p-2" style={{ maxHeight: '360px', overflowY: 'auto' }}>
+                {viewingLockedMenuBooking.selectedMenu && viewingLockedMenuBooking.selectedMenu.length > 0 ? (
+                  <div className="d-flex flex-column gap-1.5">
+                    {viewingLockedMenuBooking.selectedMenu.map((dishName, idx) => (
+                      <div
+                        key={idx}
+                        className="p-2 rounded-2 border bg-light d-flex align-items-center gap-2"
+                      >
+                        <span className="badge bg-secondary rounded-pill font-monospace" style={{ fontSize: '0.7rem' }}>
+                          {idx + 1}
+                        </span>
+                        <span className="fw-semibold text-dark small">{dishName}</span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="text-center py-4 text-muted small">
+                    આ તારીખ માટે હજુ કોઈ ભોજન મેનુ સિલેક્ટ કરેલ નથી.
+                  </div>
+                )}
+              </div>
+            </div>
+
+            <div className="d-flex justify-content-end">
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm px-4"
+                onClick={() => setViewingLockedMenuBooking(null)}
+              >
+                Close (બંધ કરો)
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* 7. FUNCTION CHECK-OUT & BILLING MODAL */}
+      {isCheckOutModalOpen && checkoutState.booking && (
+        <Modal
+          size="xl"
+          isOpen={isCheckOutModalOpen}
+          onClose={() => setIsCheckOutModalOpen(false)}
+          title={`🏁 ફંક્શન ચેક આઉટ અને બિલ જનરેશન • ${checkoutState.booking.bookingNumber}`}
+        >
+          <div className="p-2">
+            {/* Host & Function Summary Bar */}
+            <div className="p-3 rounded-3 mb-3 border bg-light">
+              <div className="row g-2 align-items-center">
+                <div className="col-12 col-md-4">
+                  <div className="small text-muted">યજમાન (Host Name):</div>
+                  <strong className="fs-6 text-dark">{checkoutState.booking.customerName}</strong>
+                  <div className="small text-muted">📞 +91 {checkoutState.booking.customerPhone}</div>
+                </div>
+                <div className="col-6 col-md-3">
+                  <div className="small text-muted">તારીખ અને સમય:</div>
+                  <strong>{checkoutState.booking.bookingDate}</strong>
+                  <div className="small text-primary fw-semibold">
+                    {checkoutState.booking.timeSlot || checkoutState.booking.bookingPeriod || 'Evening'} ({checkoutState.booking.bookingTime || ''})
+                  </div>
+                </div>
+                <div className="col-6 col-md-2">
+                  <div className="small text-muted">મહેમાનો (Guests):</div>
+                  <span className="badge bg-primary fs-6 px-2.5 py-1">
+                    {checkoutState.booking.guestCount} Persons
+                  </span>
+                </div>
+                <div className="col-12 col-md-3 text-md-end">
+                  <div className="small text-muted">જમા એડવાન્સ રકમ (Advance):</div>
+                  <span className="badge bg-success-subtle text-success fs-6 border border-success-subtle fw-bold px-2.5 py-1">
+                    ₹{(checkoutState.advanceAmount || 0).toLocaleString('en-IN')}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            <div className="row g-3">
+              {/* Left Column: Consumed Dishes & Extra Additions */}
+              <div className="col-12 col-lg-7">
+                <div className="card border shadow-xs h-100">
+                  <div className="card-header bg-white py-2.5 d-flex justify-content-between align-items-center">
+                    <div className="fw-bold text-dark small d-flex align-items-center gap-1.5">
+                      <Utensils size={15} className="text-warning" />
+                      <span>ફંક્શનમાં વપરાયેલ વાનગીઓ અને આઇટમ્સ (Dishes / Items List)</span>
+                    </div>
+                    <span className="badge bg-light text-dark border">
+                      {checkoutState.dishes.length} Items
+                    </span>
+                  </div>
+
+                  <div className="card-body p-2" style={{ maxHeight: '340px', overflowY: 'auto' }}>
+                    {checkoutState.dishes.length === 0 ? (
+                      <div className="text-center py-4 text-muted small">
+                        કોઈ વાનગી લિસ્ટમાં નથી. નીચેથી નવી વાનગીઓ ઉમેરો.
+                      </div>
+                    ) : (
+                      <div className="table-responsive">
+                        <table className="table table-sm table-bordered align-middle mb-0" style={{ fontSize: '0.82rem' }}>
+                          <thead className="table-light">
+                            <tr>
+                              <th style={{ width: '4%' }}>#</th>
+                              <th style={{ width: '40%' }}>વાનગી / આઇટમ નામ</th>
+                              <th style={{ width: '18%' }} className="text-center">સંખ્યા (Qty)</th>
+                              <th style={{ width: '20%' }} className="text-center">ભાવ (Rate ₹)</th>
+                              <th style={{ width: '18%' }} className="text-end">રકમ (Total ₹)</th>
+                              <th style={{ width: '5%' }}></th>
+                            </tr>
+                          </thead>
+                          <tbody>
+                            {checkoutState.dishes.map((dish, idx) => (
+                              <tr key={idx}>
+                                <td className="text-center text-muted">{idx + 1}</td>
+                                <td>
+                                  <input
+                                    type="text"
+                                    className="form-control form-control-sm border-0 bg-transparent px-1 py-0 fw-semibold"
+                                    value={dish.name}
+                                    onChange={(e) => handleUpdateDish(idx, 'name', e.target.value)}
+                                  />
+                                </td>
+                                <td>
+                                  <input
+                                    type="number"
+                                    min="1"
+                                    className="form-control form-control-sm text-center py-0"
+                                    value={dish.qty}
+                                    onChange={(e) => handleUpdateDish(idx, 'qty', Math.max(1, Number(e.target.value) || 1))}
+                                  />
+                                </td>
+                                <td>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    step="1"
+                                    className="form-control form-control-sm text-center py-0"
+                                    value={dish.price}
+                                    placeholder="0"
+                                    onChange={(e) => handleUpdateDish(idx, 'price', Math.max(0, Number(e.target.value) || 0))}
+                                  />
+                                </td>
+                                <td className="text-end fw-bold">
+                                  ₹{(dish.total || (dish.qty * dish.price)).toLocaleString('en-IN')}
+                                </td>
+                                <td className="text-center">
+                                  <button
+                                    type="button"
+                                    className="btn btn-outline-danger btn-sm p-0 border-0"
+                                    onClick={() => handleRemoveDish(idx)}
+                                    title="આઇટમ હટાવો"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                </td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Add Extra Custom Dish Bar */}
+                  <div className="card-footer bg-light p-2.5 border-top">
+                    <div className="small fw-bold text-dark mb-1.5 d-flex align-items-center gap-1">
+                      <Plus size={13} className="text-primary" />
+                      <span>વધારાની વાનગી / આઇટમ ઉમેરો (Add Extra Dish/Item):</span>
+                    </div>
+                    <div className="row g-1.5 align-items-center">
+                      <div className="col-12 col-sm-5">
+                        <input
+                          type="text"
+                          className="form-control form-control-sm"
+                          placeholder="વાનગીનું નામ (દા.ત. કાજુ કરી)"
+                          value={checkoutState.newDishName}
+                          onChange={(e) => setCheckoutState(prev => ({ ...prev, newDishName: e.target.value }))}
+                          onKeyDown={(e) => { if (e.key === 'Enter') handleAddDishToCheckout(); }}
+                        />
+                      </div>
+                      <div className="col-4 col-sm-2">
+                        <input
+                          type="number"
+                          min="1"
+                          className="form-control form-control-sm text-center"
+                          placeholder="Qty"
+                          title="સંખ્યા"
+                          value={checkoutState.newDishQty}
+                          onChange={(e) => setCheckoutState(prev => ({ ...prev, newDishQty: Math.max(1, Number(e.target.value) || 1) }))}
+                        />
+                      </div>
+                      <div className="col-4 col-sm-3">
+                        <div className="input-group input-group-sm">
+                          <span className="input-group-text px-1.5">₹</span>
+                          <input
+                            type="number"
+                            min="0"
+                            className="form-control form-control-sm"
+                            placeholder="ભાવ"
+                            title="ભાવ પ્રતિ આઇટમ"
+                            value={checkoutState.newDishPrice || ''}
+                            onChange={(e) => setCheckoutState(prev => ({ ...prev, newDishPrice: Math.max(0, Number(e.target.value) || 0) }))}
+                          />
+                        </div>
+                      </div>
+                      <div className="col-4 col-sm-2">
+                        <button
+                          type="button"
+                          className="btn btn-primary btn-sm w-100 fw-bold d-flex align-items-center justify-content-center gap-1"
+                          onClick={handleAddDishToCheckout}
+                        >
+                          <Plus size={13} /> <span>ઉમેરો</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Right Column: Billing & Net Settlement Calculation */}
+              <div className="col-12 col-lg-5">
+                <div className="card border shadow-xs h-100">
+                  <div className="card-header bg-white py-2.5 d-flex justify-content-between align-items-center">
+                    <div className="fw-bold text-dark small d-flex align-items-center gap-1.5">
+                      <Receipt size={15} className="text-success" />
+                      <span>બિલ ગણતરી અને પતાવટ (Billing & Settlement)</span>
+                    </div>
+                  </div>
+
+                  <div className="card-body p-3 d-flex flex-column gap-2.5">
+                    {/* Items Subtotal info */}
+                    {(() => {
+                      const itemsSum = checkoutState.dishes.reduce((acc, d) => acc + (d.total || 0), 0);
+                      const totalBill = Number(checkoutState.totalBillPrice) || 0;
+                      const discount = Number(checkoutState.discount) || 0;
+                      const advance = Number(checkoutState.advanceAmount) || 0;
+                      const balanceToPay = Math.max(0, totalBill - discount - advance);
+
+                      return (
+                        <>
+                          {/* Calculated Dishes Total */}
+                          <div className="d-flex justify-content-between align-items-center small pb-1.5 border-bottom">
+                            <span className="text-muted">વાનગીઓનો સરવાળો (Dishes Sum):</span>
+                            <div className="d-flex align-items-center gap-2">
+                              <span className="fw-bold text-dark">₹{itemsSum.toLocaleString('en-IN')}</span>
+                              {itemsSum > 0 && itemsSum !== totalBill && (
+                                <button
+                                  type="button"
+                                  className="btn btn-outline-secondary btn-sm py-0 px-1.5"
+                                  style={{ fontSize: '0.68rem' }}
+                                  onClick={() => setCheckoutState(prev => ({ ...prev, totalBillPrice: itemsSum }))}
+                                  title="બિલ રકમ વાનગીઓના સરવાળા જેટલી કરો"
+                                >
+                                  આ રકમ રાખો
+                                </button>
+                              )}
+                            </div>
+                          </div>
+
+                          {/* Manual Total Bill Price Input */}
+                          <div>
+                            <label className="form-label small fw-bold text-dark mb-1 d-flex justify-content-between">
+                              <span>કુલ બિલ રકમ (Total Bill Price ₹) <span className="text-danger">*</span>:</span>
+                              <span className="badge bg-light text-muted border" style={{ fontSize: '0.7rem' }}>મેન્યુઅલ / ડાયરેક્ટ લખી શકો છો</span>
+                            </label>
+                            <div className="input-group input-group-lg">
+                              <span className="input-group-text fw-bold text-dark bg-light">₹</span>
+                              <input
+                                type="number"
+                                min="0"
+                                className="form-control form-control-lg fw-bold text-dark"
+                                placeholder="0"
+                                value={checkoutState.totalBillPrice === 0 ? '' : checkoutState.totalBillPrice}
+                                onChange={(e) => setCheckoutState(prev => ({ ...prev, totalBillPrice: Math.max(0, Number(e.target.value) || 0) }))}
+                              />
+                            </div>
+                            <div className="small text-muted mt-1" style={{ fontSize: '0.72rem' }}>
+                              વાનગીઓના રેટ વગર પણ તમે ડાયરેક્ટ કુલ બિલ રકમ (દા.ત. 25000) દાખલ કરી શકો છો.
+                            </div>
+                          </div>
+
+                          {/* Discount Input */}
+                          <div className="row g-2">
+                            <div className="col-6">
+                              <label className="form-label small fw-semibold text-secondary mb-1">
+                                ડિસ્કાઉન્ટ (Discount ₹):
+                              </label>
+                              <div className="input-group input-group-sm">
+                                <span className="input-group-text">₹</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  className="form-control form-control-sm"
+                                  placeholder="0"
+                                  value={checkoutState.discount || ''}
+                                  onChange={(e) => setCheckoutState(prev => ({ ...prev, discount: Math.max(0, Number(e.target.value) || 0) }))}
+                                />
+                              </div>
+                            </div>
+
+                            {/* Advance Received */}
+                            <div className="col-6">
+                              <label className="form-label small fw-semibold text-secondary mb-1">
+                                જમા એડવાન્સ (Advance ₹):
+                              </label>
+                              <div className="input-group input-group-sm">
+                                <span className="input-group-text">₹</span>
+                                <input
+                                  type="number"
+                                  min="0"
+                                  className="form-control form-control-sm bg-light"
+                                  value={checkoutState.advanceAmount || ''}
+                                  onChange={(e) => setCheckoutState(prev => ({ ...prev, advanceAmount: Math.max(0, Number(e.target.value) || 0) }))}
+                                />
+                              </div>
+                            </div>
+                          </div>
+
+                          {/* Net Balance Payable Card */}
+                          <div
+                            className="p-3 rounded-3 text-center border"
+                            style={{
+                              backgroundColor: balanceToPay > 0 ? '#E8F5E9' : '#F1F8E9',
+                              borderColor: '#A5D6A7'
+                            }}
+                          >
+                            <div className="small fw-bold text-secondary text-uppercase tracking-wider">
+                              ચૂકવવાપાત્ર બાકી રકમ (Balance to Collect)
+                            </div>
+                            <h2 className="fw-bolder mb-0 text-success my-1" style={{ letterSpacing: '-0.5px' }}>
+                              ₹{balanceToPay.toLocaleString('en-IN')}
+                            </h2>
+                            <div className="small text-muted" style={{ fontSize: '0.73rem' }}>
+                              (કુલ બિલ ₹{totalBill.toLocaleString('en-IN')} − ડિસ્કાઉન્ટ ₹{discount} − એડવાન્સ ₹{advance.toLocaleString('en-IN')})
+                            </div>
+                          </div>
+
+                          {/* Payment Mode Selection */}
+                          <div className="row g-2">
+                            <div className="col-6">
+                              <label className="form-label small fw-bold text-dark mb-1">ચુકવણી માધ્યમ (Mode):</label>
+                              <select
+                                className="form-select form-select-sm"
+                                value={checkoutState.paymentMode}
+                                onChange={(e) => setCheckoutState(prev => ({ ...prev, paymentMode: e.target.value }))}
+                              >
+                                <option value="Cash">Cash (રોકડ)</option>
+                                <option value="UPI">UPI / QR (GPay, PhonePe, Paytm)</option>
+                                <option value="Card">Card (ડેબિટ / ક્રેડિટ કાર્ડ)</option>
+                                <option value="Bank Transfer">Bank Transfer / Cheque</option>
+                              </select>
+                            </div>
+                            <div className="col-6">
+                              <label className="form-label small fw-semibold text-secondary mb-1">UPI / Trx No (જો હોય):</label>
+                              <input
+                                type="text"
+                                className="form-control form-control-sm"
+                                placeholder="Txn Ref No."
+                                value={checkoutState.paymentReference}
+                                onChange={(e) => setCheckoutState(prev => ({ ...prev, paymentReference: e.target.value }))}
+                              />
+                            </div>
+                          </div>
+
+                          {/* Remarks */}
+                          <div>
+                            <input
+                              type="text"
+                              className="form-control form-control-sm"
+                              placeholder="કોઈ નોંધ અથવા વિગત (Notes / Remarks)..."
+                              value={checkoutState.notes}
+                              onChange={(e) => setCheckoutState(prev => ({ ...prev, notes: e.target.value }))}
+                            />
+                          </div>
+                        </>
+                      );
+                    })()}
+                  </div>
+
+                  {/* Actions */}
+                  <div className="card-footer bg-white p-3 border-top d-flex gap-2">
+                    <button
+                      type="button"
+                      className="btn btn-light btn-sm flex-grow-1"
+                      onClick={() => setIsCheckOutModalOpen(false)}
+                      disabled={checkoutState.isCheckingOut}
+                    >
+                      રદ કરો (Cancel)
+                    </button>
+                    <button
+                      type="button"
+                      className="btn btn-success btn-sm flex-grow-1 fw-bold shadow-sm d-flex align-items-center justify-content-center gap-1.5"
+                      onClick={handleConfirmCheckOut}
+                      disabled={checkoutState.isCheckingOut}
+                    >
+                      {checkoutState.isCheckingOut ? (
+                        <>
+                          <span className="spinner-border spinner-border-sm" role="status" aria-hidden="true" />
+                          <span>ચેક આઉટ થઈ રહ્યું છે...</span>
+                        </>
+                      ) : (
+                        <>
+                          <CheckCircle2 size={16} />
+                          <span>ચેક આઉટ કરો અને બિલ બનાવો</span>
+                        </>
+                      )}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* 8. PRINTABLE RESTAURANT FUNCTION BILL / TAX INVOICE MODAL */}
+      {viewingBillBooking && (
+        <Modal
+          size="lg"
+          isOpen={!!viewingBillBooking}
+          onClose={() => setViewingBillBooking(null)}
+          title={`ફંક્શન બિલ (Function Tax Invoice) • ${viewingBillBooking.billing?.billNumber || ('BILL-' + viewingBillBooking.bookingNumber)}`}
+        >
+          <div className="p-3">
+            {/* Printable Invoice Container */}
+            <div className="print-area p-3 bg-white rounded border">
+              {/* Brand Header */}
+              <div className="text-center pb-3 border-bottom mb-3">
+                <h3 className="fw-bolder mb-0" style={{ color: 'var(--brand-maroon, #7A1B28)', letterSpacing: '0.5px' }}>
+                  BHATIGAL BHANU (ભાતીગળ ભાણું)
+                </h3>
+                <div className="small fw-semibold text-secondary">
+                  TRADITIONAL DINING & EXCLUSIVE BANQUET VENUE
+                </div>
+                <div className="small text-muted">
+                  Authentic Kathiyawadi Cuisine • Banquets & Grand Celebrations
+                </div>
+                <div className="badge bg-dark text-white mt-2 px-3 py-1 fw-bold" style={{ fontSize: '0.8rem' }}>
+                  TAX INVOICE / FUNCTION BILL (ફંક્શન બિલ)
+                </div>
+              </div>
+
+              {/* Bill & Customer Meta Grid */}
+              <div className="row g-2 mb-3 small">
+                <div className="col-6">
+                  <span className="text-muted d-block">Bill Number:</span>
+                  <strong className="fs-6 text-dark">
+                    {viewingBillBooking.billing?.billNumber || `BILL-${viewingBillBooking.bookingNumber}`}
+                  </strong>
+                  <span className="text-muted d-block mt-1">Booking Ref:</span>
+                  <strong>{viewingBillBooking.bookingNumber}</strong>
+                </div>
+                <div className="col-6 text-end">
+                  <span className="text-muted d-block">Bill Date & Time:</span>
+                  <strong>
+                    {viewingBillBooking.billing?.billedAt
+                      ? new Date(viewingBillBooking.billing.billedAt).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' })
+                      : todayStr}
+                  </strong>
+                  <span className="text-muted d-block mt-1">Billed By:</span>
+                  <strong>{viewingBillBooking.billing?.billedBy || 'Staff'}</strong>
+                </div>
+
+                <div className="col-12"><hr className="my-1 text-muted" /></div>
+
+                <div className="col-6">
+                  <span className="text-muted d-block">Host / Client:</span>
+                  <strong className="fs-6">{viewingBillBooking.customerName}</strong>
+                  <div className="text-muted">📞 +91 {viewingBillBooking.customerPhone}</div>
+                </div>
+                <div className="col-6 text-end">
+                  <span className="text-muted d-block">Event Date & Period:</span>
+                  <strong>{viewingBillBooking.bookingDate} ({viewingBillBooking.timeSlot || viewingBillBooking.bookingPeriod || 'Evening'})</strong>
+                  <div className="text-muted">Guests: <strong>{viewingBillBooking.guestCount} Persons</strong> • {viewingBillBooking.functionType || 'Gathering'}</div>
+                </div>
+              </div>
+
+              {/* Dishes Itemized Table */}
+              <div className="table-responsive mb-3">
+                <table className="table table-sm table-bordered align-middle mb-0" style={{ fontSize: '0.82rem' }}>
+                  <thead className="table-light">
+                    <tr>
+                      <th style={{ width: '5%' }} className="text-center">#</th>
+                      <th style={{ width: '45%' }}>Item / Dish Description (વાનગી / વિગત)</th>
+                      <th style={{ width: '15%' }} className="text-center">Qty</th>
+                      <th style={{ width: '15%' }} className="text-end">Rate (₹)</th>
+                      <th style={{ width: '20%' }} className="text-end">Amount (₹)</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    {viewingBillBooking.billing?.dishes && viewingBillBooking.billing.dishes.length > 0 ? (
+                      viewingBillBooking.billing.dishes.map((item: any, idx: number) => (
+                        <tr key={idx}>
+                          <td className="text-center text-muted">{idx + 1}</td>
+                          <td className="fw-medium">{item.name}</td>
+                          <td className="text-center">{item.qty}</td>
+                          <td className="text-end">{item.price ? `₹${Number(item.price).toLocaleString('en-IN')}` : '—'}</td>
+                          <td className="text-end fw-semibold">
+                            {item.total ? `₹${Number(item.total).toLocaleString('en-IN')}` : '—'}
+                          </td>
+                        </tr>
+                      ))
+                    ) : viewingBillBooking.selectedMenu && viewingBillBooking.selectedMenu.length > 0 ? (
+                      viewingBillBooking.selectedMenu.map((m: string, idx: number) => (
+                        <tr key={idx}>
+                          <td className="text-center text-muted">{idx + 1}</td>
+                          <td className="fw-medium">{m}</td>
+                          <td className="text-center">{viewingBillBooking.guestCount}</td>
+                          <td className="text-end">—</td>
+                          <td className="text-end">—</td>
+                        </tr>
+                      ))
+                    ) : (
+                      <tr>
+                        <td colSpan={5} className="text-center text-muted py-2">
+                          Special Banquet Catering Package
+                        </td>
+                      </tr>
+                    )}
+                  </tbody>
+                </table>
+              </div>
+
+              {/* Financial Calculation Breakdown */}
+              <div className="row g-2 justify-content-end mb-3">
+                <div className="col-12 col-sm-6">
+                  {viewingBillBooking.billing?.notes && (
+                    <div className="p-2 bg-light rounded border small">
+                      <span className="fw-bold d-block text-secondary">Notes / Remarks:</span>
+                      <span className="text-dark">{viewingBillBooking.billing.notes}</span>
+                    </div>
+                  )}
+                  {viewingBillBooking.billing?.paymentReference && (
+                    <div className="small text-muted mt-1">
+                      Payment Ref / Trx ID: <strong>{viewingBillBooking.billing.paymentReference}</strong>
+                    </div>
+                  )}
+                </div>
+
+                <div className="col-12 col-sm-6">
+                  <div className="p-2.5 rounded-3 border bg-light small">
+                    <div className="d-flex justify-content-between mb-1">
+                      <span className="text-muted">Total Food & Services:</span>
+                      <strong className="text-dark">
+                        ₹{(viewingBillBooking.billing?.subtotal || viewingBillBooking.billing?.totalAmount || viewingBillBooking.estimatedTotal || 0).toLocaleString('en-IN')}
+                      </strong>
+                    </div>
+
+                    {(viewingBillBooking.billing?.discount || 0) > 0 && (
+                      <div className="d-flex justify-content-between mb-1 text-danger">
+                        <span>Discount:</span>
+                        <span>- ₹{Number(viewingBillBooking.billing.discount).toLocaleString('en-IN')}</span>
+                      </div>
+                    )}
+
+                    <div className="d-flex justify-content-between py-1 border-top fw-bold fs-6 text-dark">
+                      <span>Total Bill Amount:</span>
+                      <span>
+                        ₹{(viewingBillBooking.billing?.totalAmount || viewingBillBooking.estimatedTotal || 0).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+
+                    <div className="d-flex justify-content-between mb-1 text-muted">
+                      <span>Less: Advance Deposited:</span>
+                      <span>
+                        - ₹{(viewingBillBooking.billing?.advanceAmount !== undefined ? viewingBillBooking.billing.advanceAmount : (viewingBillBooking.advanceAmount || 0)).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+
+                    <div className="d-flex justify-content-between pt-1.5 border-top fw-bold text-success fs-6">
+                      <span>Net Balance Paid:</span>
+                      <span>
+                        ₹{(viewingBillBooking.billing?.netPayable !== undefined ? viewingBillBooking.billing.netPayable : Math.max(0, (viewingBillBooking.billing?.totalAmount || viewingBillBooking.estimatedTotal || 0) - (viewingBillBooking.advanceAmount || 0))).toLocaleString('en-IN')}
+                      </span>
+                    </div>
+
+                    <div className="d-flex justify-content-between align-items-center mt-2 pt-1 border-top">
+                      <span className="text-muted">Payment Mode:</span>
+                      <span className="badge bg-success-subtle text-success border border-success-subtle fw-bold">
+                        {viewingBillBooking.billing?.paymentMode || viewingBillBooking.paymentMode || 'Cash'} • PAID
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Thank you note & computer generated notice */}
+              <div className="text-center pt-2 border-top small text-muted">
+                <div>🙏 ભાતીગળ ભાણુંની મુલાકાત બદલ આભાર! Visit Again.</div>
+                <div style={{ fontSize: '0.7rem' }}>This is a computer-generated invoice and does not require a physical signature.</div>
+              </div>
+            </div>
+
+            {/* Modal Actions */}
+            <div className="d-flex justify-content-between align-items-center pt-3 mt-2 border-top no-print">
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setViewingBillBooking(null)}
+              >
+                Close (બંધ કરો)
+              </button>
+              <button
+                type="button"
+                className="btn btn-primary btn-sm fw-bold shadow-sm d-flex align-items-center gap-1.5 px-3"
+                onClick={() => window.print()}
+              >
+                <Printer size={15} />
+                <span>Print Bill (બિલ પ્રિન્ટ કરો)</span>
               </button>
             </div>
           </div>

@@ -84,18 +84,23 @@ export type DayOfWeek = 'MONDAY' | 'TUESDAY' | 'WEDNESDAY' | 'THURSDAY' | 'FRIDA
 export interface DailyMenu {
   id: string;
   dayOfWeek: DayOfWeek;
-  itemIds: string[];
+  lunchItemIds: string[];
+  dinnerItemIds: string[];
+  itemIds?: string[];
+  lunchItems?: MenuItem[];
+  dinnerItems?: MenuItem[];
+  items?: MenuItem[];
+  lunchItemCount?: number;
+  dinnerItemCount?: number;
+  itemCount?: number;
   isActive: boolean;
   notes?: string;
-  itemCount?: number;
-  items?: MenuItem[];
+  realDate?: string;
   isToday?: boolean;
 }
 
 export interface DailyMenuConfig {
   id: string;
-  isStrictEnforced: boolean;
-  activeOverrideDay?: DayOfWeek;
 }
 
 export interface FloorZone {
@@ -161,8 +166,13 @@ export interface Booking {
   bookingTime?: string;
     selectedMenu?: string[];
     selectedMenuIds?: string[];
-  status: 'PENDING' | 'CONFIRMED' | 'LOCKED' | 'CHECKED_IN' | 'CANCELLED' | 'NO_SHOW' | 'COMPLETED';
+  status: 'PENDING' | 'CONFIRMED' | 'LOCKED' | 'CHECKED_IN' | 'CHECKED_OUT' | 'CANCELLED' | 'NO_SHOW' | 'COMPLETED';
   specialRequests?: string;
+  checkedInAt?: string;
+  checkedInBy?: string;
+  checkedOutAt?: string;
+  checkedOutBy?: string;
+  billing?: any;
   createdAt: string;
 }
 
