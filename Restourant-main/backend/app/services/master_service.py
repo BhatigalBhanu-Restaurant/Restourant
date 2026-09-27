@@ -211,6 +211,7 @@ class MasterService:
         if not meal_period:
             cat = db.menu_categories.find_one({"id": category_id})
             meal_period = cat.get("mealPeriod", "LUNCH") if cat else "LUNCH"
+        item_id = f"item_{uuid.uuid4().hex[:8]}"
         doc = {
             "id": item_id,
             "categoryId": category_id,
