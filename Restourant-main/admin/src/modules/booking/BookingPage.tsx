@@ -275,16 +275,43 @@ export const BookingPage: React.FC = () => {
     return DAY_NAMES[d.getDay()] || 'FRIDAY';
   }, [formData.bookingDate]);
 
+  // Derive current Meal Period from selected timeSlot
+  const bookingMealPeriod: 'LUNCH' | 'DINNER' = formData.timeSlot.includes('Lunch') || formData.timeSlot.includes('બપોરે') ? 'LUNCH' : 'DINNER';
+
+  // Meal-period filtered categories (only show matching meal period categories in modal)
+  const mealFilteredCategories = useMemo(() => {
+    return categories.filter(cat => (cat.mealPeriod || 'DINNER') === bookingMealPeriod);
+  }, [categories, bookingMealPeriod]);
+
+  // Meal-period filtered items (only show matching meal period items in modal)
+  const mealFilteredItems = useMemo(() => {
+    return allMenuItems.filter(item => {
+      const itemCat = categories.find(c => c.id === item.categoryId);
+      const itemMeal = item.mealPeriod || itemCat?.mealPeriod || 'DINNER';
+      return itemMeal === bookingMealPeriod;
+    });
+  }, [allMenuItems, categories, bookingMealPeriod]);
+
   // Load Day's Scheduled Daily Menu into this function
   const handleLoadDayMenu = () => {
     const currentDayMenu = dailyMenus.find(m => m.dayOfWeek === bookingDayName);
-    if (currentDayMenu && Array.isArray(currentDayMenu.itemIds) && currentDayMenu.itemIds.length > 0) {
-      const merged = Array.from(new Set([...activeItemIds, ...currentDayMenu.itemIds]));
-      setActiveItemIds(merged);
-      setAlertMessage({
-        type: 'success',
-        text: `${DAY_NAME_GUJARATI[bookingDayName] || bookingDayName} નું ડેઇલી મેનુ (${currentDayMenu.itemIds.length} વાનગીઓ) સફળતાપૂર્વક ફંક્શનમાં ઉમેરાયું!`
-      });
+    if (currentDayMenu) {
+      const periodIds = bookingMealPeriod === 'LUNCH'
+        ? (Array.isArray(currentDayMenu.lunchItemIds) ? currentDayMenu.lunchItemIds : [])
+        : (Array.isArray(currentDayMenu.dinnerItemIds) ? currentDayMenu.dinnerItemIds : []);
+      if (periodIds.length > 0) {
+        const merged = Array.from(new Set([...activeItemIds, ...periodIds]));
+        setActiveItemIds(merged);
+        setAlertMessage({
+          type: 'success',
+          text: `${DAY_NAME_GUJARATI[bookingDayName] || bookingDayName} નું ${bookingMealPeriod === 'LUNCH' ? 'બપોરનું' : 'સાંજનું'} ડેઇલી મેનુ (${periodIds.length} વાનગીઓ) સફળતાપૂર્વક ફંક્શનમાં ઉમેરાયું!`
+        });
+      } else {
+        setAlertMessage({
+          type: 'info',
+          text: `${DAY_NAME_GUJARATI[bookingDayName] || bookingDayName} માટે ${bookingMealPeriod === 'LUNCH' ? 'બપોરનું' : 'સાંજનું'} ડેઇલી મેનુ સેટ નથી. આપ નીચે કેટેલોગમાંથી સીધી વાનગીઓ પસંદ કરી શકો છો.`
+        });
+      }
     } else {
       setAlertMessage({
         type: 'info',
@@ -342,9 +369,9 @@ export const BookingPage: React.FC = () => {
     link.click();
   };
 
-  // Filtered master catalog items (identical to DailyMenuPage logic)
+  // Filtered master catalog items - strictly filtered by bookingMealPeriod
   const filteredCatalog = useMemo(() => {
-    return allMenuItems.filter(item => {
+    return mealFilteredItems.filter(item => {
       const matchesSearch = 
         item.name.toLowerCase().includes(catalogSearch.toLowerCase()) ||
         item.code.toLowerCase().includes(catalogSearch.toLowerCase());
@@ -352,7 +379,7 @@ export const BookingPage: React.FC = () => {
         selectedCategoryId === 'ALL' || item.categoryId === selectedCategoryId;
       return matchesSearch && matchesCategory;
     });
-  }, [allMenuItems, catalogSearch, selectedCategoryId]);
+  }, [mealFilteredItems, catalogSearch, selectedCategoryId]);
 
   // Selected dishes details (for rendering list)
   const selectedDishes = useMemo(() => {
@@ -2327,14 +2354,21 @@ export const BookingPage: React.FC = () => {
           size="xl"
           isOpen={isMenuModalOpen}
           onClose={finishMenuSelection}
-          title={`🍽️ ફંક્શન કેટરિંગ ભોજન મેનુ (Function Catering Menu) • ${formData.bookingDate} (${DAY_NAME_GUJARATI[bookingDayName] || bookingDayName})`}
+          title={`ફંક્શન મેનુ (${bookingMealPeriod === 'LUNCH' ? 'બપોર - Lunch' : 'સાંજ - Dinner'}) • ${formData.bookingDate} (${DAY_NAME_GUJARATI[bookingDayName] || bookingDayName})`}
         >
           <div className="d-flex flex-column gap-3 p-1">
             {/* Top Action Bar */}
             <div className="p-2.5 bg-light rounded-3 border d-flex flex-wrap justify-content-between align-items-center gap-2">
               <div className="fw-bold text-dark d-flex align-items-center gap-2 small">
                 <Utensils size={16} className="text-warning" />
-                <span>Select Dishes (વાનગીઓ પસંદ કરો)</span>
+                <span>
+                  {bookingMealPeriod === 'LUNCH'
+                    ? 'બપોરની વાનગીઓ (Lunch Menu)'
+                    : 'સાંજની વાનગીઓ (Dinner Menu)'}
+                </span>
+                <span className={`badge ms-1 ${bookingMealPeriod === 'LUNCH' ? 'bg-warning text-dark' : 'bg-dark text-white'}`} style={{ fontSize: '0.7rem' }}>
+                  {bookingMealPeriod === 'LUNCH' ? 'LUNCH' : 'DINNER'}
+                </span>
               </div>
 
               <button
@@ -2342,7 +2376,7 @@ export const BookingPage: React.FC = () => {
                 className="btn btn-outline-secondary btn-sm fw-semibold shadow-xs d-flex align-items-center gap-1 px-3 py-1"
                 onClick={handleLoadDayMenu}
               >
-                <span>Load {DAY_NAME_GUJARATI[bookingDayName]?.split(' ')[0] || 'Day'} Menu</span>
+                <span>Load {DAY_NAME_GUJARATI[bookingDayName]?.split(' ')[0] || 'Day'} {bookingMealPeriod === 'LUNCH' ? 'Lunch' : 'Dinner'} Menu</span>
               </button>
             </div>
 
@@ -2370,7 +2404,7 @@ export const BookingPage: React.FC = () => {
                       </div>
                     </div>
 
-                    {/* Category Filter Pills */}
+                    {/* Category Filter Pills - strictly filtered by booking meal period */}
                     <div className="d-flex flex-wrap gap-1 mt-2.5" style={{ overflowX: 'visible' }}>
                       <button
                         type="button"
@@ -2379,10 +2413,10 @@ export const BookingPage: React.FC = () => {
                         }`}
                         onClick={() => setSelectedCategoryId('ALL')}
                       >
-                        All Categories ({allMenuItems.length})
+                        {bookingMealPeriod === 'LUNCH' ? 'બપોર' : 'સાંજ'} - All ({mealFilteredItems.length})
                       </button>
-                      {categories.map(cat => {
-                        const catItemsCount = allMenuItems.filter(m => m.categoryId === cat.id).length;
+                      {mealFilteredCategories.map(cat => {
+                        const catItemsCount = mealFilteredItems.filter(m => m.categoryId === cat.id).length;
                         return (
                           <button
                             type="button"
