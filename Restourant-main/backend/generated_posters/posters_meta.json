@@ -1,0 +1,62 @@
+[
+  {
+    "id": "thursday_20260924_162541_8638",
+    "dayOfWeek": "THURSDAY",
+    "price": 250,
+    "theme": "royal_maroon",
+    "themeName": "રોયલ કાઠિયાવાડી મરૂન & ગોલ્ડ",
+    "formatStyle": "FORMAT_KATHIYAWADI_CARD",
+    "customDate": null,
+    "fileName": "menu_thursday_20260924_162541_8638.png",
+    "filePath": "C:\\Users\\KOMIL\\Downloads\\Restourant-main\\Restourant-main\\backend\\generated_posters\\menu_thursday_20260924_162541_8638.png",
+    "fileUrl": "/generated_posters/menu_thursday_20260924_162541_8638.png",
+    "sizeBytes": 88744,
+    "generatedAt": "2026-09-24T16:25:41.202542",
+    "savedBy": "superadmin"
+  },
+  {
+    "id": "saturday_20260919_121836_6239",
+    "dayOfWeek": "SATURDAY",
+    "price": 250,
+    "theme": "ai",
+    "themeName": "ai",
+    "formatStyle": "random",
+    "customDate": null,
+    "fileName": "menu_saturday_20260919_121836_6239.png",
+    "filePath": "C:\\Users\\kanop\\Downloads\\Restourant-main\\Restourant-main\\backend\\generated_posters\\menu_saturday_20260919_121836_6239.png",
+    "fileUrl": "/generated_posters/menu_saturday_20260919_121836_6239.png",
+    "sizeBytes": 108328,
+    "generatedAt": "2026-09-19T12:18:36.329696",
+    "savedBy": "superadmin"
+  },
+  {
+    "id": "saturday_20260919_121652_2515",
+    "dayOfWeek": "SATURDAY",
+    "price": 250,
+    "theme": "ai",
+    "themeName": "ai",
+    "formatStyle": "random",
+    "customDate": null,
+    "fileName": "menu_saturday_20260919_121652_2515.png",
+    "filePath": "C:\\Users\\kanop\\Downloads\\Restourant-main\\Restourant-main\\backend\\generated_posters\\menu_saturday_20260919_121652_2515.png",
+    "fileUrl": "/generated_posters/menu_saturday_20260919_121652_2515.png",
+    "sizeBytes": 102804,
+    "generatedAt": "2026-09-19T12:16:52.696141",
+    "savedBy": "superadmin"
+  },
+  {
+    "id": "friday_20260918_230102_7524",
+    "dayOfWeek": "FRIDAY",
+    "price": 250,
+    "theme": "ai",
+    "themeName": "ai",
+    "formatStyle": "random",
+    "customDate": null,
+    "fileName": "menu_friday_20260918_230102_7524.png",
+    "filePath": "C:\\Users\\KOMIL\\OneDrive\\Desktop\\Restourant-main\\backend\\generated_posters\\menu_friday_20260918_230102_7524.png",
+    "fileUrl": "/generated_posters/menu_friday_20260918_230102_7524.png",
+    "sizeBytes": 106564,
+    "generatedAt": "2026-09-18T23:01:02.400411",
+    "savedBy": "superadmin"
+  }
+]

@@ -1,0 +1,37 @@
+{
+  "short_name": "Bhatigal Bhanu",
+  "name": "Bhatigal Bhanu - Restaurant ERP",
+  "description": "Bhatigal Bhanu Traditional Kathiyawadi & Gujarati Restaurant ERP & POS Portal",
+  "icons": [
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-192.png",
+      "type": "image/png",
+      "sizes": "192x192",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "any"
+    },
+    {
+      "src": "/icon-512.png",
+      "type": "image/png",
+      "sizes": "512x512",
+      "purpose": "maskable"
+    }
+  ],
+  "start_url": "/",
+  "background_color": "#f7f1e5",
+  "theme_color": "#7a1c24",
+  "display": "standalone",
+  "orientation": "any",
+  "scope": "/"
+}

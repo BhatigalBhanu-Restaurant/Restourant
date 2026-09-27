@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/jpeg" href="/logo.jpg" />
+    <link rel="apple-touch-icon" sizes="180x180" href="/apple-touch-icon.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
+    <meta name="theme-color" content="#d48b28" />
+    <meta name="mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-capable" content="yes" />
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+    <meta name="apple-mobile-web-app-title" content="Bhatigal Bhanu" />
+    <meta name="application-name" content="Bhatigal Bhanu" />
+    <title>Bhatigal Bhanu | Restaurant Management ERP</title>
+    <!-- Google Fonts for Clean Modern Typography -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700;800&family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script>
+      // Enhanced clipboard: copy image data URLs as actual image blobs
+      // so the image itself (not the URL string) gets copied to clipboard.
+      if (navigator.clipboard && navigator.clipboard.write) {
+        const _origWrite = navigator.clipboard.write.bind(navigator.clipboard);
+        navigator.clipboard.write = async (items: any[]) => {
+          try {
+            return await _origWrite(items);
+          } catch (e: any) {
+            const textItem = items.find((item: any) => item.types && item.types.includes('text/plain'));
+            if (textItem) {
+              try {
+                const blob = await textItem.getType('text/plain');
+                const text = await blob.text();
+                return await navigator.clipboard.writeText(text);
+              } catch (_) {}
+            }
+            throw e;
+          }
+        };
+      }
+    </script>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
+

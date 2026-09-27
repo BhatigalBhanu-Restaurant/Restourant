@@ -1,0 +1,40 @@
+# Dependencies
+node_modules/
+**/node_modules/
+
+# Build
+dist/
+build/
+**/dist/
+**/build/
+
+# Environment files
+.env
+.env.*
+.env.local
+.env.*.local
+server/.env
+admin/.env
+!.env.example
+!server/.env.example
+!admin/.env.example
+
+# Logs
+*.log
+logs/
+
+# Uploads
+server/uploads/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# IDE
+.vscode/
+.idea/
+
+# Cache
+.npm/
+.mongo_data/
+**/.mongo_data/

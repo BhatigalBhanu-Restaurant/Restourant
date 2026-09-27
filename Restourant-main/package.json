@@ -1,0 +1,30 @@
+{
+  "name": "restaurant-management-erp",
+  "version": "2.0.0",
+  "description": "Kathiyawadi Restaurant Management ERP System - Python FastAPI Backend with React Enterprise UI",
+  "scripts": {
+    "start": "python run.py",
+    "dev": "npm run dev --prefix admin",
+    "dev:backend": "python run.py",
+    "dev:frontend": "npm run dev --prefix admin",
+    "build": "npm run build --prefix admin",
+    "test:api": "python -m backend.test_api"
+  },
+  "keywords": [
+    "restaurant",
+    "erp",
+    "python",
+    "fastapi",
+    "react",
+    "kathiyawadi",
+    "pos",
+    "kds",
+    "billing",
+    "inventory",
+    "accounts",
+    "payroll",
+    "rbac"
+  ],
+  "author": "Antigravity ERP Architect",
+  "license": "ISC"
+}
