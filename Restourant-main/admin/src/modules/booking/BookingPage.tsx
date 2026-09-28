@@ -133,7 +133,7 @@ export const BookingPage: React.FC = () => {
     customerName: '',
     customerPhone: '',
     alternatePhone: '',
-    guestCount: 50,
+    guestCount: '' as unknown as number,
     // Retained only for legacy records; no new payment data is sent to the API.
     advanceAmount: 0,
     estimatedTotal: 0,
@@ -480,7 +480,12 @@ export const BookingPage: React.FC = () => {
     }
 
     if (!formData.customerName.trim() || formData.customerName.trim().length < 2) {
-      setAlertMessage({ type: 'danger', text: 'Please provide host name (at least 2 characters).' });
+      setAlertMessage({ type: 'danger', text: 'યજમાનનું નામ દાખલ કરો (ઓછામાં ઓછા ૨ અક્ષર).' });
+      return;
+    }
+
+    if (!formData.guestCount || Number(formData.guestCount) <= 0) {
+      setAlertMessage({ type: 'danger', text: 'મહેરબાની કરીને અપેક્ષિત મહેમાનોની માન્ય સંખ્યા દાખલ કરો.' });
       return;
     }
 
@@ -530,6 +535,7 @@ export const BookingPage: React.FC = () => {
           customerName: '',
           customerPhone: '',
           alternatePhone: '',
+          guestCount: '' as unknown as number,
           notes: ''
         }));
         setActiveItemIds([]);
@@ -1164,24 +1170,48 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
         </div>
       </div>
 
-      {/* Alert Banner */}
+      {/* Professional Success & Notification Banner */}
       {alertMessage && (
         <div 
-          className={`alert alert-${alertMessage.type} alert-dismissible fade show d-flex align-items-center justify-content-between py-2 px-3 shadow-sm mb-0`}
+          className="d-flex justify-content-between align-items-center px-3 py-2.5 rounded-3 shadow-sm mb-1"
+          style={{
+            backgroundColor: alertMessage.type === 'success' ? '#ECFDF5' : alertMessage.type === 'danger' ? '#FEF2F2' : '#EFF6FF',
+            border: `1px solid ${alertMessage.type === 'success' ? '#A7F3D0' : alertMessage.type === 'danger' ? '#FECACA' : '#BFDBFE'}`,
+            color: alertMessage.type === 'success' ? '#065F46' : alertMessage.type === 'danger' ? '#991B1B' : '#1E40AF',
+            borderRadius: '10px'
+          }}
           role="alert"
         >
-          <div className="d-flex align-items-center gap-2 small fw-semibold">
-            {alertMessage.type === 'success' && <CheckCircle2 size={16} className="text-success flex-shrink-0" />}
-            {alertMessage.type === 'danger' && <AlertCircle size={16} className="text-danger flex-shrink-0" />}
-            {alertMessage.type === 'info' && <CalendarPlus size={16} className="text-info flex-shrink-0" />}
-            <span>{alertMessage.text}</span>
+          {/* Left Aligned: Icon and Text */}
+          <div className="d-flex align-items-center gap-2.5 fw-semibold small">
+            {alertMessage.type === 'success' && <CheckCircle2 size={18} className="flex-shrink-0" style={{ color: '#059669' }} />}
+            {alertMessage.type === 'danger' && <AlertCircle size={18} className="flex-shrink-0" style={{ color: '#DC2626' }} />}
+            {alertMessage.type === 'info' && <CalendarPlus size={18} className="flex-shrink-0" style={{ color: '#2563EB' }} />}
+            <span style={{ fontSize: '0.88rem' }}>{alertMessage.text}</span>
           </div>
+
+          {/* Extreme Right Aligned: Close 'X' Button with smooth hover feedback */}
           <button 
             type="button" 
-            className="btn-close p-2" 
+            className="btn btn-sm p-1 rounded-2 d-flex align-items-center justify-content-center border-0 ms-3"
             onClick={() => setAlertMessage(null)}
             aria-label="Close"
-          />
+            title="Close"
+            style={{
+              cursor: 'pointer',
+              color: alertMessage.type === 'success' ? '#047857' : alertMessage.type === 'danger' ? '#B91C1C' : '#1D4ED8',
+              backgroundColor: 'transparent',
+              transition: 'background-color 0.15s ease, color 0.15s ease'
+            }}
+            onMouseEnter={e => {
+              (e.currentTarget as HTMLElement).style.backgroundColor = alertMessage.type === 'success' ? '#A7F3D0' : alertMessage.type === 'danger' ? '#FEE2E2' : '#DBEAFE';
+            }}
+            onMouseLeave={e => {
+              (e.currentTarget as HTMLElement).style.backgroundColor = 'transparent';
+            }}
+          >
+            <X size={16} strokeWidth={2.5} />
+          </button>
         </div>
       )}
 
@@ -1273,15 +1303,16 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
               )}
 
               <form onSubmit={handleBookFunction} className="d-flex flex-column gap-3">
-                {/* 1. Date Picker */}
-                <div>
-                  <label className="form-label small fw-semibold text-secondary mb-1 d-flex align-items-center gap-1">
-                    <CalendarIcon size={12} /> Booking Date (તારીખ) <span className="text-danger">*</span>
+                {/* 1. Date Picker Section */}
+                <div className="p-3 rounded-3 border bg-white shadow-xs" style={{ borderColor: '#E2E8F0' }}>
+                  <label className="form-label small fw-bold text-dark mb-1.5 d-flex align-items-center gap-1.5">
+                    <CalendarIcon size={14} className="text-danger" />
+                    <span>Booking Date (તારીખ) <span className="text-danger">*</span></span>
                   </label>
                   <input
                     type="date"
                     min={todayStr}
-                    className="form-control form-control-sm border rounded-3 p-2 fw-semibold"
+                    className="form-control form-control-sm border rounded-2 p-2 fw-semibold text-dark shadow-xs"
                     required
                     value={formData.bookingDate}
                     onChange={e => {
@@ -1295,24 +1326,26 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                       setFormData({ ...formData, bookingDate: e.target.value });
                       setSelectedDate(e.target.value);
                     }}
-                    style={{ borderColor: '#E8DCCF', fontSize: '0.9rem' }}
+                    style={{ borderColor: '#CBD5E1', fontSize: '0.9rem' }}
                   />
-                  <small className="text-muted">
-                    તારીખનો વાર: <strong className="text-primary">{DAY_NAME_GUJARATI[bookingDayName] || bookingDayName}</strong>
-                  </small>
+                  <div className="d-flex justify-content-between align-items-center mt-1.5 small">
+                    <span className="text-muted">તારીખનો વાર:</span>
+                    <span className="badge bg-light text-primary border fw-bold">{DAY_NAME_GUJARATI[bookingDayName] || bookingDayName}</span>
+                  </div>
                 </div>
 
                 {/* 2. TIME SLOT: STRICTLY 2 OPTIONS (બપોરે / સાંજે) + MANUAL TIME SELECT */}
-                <div className="p-2.5 rounded-3 bg-light border">
-                  <label className="form-label small fw-bold text-dark mb-1 d-flex align-items-center gap-1">
-                    <Clock size={13} className="text-danger" /> Time Slot (સમય ગાળો) & Manual Time <span className="text-danger">*</span>
+                <div className="p-3 rounded-3 bg-light border shadow-xs" style={{ borderColor: '#E2E8F0' }}>
+                  <label className="form-label small fw-bold text-dark mb-2 d-flex align-items-center gap-1.5">
+                    <Clock size={14} className="text-danger" />
+                    <span>Time Slot (સમય ગાળો) & Exact Time <span className="text-danger">*</span></span>
                   </label>
                   
                   {/* Exactly 2 Time Slot Buttons: બપોરે (Lunch) / સાંજે (Dinner) */}
-                  <div className="btn-group w-100 mb-2 shadow-xs" role="group">
+                  <div className="btn-group w-100 mb-2.5 shadow-xs" role="group">
                     <button
                       type="button"
-                      className={`btn btn-sm py-2 fw-bold d-flex align-items-center justify-content-center gap-1 ${
+                      className={`btn btn-sm py-2 fw-bold d-flex align-items-center justify-content-center gap-1.5 transition-all ${
                         formData.timeSlot === 'બપોરે (Lunch)'
                           ? 'btn-warning text-dark border-warning shadow-sm'
                           : 'btn-outline-secondary bg-white'
@@ -1327,7 +1360,7 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                     </button>
                     <button
                       type="button"
-                      className={`btn btn-sm py-2 fw-bold d-flex align-items-center justify-content-center gap-1 ${
+                      className={`btn btn-sm py-2 fw-bold d-flex align-items-center justify-content-center gap-1.5 transition-all ${
                         formData.timeSlot === 'સાંજે (Dinner)'
                           ? 'btn-primary text-white border-primary shadow-sm'
                           : 'btn-outline-secondary bg-white'
@@ -1345,28 +1378,28 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                   {/* Manual Time Selection Field */}
                   <div className="row g-2 align-items-center">
                     <div className="col-7">
-                      <label className="small text-secondary mb-0 fw-semibold" style={{ fontSize: '0.75rem' }}>
-                        Manual Exact Time (ચોક્કસ સમય):
+                      <label className="small text-secondary mb-1 fw-semibold d-block" style={{ fontSize: '0.75rem' }}>
+                        Exact Time (ચોક્કસ સમય):
                       </label>
                       <input
                         type="text"
-                        className="form-control form-control-sm border rounded-2 p-1.5 fw-bold text-dark font-monospace"
-                        placeholder={formData.timeSlot.includes('બપોરે') ? '01:00 PM' : '08:00 PM'}
+                        className="form-control form-control-sm border rounded-2 p-1.5 fw-bold text-dark font-monospace shadow-xs"
+                        placeholder="સમય પસંદ કરો અથવા દાખલ કરો"
                         required
                         value={formData.bookingTime}
                         onChange={e => setFormData({ ...formData, bookingTime: e.target.value })}
-                        style={{ fontSize: '0.85rem' }}
+                        style={{ borderColor: '#CBD5E1', fontSize: '0.85rem' }}
                       />
                     </div>
                     <div className="col-5">
-                      <label className="small text-secondary mb-0" style={{ fontSize: '0.75rem' }}>
+                      <label className="small text-secondary mb-1 d-block" style={{ fontSize: '0.75rem' }}>
                         Quick Presets:
                       </label>
                       <select
-                        className="form-select form-select-sm"
+                        className="form-select form-select-sm border rounded-2 shadow-xs"
                         value={formData.bookingTime}
                         onChange={e => setFormData({ ...formData, bookingTime: e.target.value })}
-                        style={{ fontSize: '0.78rem' }}
+                        style={{ borderColor: '#CBD5E1', fontSize: '0.78rem' }}
                       >
                         {formData.timeSlot.includes('બપોરે') ? (
                           <>
@@ -1394,10 +1427,10 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                 </div>
 
                 {/* 3. FUNCTION CATERING MENU */}
-                <div className="p-3 rounded-3 border" style={{ backgroundColor: '#FDFCF9', borderColor: '#E8DCCF' }}>
+                <div className="p-3 rounded-3 border shadow-xs" style={{ backgroundColor: '#FAF9F6', borderColor: '#E8DCCF' }}>
                   <div className="d-flex justify-content-between align-items-center mb-2">
                     <div className="d-flex align-items-center gap-1.5">
-                      <Utensils size={16} className="text-warning" />
+                      <Utensils size={15} className="text-warning" />
                       <span className="fw-bold text-dark small">
                         Function Menu (ભોજન મેનુ)
                       </span>
@@ -1413,8 +1446,8 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                   <button
                     type="button"
                     onClick={() => setIsMenuModalOpen(true)}
-                    className="btn btn-warning w-100 py-2 fw-bold text-dark shadow-sm d-flex align-items-center justify-content-center gap-2"
-                    style={{ fontSize: '0.85rem' }}
+                    className="btn btn-warning w-100 py-2.5 fw-bold text-dark shadow-sm d-flex align-items-center justify-content-center gap-2 transition-all"
+                    style={{ fontSize: '0.88rem', borderRadius: '8px' }}
                   >
                     <Utensils size={15} />
                     <span>{selectedDishes.length > 0 ? 'Edit Menu (મેનુ બદલો)' : 'Select Menu (મેનુ પસંદ કરો)'}</span>
@@ -1422,25 +1455,25 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
 
                   {selectedDishes.length > 0 && (
                     <div className="d-flex gap-2 mt-2">
-                      <button type="button" className="btn btn-outline-primary btn-sm flex-grow-1" onClick={generateFunctionMenuPoster} disabled={menuPosterLoading}>
+                      <button type="button" className="btn btn-outline-primary btn-sm flex-grow-1 shadow-xs" onClick={generateFunctionMenuPoster} disabled={menuPosterLoading}>
                         <Eye size={14} className="me-1" /> {menuPosterLoading ? 'Creating menu card…' : 'Open Menu Card Preview'}
                       </button>
-                      {menuPosterUrl && <button type="button" className="btn btn-outline-success btn-sm" onClick={downloadFunctionMenuPoster}><Download size={14} className="me-1" />Download</button>}
+                      {menuPosterUrl && <button type="button" className="btn btn-outline-success btn-sm shadow-xs" onClick={downloadFunctionMenuPoster}><Download size={14} className="me-1" />Download</button>}
                     </div>
                   )}
-                  {menuPosterUrl && <div className="mt-2 text-center border rounded-3 p-2 bg-light"><img src={menuPosterUrl} alt="Function menu card" className="img-fluid rounded" style={{ maxHeight: 360 }} /></div>}
+                  {menuPosterUrl && <div className="mt-2 text-center border rounded-3 p-2 bg-white shadow-xs"><img src={menuPosterUrl} alt="Function menu card" className="img-fluid rounded" style={{ maxHeight: 360 }} /></div>}
 
                   {/* Selected Dishes Summary Preview */}
                   {selectedDishes.length > 0 && (
-                    <div className="p-2 bg-white rounded border mt-2">
-                      <div className="d-flex justify-content-between align-items-center mb-1">
-                        <span className="text-muted small" style={{ fontSize: '0.7rem' }}>
+                    <div className="p-2.5 bg-white rounded-3 border mt-2.5 shadow-xs" style={{ borderColor: '#E8DCCF' }}>
+                      <div className="d-flex justify-content-between align-items-center mb-1.5">
+                        <span className="text-muted small fw-semibold" style={{ fontSize: '0.72rem' }}>
                           પસંદ કરેલ વાનગીઓ ({selectedDishes.length}):
                         </span>
                         <button
                           type="button"
-                          className="btn btn-link btn-sm p-0 text-danger text-decoration-none"
-                          style={{ fontSize: '0.7rem' }}
+                          className="btn btn-link btn-sm p-0 text-danger text-decoration-none fw-semibold"
+                          style={{ fontSize: '0.72rem' }}
                           onClick={handleClearSelection}
                         >
                           Clear All
@@ -1468,59 +1501,66 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                 </div>
 
                 {/* 4. Guests Expected */}
-                <div>
-                  <label className="form-label small fw-semibold text-secondary mb-1 d-flex align-items-center gap-1">
-                    <Users size={12} className="text-danger" /> Guests Expected (મહેમાનોની સંખ્યા) <span className="text-danger">*</span>
+                <div className="p-3 rounded-3 border bg-white shadow-xs" style={{ borderColor: '#E2E8F0' }}>
+                  <label className="form-label small fw-bold text-dark mb-1.5 d-flex align-items-center gap-1.5">
+                    <Users size={14} className="text-danger" />
+                    <span>Guests Expected (મહેમાનોની સંખ્યા) <span className="text-danger">*</span></span>
                   </label>
                   <input
                     type="number"
                     min="1"
-                    className="form-control form-control-sm border rounded-3 p-2 fw-semibold"
-                    placeholder="દા.ત. 50"
+                    className="form-control form-control-sm border rounded-2 p-2 fw-bold text-dark shadow-xs"
+                    placeholder="મહેમાનોની સંખ્યા દાખલ કરો"
                     required
-                    value={formData.guestCount}
-                    onChange={e => setFormData({ ...formData, guestCount: Number(e.target.value) })}
-                    style={{ borderColor: '#E8DCCF', fontSize: '0.9rem' }}
+                    value={formData.guestCount || ''}
+                    onChange={e => setFormData({ ...formData, guestCount: e.target.value === '' ? ('' as any) : Number(e.target.value) })}
+                    style={{ borderColor: '#CBD5E1', fontSize: '0.9rem' }}
                   />
                 </div>
 
-                {/* 5. Client Name & Mobile Phone */}
-                <div className="row g-2">
-                  <div className="col-12 col-sm-6">
-                    <label className="form-label small fw-semibold text-secondary mb-1">
-                      Host Name (યજમાનનું નામ) <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control form-control-sm border rounded-3 p-2"
-                      placeholder="દા.ત. રાજેશભાઈ પટેલ"
-                      required
-                      value={formData.customerName}
-                      onChange={e => setFormData({ ...formData, customerName: e.target.value })}
-                      style={{ borderColor: '#E8DCCF', fontSize: '0.9rem' }}
-                    />
+                {/* 5. Client Name & Mobile Phone (Host Details) */}
+                <div className="p-3 rounded-3 border bg-white shadow-xs" style={{ borderColor: '#E2E8F0' }}>
+                  <div className="d-flex align-items-center gap-1.5 mb-2.5">
+                    <UserCheck size={15} className="text-primary" />
+                    <span className="fw-bold text-dark small">Host Details (યજમાનની વિગત)</span>
                   </div>
-                  <div className="col-12 col-sm-6">
-                    <label className="form-label small fw-semibold text-secondary mb-1">
-                      Mobile Phone (મોબાઈલ નંબર) <span className="text-danger">*</span>
-                    </label>
-                    <div className="input-group input-group-sm">
-                      <span className="input-group-text bg-light text-muted border-end-0" style={{ fontSize: '0.8rem' }}>
-                        +91
-                      </span>
+                  <div className="row g-2.5">
+                    <div className="col-12 col-sm-6">
+                      <label className="form-label small fw-semibold text-secondary mb-1">
+                        Host Name (યજમાનનું નામ) <span className="text-danger">*</span>
+                      </label>
                       <input
-                        type="tel"
-                        maxLength={10}
-                        className="form-control form-control-sm border border-start-0 rounded-end-3 p-2"
-                        placeholder="9876543210"
+                        type="text"
+                        className="form-control form-control-sm border rounded-2 p-2 text-dark shadow-xs"
+                        placeholder="યજમાનનું નામ દાખલ કરો"
                         required
-                        value={formData.customerPhone}
-                        onChange={e => {
-                          const val = e.target.value.replace(/\D/g, '').slice(0, 10);
-                          setFormData({ ...formData, customerPhone: val });
-                        }}
-                        style={{ borderColor: '#E8DCCF', fontSize: '0.9rem' }}
+                        value={formData.customerName}
+                        onChange={e => setFormData({ ...formData, customerName: e.target.value })}
+                        style={{ borderColor: '#CBD5E1', fontSize: '0.9rem' }}
                       />
+                    </div>
+                    <div className="col-12 col-sm-6">
+                      <label className="form-label small fw-semibold text-secondary mb-1">
+                        Mobile Phone (મોબાઈલ નંબર) <span className="text-danger">*</span>
+                      </label>
+                      <div className="input-group input-group-sm shadow-xs">
+                        <span className="input-group-text bg-light text-muted border-end-0 fw-semibold" style={{ fontSize: '0.82rem', borderColor: '#CBD5E1' }}>
+                          +91
+                        </span>
+                        <input
+                          type="tel"
+                          maxLength={10}
+                          className="form-control form-control-sm border border-start-0 rounded-end-2 p-2 fw-semibold text-dark"
+                          placeholder="10 અંકનો મોબાઈલ નંબર દાખલ કરો"
+                          required
+                          value={formData.customerPhone}
+                          onChange={e => {
+                            const val = e.target.value.replace(/\D/g, '').slice(0, 10);
+                            setFormData({ ...formData, customerPhone: val });
+                          }}
+                          style={{ borderColor: '#CBD5E1', fontSize: '0.9rem' }}
+                        />
+                      </div>
                     </div>
                   </div>
                 </div>
@@ -1537,7 +1577,7 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                       min="0"
                       step="500"
                       className="form-control form-control-sm border rounded-3 p-2"
-                      placeholder="5000"
+                      placeholder="એડવાન્સ રકમ દાખલ કરો"
                       required
                       value={formData.advanceAmount}
                       onChange={e => setFormData({ ...formData, advanceAmount: Number(e.target.value) })}
@@ -1553,7 +1593,7 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                       min="0"
                       step="1000"
                       className="form-control form-control-sm border rounded-3 p-2"
-                      placeholder="25000"
+                      placeholder="અંદાજિત રકમ"
                       value={formData.estimatedTotal}
                       onChange={e => setFormData({ ...formData, estimatedTotal: Number(e.target.value) })}
                       style={{ borderColor: '#E8DCCF', fontSize: '0.9rem' }}
@@ -1586,80 +1626,98 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                     <input
                       type="text"
                       className="form-control form-control-sm border rounded-3 p-2"
-                      placeholder="e.g. UPI-123456"
+                      placeholder="ટ્રાન્ઝેક્શન / રેફરન્સ નંબર"
                       value={formData.referenceId}
                       onChange={e => setFormData({ ...formData, referenceId: e.target.value })}
                       style={{ borderColor: '#E8DCCF', fontSize: '0.85rem' }}
                     />
                   </div>
                 </div>
-
                 </div>
+
                 {/* 8. Function Type & Manager */}
-                <div className="row g-2">
-                  <div className="col-12 col-sm-6">
-                    <label className="form-label small fw-semibold text-secondary mb-1">
-                      Function Type (પ્રસંગનો પ્રકાર)
-                    </label>
-                    <select
-                      className="form-select form-select-sm border rounded-3 p-2"
-                      value={formData.functionType}
-                      onChange={e => setFormData({ ...formData, functionType: e.target.value })}
-                      style={{ borderColor: '#E8DCCF', fontSize: '0.85rem' }}
-                    >
-                      <option value="Family Dinner & Gathering">Family Dinner & Gathering</option>
-                      <option value="Wedding / Reception">Wedding / Reception</option>
-                      <option value="Ring Ceremony / Sagai">Ring Ceremony / Sagai</option>
-                      <option value="Birthday Party">Birthday Party</option>
-                      <option value="Corporate Event & Dinner">Corporate Event & Dinner</option>
-                      <option value="Babri / Mundan Sanskar">Babri / Mundan Sanskar</option>
-                      <option value="Traditional Feast / Rasoi">Traditional Feast / Rasoi</option>
-                      <option value="Other Celebration">Other Celebration</option>
-                    </select>
-                  </div>
-                  <div className="col-12 col-sm-6">
-                    <label className="form-label small fw-semibold text-secondary mb-1">
-                      Accepted By (મેનેજર)
-                    </label>
-                    <select
-                      className="form-select form-select-sm border rounded-3 p-2"
-                      value={formData.acceptedBy}
-                      onChange={e => setFormData({ ...formData, acceptedBy: e.target.value })}
-                      style={{ borderColor: '#E8DCCF', fontSize: '0.85rem' }}
-                    >
-                      {staffList.map((name, i) => (
-                        <option key={i} value={name}>{name}</option>
-                      ))}
-                    </select>
+                <div className="p-3 rounded-3 border bg-light shadow-xs" style={{ borderColor: '#E2E8F0' }}>
+                  <div className="row g-2.5">
+                    <div className="col-12 col-sm-6">
+                      <label className="form-label small fw-semibold text-secondary mb-1">
+                        Function Type (પ્રસંગનો પ્રકાર)
+                      </label>
+                      <select
+                        className="form-select form-select-sm border rounded-2 p-2 shadow-xs"
+                        value={formData.functionType}
+                        onChange={e => setFormData({ ...formData, functionType: e.target.value })}
+                        style={{ borderColor: '#CBD5E1', fontSize: '0.85rem' }}
+                      >
+                        <option value="Family Dinner & Gathering">Family Dinner & Gathering</option>
+                        <option value="Wedding / Reception">Wedding / Reception</option>
+                        <option value="Ring Ceremony / Sagai">Ring Ceremony / Sagai</option>
+                        <option value="Birthday Party">Birthday Party</option>
+                        <option value="Corporate Event & Dinner">Corporate Event & Dinner</option>
+                        <option value="Babri / Mundan Sanskar">Babri / Mundan Sanskar</option>
+                        <option value="Traditional Feast / Rasoi">Traditional Feast / Rasoi</option>
+                        <option value="Other Celebration">Other Celebration</option>
+                      </select>
+                    </div>
+                    <div className="col-12 col-sm-6">
+                      <label className="form-label small fw-semibold text-secondary mb-1">
+                        Accepted By (મેનેજર)
+                      </label>
+                      <select
+                        className="form-select form-select-sm border rounded-2 p-2 shadow-xs"
+                        value={formData.acceptedBy}
+                        onChange={e => setFormData({ ...formData, acceptedBy: e.target.value })}
+                        style={{ borderColor: '#CBD5E1', fontSize: '0.85rem' }}
+                      >
+                        {staffList.map((name, i) => (
+                          <option key={i} value={name}>{name}</option>
+                        ))}
+                      </select>
+                    </div>
                   </div>
                 </div>
 
                 {/* 9. Notes / Instructions */}
-                <div>
-                  <label className="form-label small fw-semibold text-secondary mb-1">
-                    Special Instructions (વિશેષ નોંધ)
+                <div className="p-3 rounded-3 border bg-white shadow-xs" style={{ borderColor: '#E2E8F0' }}>
+                  <label className="form-label small fw-bold text-dark mb-1.5">
+                    Special Instructions (વિશેષ નોંધ / વ્યવસ્થા)
                   </label>
                   <textarea
                     rows={2}
-                    className="form-control form-control-sm border rounded-3 p-2"
-                    placeholder="દા.ત. એસી ચાલુ રાખવું, બેઠક વ્યવસ્થા, વધારાની છાસ..."
+                    className="form-control form-control-sm border rounded-2 p-2 shadow-xs"
+                    placeholder="વિશેષ સૂચનાઓ લખો..."
                     value={formData.notes}
                     onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                    style={{ borderColor: '#E8DCCF', fontSize: '0.85rem' }}
+                    style={{ borderColor: '#CBD5E1', fontSize: '0.85rem' }}
                   />
                 </div>
 
                 {/* Submit Button */}
-                <div className="pt-2">
+                <div className="pt-1">
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="btn w-100 py-2.5 text-white fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2"
+                    className="btn w-100 py-3 text-white fw-bold shadow d-flex align-items-center justify-content-center gap-2"
                     style={{
                       backgroundColor: 'var(--brand-maroon, #7A1B28)',
                       borderColor: 'var(--brand-maroon-dark, #56101B)',
-                      borderRadius: '10px',
-                      fontSize: '0.95rem'
+                      borderRadius: '12px',
+                      fontSize: '1rem',
+                      letterSpacing: '0.2px',
+                      boxShadow: '0 4px 12px rgba(122, 27, 40, 0.25)',
+                      transition: 'all 0.2s cubic-bezier(0.4, 0, 0.2, 1)',
+                      cursor: submitting ? 'not-allowed' : 'pointer'
+                    }}
+                    onMouseEnter={e => {
+                      if (!submitting) {
+                        e.currentTarget.style.backgroundColor = '#5B111C';
+                        e.currentTarget.style.transform = 'translateY(-1px)';
+                        e.currentTarget.style.boxShadow = '0 6px 16px rgba(122, 27, 40, 0.35)';
+                      }
+                    }}
+                    onMouseLeave={e => {
+                      e.currentTarget.style.backgroundColor = 'var(--brand-maroon, #7A1B28)';
+                      e.currentTarget.style.transform = 'translateY(0px)';
+                      e.currentTarget.style.boxShadow = '0 4px 12px rgba(122, 27, 40, 0.25)';
                     }}
                   >
                     {submitting ? (
@@ -1669,7 +1727,7 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                       </>
                     ) : (
                       <>
-                        <CalendarPlus size={16} />
+                        <CalendarPlus size={18} />
                         <span>Confirm Function Booking (ફંક્શન બુક કરો)</span>
                       </>
                     )}
@@ -3250,7 +3308,7 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                         <input
                           type="text"
                           className="form-control form-control-sm"
-                          placeholder="વાનગીનું નામ (દા.ત. કાજુ કરી)"
+                          placeholder="વાનગીનું નામ દાખલ કરો"
                           value={checkoutState.newDishName}
                           onChange={(e) => setCheckoutState(prev => ({ ...prev, newDishName: e.target.value }))}
                           onKeyDown={(e) => { if (e.key === 'Enter') handleAddDishToCheckout(); }}
@@ -3353,7 +3411,7 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                               />
                             </div>
                             <div className="small text-muted mt-1" style={{ fontSize: '0.72rem' }}>
-                              વાનગીઓના રેટ વગર પણ તમે ડાયરેક્ટ કુલ બિલ રકમ (દા.ત. 25000) દાખલ કરી શકો છો.
+                              વાનગીઓના રેટ વગર પણ તમે ડાયરેક્ટ કુલ બિલ રકમ દાખલ કરી શકો છો.
                             </div>
                           </div>
 
