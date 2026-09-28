@@ -33,7 +33,8 @@ import {
   Pencil,
   LogIn,
   LogOut,
-  Receipt
+  Receipt,
+  MessageCircle
 } from 'lucide-react';
 import { useAutoRefresh } from '../../hooks/useAutoRefresh';
 
@@ -148,6 +149,8 @@ export const BookingPage: React.FC = () => {
   const [isCheckOutModalOpen, setIsCheckOutModalOpen] = useState(false);
   const [viewingBillBooking, setViewingBillBooking] = useState<Booking | null>(null);
   const [viewingLockedMenuBooking, setViewingLockedMenuBooking] = useState<Booking | null>(null);
+  const [selectedDateFilter, setSelectedDateFilter] = useState<string | null>(null);
+  const [viewingDayHistory, setViewingDayHistory] = useState<{ date: string; bookings: Booking[] } | null>(null);
 
   // Check-Out and Bill Generation Workflow State
   const [checkoutState, setCheckoutState] = useState<{
@@ -883,6 +886,54 @@ export const BookingPage: React.FC = () => {
     return `https://calendar.google.com/calendar/render?${params.toString()}`;
   };
 
+  // WhatsApp Message Generator & Instant Sender (with direct query reply note)
+  const buildWhatsAppConfirmationMessage = (b: Booking): string => {
+    const parts = (b.bookingDate || '').split('-');
+    let dayName = '';
+    if (parts.length === 3) {
+      const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      dayName = DAY_NAME_GUJARATI[DAY_NAMES[d.getDay()]] || '';
+    }
+
+    const dishesList = b.selectedMenu && b.selectedMenu.length > 0
+      ? b.selectedMenu.map((d, i) => `  ${i + 1}. ${d}`).join('\n')
+      : '  • નક્કી કરવાનું બાકી';
+
+    return `*🍽️ ભતીગળ ભાનુ - રેસ્ટોરન્ટ અને બેન્ક્વેટ*
+*Bhatigal Bhanu Traditional Dining & Banquet*
+━━━━━━━━━━━━━━━━━━━━
+નમસ્તે *${b.customerName || 'ગ્રાહક'}* જી,
+આપનું ફંક્શન બુકિંગ સફળતાપૂર્વક કન્ફર્મ થઈ ગયું છે! 🎉
+
+📋 *બુકિંગ વિગતો (Booking Details):*
+• બુકિંગ નંબર: *${b.bookingNumber}*
+• તારીખ: *${b.bookingDate}* ${dayName ? `(${dayName})` : ''}
+• સમય ગાળો: *${b.timeSlot || 'સાંજે (Dinner)'}* (${b.bookingTime || ''})
+• મહેમાનોની સંખ્યા: *${b.guestCount} વ્યક્તિ*
+• પ્રસંગનો પ્રકાર: *${b.functionType || 'Family Gathering'}*
+• હોલ / જગ્યા: *${b.venueArea || 'Restaurant Banquet'}*
+• એડવાન્સ રકમ: *₹${(b.advanceAmount || 0).toLocaleString('en-IN')}* (${b.paymentMode || 'Cash'})
+${b.referenceId ? `• ટ્રાન્ઝેક્શન Ref: *${b.referenceId}*\n` : ''}
+🍲 *નક્કી કરેલ ભોજન મેનુ:*
+${dishesList}
+━━━━━━━━━━━━━━━━━━━━
+💬 *કોઈપણ પ્રશ્ન હોય અથવા કોઈ ફેરફાર કરવો હોય તો આપ આ જ મેસેજ પર સીધો Reply (જવાબ) આપી શકો છો.*
+📞 સંપર્ક: +91 9876543210
+
+ધન્યવાદ!
+*ભતીગળ ભાનુ ટીમ*`;
+  };
+
+  const sendWhatsAppConfirmation = (b: Booking) => {
+    let cleanPhone = (b.customerPhone || '').replace(/\D/g, '');
+    if (cleanPhone.length === 10) {
+      cleanPhone = '91' + cleanPhone;
+    }
+    const msg = buildWhatsAppConfirmationMessage(b);
+    const url = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank');
+  };
+
   // Calendar Helpers
   const year = currentDate.getFullYear();
   const month = currentDate.getMonth();
@@ -919,6 +970,11 @@ export const BookingPage: React.FC = () => {
       isPast: boolean;
       bookings: Booking[];
       booking?: Booking;
+      allDayBookings?: Booking[];
+      activeBookings?: Booking[];
+      completedBookings?: Booking[];
+      isLocked?: boolean;
+      hasCompleted?: boolean;
     }> = [];
 
     // Empty padding days before day 1
@@ -935,7 +991,9 @@ export const BookingPage: React.FC = () => {
 
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const dayBookings = bookings.filter(b => b.bookingDate === dateStr && isDateLocking(b));
+      const allDayBookings = bookings.filter(b => b.bookingDate === dateStr && b.status !== 'CANCELLED');
+      const activeBookings = allDayBookings.filter(b => isDateLocking(b));
+      const completedBookings = allDayBookings.filter(b => b.status === 'COMPLETED' || b.status === 'CHECKED_OUT');
 
       const isToday = dateStr === todayStr;
       const isPast = dateStr < todayStr;
@@ -946,35 +1004,42 @@ export const BookingPage: React.FC = () => {
         isCurrentMonth: true,
         isToday,
         isPast,
-        bookings: dayBookings,
-        booking: dayBookings[0]
+        bookings: activeBookings,
+        booking: activeBookings[0] || completedBookings[0] || allDayBookings[0],
+        allDayBookings,
+        activeBookings,
+        completedBookings,
+        isLocked: activeBookings.length > 0,
+        hasCompleted: completedBookings.length > 0
       });
     }
 
     return days;
   }, [year, month, bookings, todayStr]);
 
-  // Filtered bookings for registry table
+  // Filtered bookings for registry table (supports specific date filtering)
   const filteredBookings = useMemo(() => {
     return bookings.filter(b => {
+      const matchesDate = !selectedDateFilter || b.bookingDate === selectedDateFilter;
       const matchesSearch = 
         b.customerName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         b.customerPhone?.includes(searchTerm) ||
         b.bookingNumber?.toLowerCase().includes(searchTerm.toLowerCase()) ||
         b.bookingDate?.includes(searchTerm);
 
-      const matchesStatus = 
-        statusFilter === 'ALL'
-          ? true
-          : statusFilter === 'ACTIVE'
-            ? (b.status === 'CONFIRMED' || b.status === 'CHECKED_IN' || b.status === 'PENDING')
-            : statusFilter === 'COMPLETED'
-              ? (b.status === 'COMPLETED' || b.status === 'CHECKED_OUT')
-              : b.status === statusFilter;
+      const matchesStatus = selectedDateFilter
+        ? (statusFilter === 'ALL' || statusFilter === 'ACTIVE' ? true : b.status === statusFilter)
+        : (statusFilter === 'ALL'
+            ? true
+            : statusFilter === 'ACTIVE'
+              ? (b.status === 'CONFIRMED' || b.status === 'CHECKED_IN' || b.status === 'PENDING')
+              : statusFilter === 'COMPLETED'
+                ? (b.status === 'COMPLETED' || b.status === 'CHECKED_OUT')
+                : b.status === statusFilter);
       const matchesVenue = venueFilter === 'ALL' || b.venueArea === venueFilter;
-      return matchesSearch && matchesStatus && matchesVenue;
+      return matchesDate && matchesSearch && matchesStatus && matchesVenue;
     });
-  }, [bookings, searchTerm, statusFilter, venueFilter]);
+  }, [bookings, searchTerm, statusFilter, venueFilter, selectedDateFilter]);
 
   return (
     <div className="d-flex flex-column gap-3 pb-5">
@@ -1589,6 +1654,13 @@ export const BookingPage: React.FC = () => {
                     />
                     <span style={{ color: '#DC3545', fontSize: '0.85rem' }}>Locked</span>
                   </div>
+                  <div className="d-flex align-items-center gap-1">
+                    <span 
+                      className="d-inline-block rounded-circle" 
+                      style={{ width: 9, height: 9, backgroundColor: '#198754' }} 
+                    />
+                    <span style={{ color: '#198754', fontSize: '0.85rem' }}>Completed</span>
+                  </div>
                 </div>
               </div>
 
@@ -1625,55 +1697,70 @@ export const BookingPage: React.FC = () => {
                     );
                   }
 
-                  const dayBookings = item.bookings || (item.booking ? [item.booking] : []);
-                  const isLocked = dayBookings.length > 0;
+                  const dayBookings = item.bookings || [];
+                  const allOnDate = (item as any).allDayBookings || [];
+                  const activeOnDate = (item as any).activeBookings || [];
+                  const completedOnDate = (item as any).completedBookings || [];
+                  const isLocked = activeOnDate.length > 0;
+                  const hasCompleted = completedOnDate.length > 0;
                   const isSelected = item.dateStr === selectedDate;
 
                   return (
                     <div
                       key={item.dateStr}
                       onClick={() => {
-                        if (item.isPast && !isLocked) {
-                          setAlertMessage({
-                            type: 'info',
-                            text: `Date ${item.dateStr} is in the past. Only today and future dates can be locked.`
-                          });
-                          return;
-                        }
                         setSelectedDate(item.dateStr);
                         setFormData(prev => ({ ...prev, bookingDate: item.dateStr }));
-                        if (dayBookings.length > 0) {
-                          setViewingLockedMenuBooking(dayBookings[0]);
+
+                        if (allOnDate.length > 0) {
+                          // Has functions on this date -> open Day History Modal and filter table below
+                          setViewingDayHistory({ date: item.dateStr, bookings: allOnDate });
+                          setSelectedDateFilter(item.dateStr);
+                        } else {
+                          if (item.isPast) {
+                            setAlertMessage({
+                              type: 'info',
+                              text: `તારીખ ${item.dateStr} ના રોજ કોઈ ફંક્શન થયેલ નહોતું (No functions on this past date).`
+                            });
+                          } else {
+                            setSelectedDateFilter(null);
+                          }
                         }
                       }}
                       className="p-1.5 rounded-3 d-flex flex-column justify-content-between position-relative"
                       style={{
-                        cursor: item.isPast && !isLocked ? 'not-allowed' : 'pointer',
+                        cursor: item.isPast && allOnDate.length === 0 ? 'not-allowed' : 'pointer',
                         transition: 'all 0.15s ease-in-out',
                         height: '60px',
                         backgroundColor: isLocked 
                           ? '#FFF5F5' 
-                          : item.isPast 
-                            ? '#F8F9FA' 
-                            : isSelected 
-                              ? '#FDF8F2' 
-                              : '#FAFAFA',
-                        opacity: item.isPast && !isLocked ? 0.45 : 1,
+                          : hasCompleted
+                            ? '#F2F9F5'
+                            : item.isPast 
+                              ? '#F8F9FA' 
+                              : isSelected 
+                                ? '#FDF8F2' 
+                                : '#FAFAFA',
+                        opacity: item.isPast && allOnDate.length === 0 ? 0.45 : 1,
                         border: item.isToday 
                           ? '2px solid var(--brand-maroon, #7A1B28)' 
-                          : isSelected 
-                            ? '2px solid var(--brand-gold, #D48B28)' 
-                            : '1px solid #ECECEC',
+                          : isLocked
+                            ? '1px solid #F5C2C7'
+                            : hasCompleted
+                              ? '1px solid #B8E2CB'
+                              : isSelected 
+                                ? '2px solid var(--brand-gold, #D48B28)' 
+                                : '1px solid #ECECEC',
                         boxShadow: isSelected ? '0 2px 6px rgba(122, 27, 40, 0.12)' : 'none'
                       }}
                       title={
-                        isLocked 
-                          ? dayBookings.length > 1
-                            ? `${dayBookings.length} functions on ${item.dateStr}:\n` + dayBookings.map(b => `• ${b.customerName} (${b.timeSlot || ''} ${b.bookingTime || ''}, ${b.guestCount} pax)`).join('\n')
-                            : `Locked for ${item.booking?.customerName} (${item.booking?.guestCount} Guests, Advance: ₹${item.booking?.advanceAmount || 0})`
+                        allOnDate.length > 0
+                          ? `તારીખ ${item.dateStr} (${allOnDate.length} ફંક્શન):\n` +
+                            allOnDate.map(b => `• [${b.status}] ${b.customerName} (${b.timeSlot || ''} ${b.bookingTime || ''}, ${b.guestCount} મહેમાન) - ${b.status === 'COMPLETED' ? `Bill: ₹${b.billing?.totalAmount || 0}` : `Advance: ₹${b.advanceAmount || 0}`}`).join('\n') +
+                            '\n\n(ક્લિક કરીને તારીખના બધા ફંક્શનની વિગત જુઓ)'
                           : item.isPast 
-                            ? `Date: ${item.dateStr} (Past date - not available for booking)`
-                            : `Date: ${item.dateStr} (Click to select)`
+                            ? `Date: ${item.dateStr} (કોઈ ફંક્શન નહોતું)`
+                            : `Date: ${item.dateStr} (Click to select & book)`
                       }
                     >
                       {/* Day Number and Today Badge */}
@@ -1713,18 +1800,38 @@ export const BookingPage: React.FC = () => {
                               className="fw-bold text-danger d-none d-sm-inline" 
                               style={{ fontSize: '0.68rem' }}
                             >
-                              {dayBookings.length} Function{dayBookings.length > 1 ? 's' : ''} booked
+                              🔒 {activeOnDate.length} Booked
                             </span>
                             <span 
                               className="d-sm-none p-1 rounded-circle bg-danger d-inline-block" 
                               style={{ width: 6, height: 6 }} 
-                              title={`Locked (${dayBookings.length})`}
+                              title={`Locked (${activeOnDate.length})`}
                             />
                             <span 
                               className="text-truncate small text-secondary d-none d-md-block" 
                               style={{ fontSize: '0.62rem', maxWidth: '65px' }}
                             >
-                              {item.booking?.customerName}
+                              {activeOnDate[0]?.customerName}
+                            </span>
+                          </div>
+                        ) : hasCompleted ? (
+                          <div className="d-flex flex-column align-items-start" style={{ lineHeight: 1.1 }}>
+                            <span 
+                              className="fw-bold text-success d-none d-sm-inline" 
+                              style={{ fontSize: '0.68rem' }}
+                            >
+                              ✓ {completedOnDate.length} Done
+                            </span>
+                            <span 
+                              className="d-sm-none p-1 rounded-circle bg-success d-inline-block" 
+                              style={{ width: 6, height: 6 }} 
+                              title={`Completed (${completedOnDate.length})`}
+                            />
+                            <span 
+                              className="text-truncate small text-secondary d-none d-md-block" 
+                              style={{ fontSize: '0.62rem', maxWidth: '65px' }}
+                            >
+                              {completedOnDate[0]?.customerName}
                             </span>
                           </div>
                         ) : item.isPast ? (
@@ -1923,6 +2030,31 @@ export const BookingPage: React.FC = () => {
               <option value="CANCELLED">Cancelled (રદ થયેલા)</option>
             </select>
 
+            {/* Specific Date Filter */}
+            <div className="d-flex align-items-center gap-1">
+              <span className="small text-muted fw-semibold d-none d-lg-inline" style={{ fontSize: '0.78rem' }}>
+                તારીખ:
+              </span>
+              <input
+                type="date"
+                className="form-control form-control-sm"
+                style={{ width: 140 }}
+                value={selectedDateFilter || ''}
+                onChange={e => setSelectedDateFilter(e.target.value || null)}
+                title="Filter functions by specific date (કોઈ ચોક્કસ તારીખના ફંક્શન જુઓ)"
+              />
+              {selectedDateFilter && (
+                <button
+                  type="button"
+                  className="btn btn-outline-secondary btn-sm p-1"
+                  onClick={() => setSelectedDateFilter(null)}
+                  title="Clear date filter (બધી તારીખો જુઓ)"
+                >
+                  <X size={14} />
+                </button>
+              )}
+            </div>
+
             {/* Quick Purge Button for Cancelled Bookings */}
             {bookings.some(b => b.status === 'CANCELLED') && (
               <button
@@ -1939,6 +2071,28 @@ export const BookingPage: React.FC = () => {
         </div>
 
         <div className="card-body p-0">
+          {/* Active Date Filter Banner */}
+          {selectedDateFilter && (
+            <div className="alert alert-primary d-flex flex-wrap justify-content-between align-items-center py-2 px-3 m-2 shadow-xs border-0">
+              <div className="d-flex align-items-center gap-2">
+                <CalendarIcon size={16} className="text-primary" />
+                <span className="fw-bold text-dark small">
+                  તારીખ {selectedDateFilter} ના ફંક્શન્સ ({filteredBookings.length} રેકોર્ડ)
+                </span>
+                <span className="text-muted small">
+                  (આ તારીખના પૂર્ણ થયેલા તેમજ સક્રિય તમામ ફંક્શન્સ)
+                </span>
+              </div>
+              <button
+                type="button"
+                className="btn btn-outline-primary btn-xs btn-sm py-0.5 px-2 fw-semibold"
+                onClick={() => setSelectedDateFilter(null)}
+              >
+                ✕ બધી તારીખો જુઓ (Show All Dates)
+              </button>
+            </div>
+          )}
+
           <div className="table-responsive">
             <table className="table table-hover align-middle mb-0">
               <thead className="table-light">
@@ -2016,6 +2170,15 @@ export const BookingPage: React.FC = () => {
                       <td className="text-end">
                         <div className="d-flex gap-1 justify-content-end">
                           <button onClick={() => setViewingLockedMenuBooking(b)} className="btn btn-outline-warning btn-sm p-1 text-dark" title="View Catering Menu"><Utensils size={14} /></button>
+                          <button
+                            onClick={() => sendWhatsAppConfirmation(b)}
+                            className="btn btn-outline-success btn-sm p-1 px-2 d-flex align-items-center gap-1 shadow-xs fw-semibold"
+                            style={{ color: '#25D366', borderColor: '#25D366' }}
+                            title="Send WhatsApp confirmation / query reply link"
+                          >
+                            <MessageCircle size={14} />
+                            <span className="small d-none d-xxl-inline">WhatsApp</span>
+                          </button>
                           {b.status !== 'CANCELLED' && b.status !== 'COMPLETED' && b.status !== 'CHECKED_OUT' && (
                             <button onClick={() => openBookingEditor(b)} className="btn btn-outline-secondary btn-sm p-1" title="Edit booking"><Pencil size={14} /></button>
                           )}
@@ -2328,7 +2491,17 @@ export const BookingPage: React.FC = () => {
                 <Download size={14} /> Download iCal (.ics)
               </a>
 
-              <div className="d-flex gap-2 ms-auto">
+              <div className="d-flex gap-2 ms-auto flex-wrap">
+                <button
+                  type="button"
+                  className="btn btn-success btn-sm d-flex align-items-center gap-1.5 fw-bold shadow-sm"
+                  style={{ backgroundColor: '#25D366', borderColor: '#25D366' }}
+                  onClick={() => sendWhatsAppConfirmation(selectedBookingForSlip)}
+                  title="Send WhatsApp confirmation to customer"
+                >
+                  <MessageCircle size={15} />
+                  <span>WhatsApp મોકલો</span>
+                </button>
                 <button
                   type="button"
                   className="btn btn-secondary btn-sm"
@@ -2676,6 +2849,183 @@ export const BookingPage: React.FC = () => {
                 type="button"
                 className="btn btn-secondary btn-sm px-4"
                 onClick={() => setViewingLockedMenuBooking(null)}
+              >
+                Close (બંધ કરો)
+              </button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
+      {/* 6.5 DEDICATED DAY FUNCTIONS HISTORY MODAL (SHOWS WHICH AND HOW MANY FUNCTIONS WERE HELD ON A SPECIFIC DATE) */}
+      {viewingDayHistory && (
+        <Modal
+          size="lg"
+          isOpen={!!viewingDayHistory}
+          onClose={() => setViewingDayHistory(null)}
+          title={`📅 તારીખ ${viewingDayHistory.date} ના ફંક્શન્સ • કુલ: ${viewingDayHistory.bookings.length} ફંક્શન`}
+        >
+          <div className="p-3">
+            {/* Header info banner */}
+            <div className="p-2.5 rounded-3 mb-3 border bg-light d-flex flex-wrap justify-content-between align-items-center gap-2">
+              <div>
+                <span className="small text-muted d-block" style={{ fontSize: '0.75rem' }}>પસંદ કરેલ તારીખ:</span>
+                <strong className="fs-6 text-dark">📅 {viewingDayHistory.date}</strong>
+              </div>
+              <div className="text-end">
+                <span className="small text-muted d-block" style={{ fontSize: '0.75rem' }}>આ તારીખે યોજાયેલ ફંક્શન:</span>
+                <span className="badge bg-primary fs-6 px-2.5 py-1">
+                  કુલ {viewingDayHistory.bookings.length} ફંક્શન {viewingDayHistory.bookings.length > 1 ? 'હતા' : 'હતું'}
+                </span>
+              </div>
+            </div>
+
+            {/* List of functions on this date */}
+            <div className="d-flex flex-column gap-3" style={{ maxHeight: '460px', overflowY: 'auto' }}>
+              {viewingDayHistory.bookings.map((b, idx) => {
+                const isCompleted = b.status === 'COMPLETED' || b.status === 'CHECKED_OUT';
+                return (
+                  <div key={b.id || idx} className="card border shadow-xs">
+                    <div className="card-header bg-white py-2 d-flex flex-wrap justify-content-between align-items-center gap-2 border-bottom">
+                      <div className="d-flex align-items-center gap-2 flex-wrap">
+                        <span className="badge bg-dark font-monospace">{b.bookingNumber}</span>
+                        <strong className="text-primary fs-6">{b.customerName}</strong>
+                        <span className="badge bg-light text-dark border">
+                          <Users size={12} className="me-1" />{b.guestCount} મહેમાન
+                        </span>
+                      </div>
+                      <div className="d-flex align-items-center gap-2 flex-wrap">
+                        <span className={`badge px-2 py-1 ${
+                          isCompleted
+                            ? 'bg-success text-white'
+                            : b.status === 'CHECKED_IN'
+                              ? 'bg-warning text-dark'
+                              : 'bg-primary text-white'
+                        }`}>
+                          {b.status}
+                        </span>
+                        <span className="badge bg-light text-secondary border">
+                          {b.timeSlot || 'Evening'} ({b.bookingTime || ''})
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="card-body p-3">
+                      <div className="row g-2 mb-2">
+                        <div className="col-12 col-sm-6">
+                          <div className="small text-muted">સંપર્ક નંબર:</div>
+                          <div className="fw-semibold text-dark">📞 +91 {b.customerPhone}</div>
+                        </div>
+                        <div className="col-12 col-sm-6">
+                          <div className="small text-muted">પ્રસંગનો પ્રકાર:</div>
+                          <div className="fw-semibold text-dark">{b.functionType || 'Family Gathering'}</div>
+                        </div>
+                      </div>
+
+                      {/* Menu list */}
+                      <div className="mb-2 p-2 bg-light rounded-2 border">
+                        <div className="fw-bold small text-secondary mb-1 d-flex align-items-center gap-1">
+                          <Utensils size={13} className="text-warning" />
+                          <span>નક્કી કરેલ ભોજન મેનુ ({b.selectedMenu?.length || 0} વાનગી):</span>
+                        </div>
+                        {b.selectedMenu && b.selectedMenu.length > 0 ? (
+                          <div className="d-flex flex-wrap gap-1">
+                            {b.selectedMenu.map((m, i) => (
+                              <span key={i} className="badge bg-white text-dark border small fw-normal py-1 px-2">
+                                <span className="text-warning me-1">✦</span>{m}
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="small text-muted fst-italic">કોઈ મેનુ નક્કી નહોતું</span>
+                        )}
+                      </div>
+
+                      {/* Billing details if billed */}
+                      {b.billing && (
+                        <div className="p-2.5 bg-success-subtle rounded-2 border border-success-subtle mb-2">
+                          <div className="row g-2 text-dark small">
+                            <div className="col-6 col-sm-3">
+                              <span className="text-muted d-block" style={{ fontSize: '0.72rem' }}>બિલ નંબર:</span>
+                              <strong className="font-monospace">{b.billing.billNumber || '—'}</strong>
+                            </div>
+                            <div className="col-6 col-sm-3">
+                              <span className="text-muted d-block" style={{ fontSize: '0.72rem' }}>કુલ બિલ રકમ:</span>
+                              <strong className="text-success">₹{(b.billing.totalAmount || 0).toLocaleString('en-IN')}</strong>
+                            </div>
+                            <div className="col-6 col-sm-3">
+                              <span className="text-muted d-block" style={{ fontSize: '0.72rem' }}>એડવાન્સ જમા:</span>
+                              <strong>₹{(b.billing.advanceAmount || b.advanceAmount || 0).toLocaleString('en-IN')}</strong>
+                            </div>
+                            <div className="col-6 col-sm-3">
+                              <span className="text-muted d-block" style={{ fontSize: '0.72rem' }}>નેટ ચૂકવેલ:</span>
+                              <strong className="text-dark">₹{(b.billing.netPayable || 0).toLocaleString('en-IN')} ({b.billing.paymentMode || 'Cash'})</strong>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Action buttons */}
+                      <div className="d-flex flex-wrap justify-content-end gap-2 pt-2 border-top">
+                        <button
+                          type="button"
+                          className="btn btn-outline-success btn-sm d-flex align-items-center gap-1.5 fw-semibold shadow-xs"
+                          style={{ color: '#25D366', borderColor: '#25D366' }}
+                          onClick={() => sendWhatsAppConfirmation(b)}
+                          title="Send WhatsApp confirmation / query reply"
+                        >
+                          <MessageCircle size={14} />
+                          <span>WhatsApp મેસેજ</span>
+                        </button>
+
+                        {isCompleted && (
+                          <button
+                            type="button"
+                            className="btn btn-outline-dark btn-sm d-flex align-items-center gap-1 fw-bold shadow-xs"
+                            onClick={() => {
+                              setViewingDayHistory(null);
+                              openBillModal(b);
+                            }}
+                          >
+                            <Receipt size={14} />
+                            <span>બિલ જુઓ</span>
+                          </button>
+                        )}
+
+                        <button
+                          type="button"
+                          className="btn btn-outline-primary btn-sm d-flex align-items-center gap-1 shadow-xs"
+                          onClick={() => {
+                            setViewingDayHistory(null);
+                            setSelectedBookingForSlip(b);
+                          }}
+                        >
+                          <Printer size={14} />
+                          <span>વાઉચર સ્લિપ</span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Footer */}
+            <div className="d-flex justify-content-between align-items-center pt-3 mt-3 border-top">
+              <button
+                type="button"
+                className="btn btn-outline-primary btn-sm"
+                onClick={() => {
+                  setSelectedDateFilter(viewingDayHistory.date);
+                  setViewingDayHistory(null);
+                }}
+              >
+                નીચે રજીસ્ટ્રીમાં આ તારીખ ફિલ્ટર કરો
+              </button>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm px-4"
+                onClick={() => setViewingDayHistory(null)}
               >
                 Close (બંધ કરો)
               </button>
