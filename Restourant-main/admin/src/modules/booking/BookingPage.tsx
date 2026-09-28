@@ -842,6 +842,13 @@ export const BookingPage: React.FC = () => {
       // Automatically open the final bill modal for viewing and printing
       setViewingBillBooking(updatedBooking);
       loadBookings(false, true);
+
+      // Automatically open WhatsApp with complete Tax Invoice Receipt for the customer
+      try {
+        sendWhatsAppBill(updatedBooking);
+      } catch (err) {
+        console.warn('Could not auto-open WhatsApp bill:', err);
+      }
     } catch (err: any) {
       alert(err.message || 'Failed to check out booking.');
     } finally {
@@ -932,6 +939,80 @@ ${dishesList}
     const msg = buildWhatsAppConfirmationMessage(b);
     const url = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`;
     window.open(url, '_blank');
+  };
+
+  // WhatsApp Bill / Invoice Message Generator & Sender
+  const buildWhatsAppBillMessage = (b: Booking, restaurantPhone = '+91 9876543210'): string => {
+    const parts = (b.bookingDate || '').split('-');
+    let dayName = '';
+    if (parts.length === 3) {
+      const d = new Date(Number(parts[0]), Number(parts[1]) - 1, Number(parts[2]));
+      dayName = DAY_NAME_GUJARATI[DAY_NAMES[d.getDay()]] || '';
+    }
+
+    const billNumber = b.billing?.billNumber || `BILL-${b.bookingNumber}`;
+    const subtotal = b.billing?.subtotal || b.billing?.totalAmount || b.estimatedTotal || 0;
+    const discount = b.billing?.discount || 0;
+    const totalAmount = b.billing?.totalAmount || b.estimatedTotal || 0;
+    const advanceAmount = b.billing?.advanceAmount !== undefined ? b.billing.advanceAmount : (b.advanceAmount || 0);
+    const netPayable = b.billing?.netPayable !== undefined ? b.billing.netPayable : Math.max(0, totalAmount - advanceAmount);
+    const paymentMode = b.billing?.paymentMode || b.paymentMode || 'Cash';
+    const paymentRef = b.billing?.paymentReference || b.referenceId || '';
+
+    // Dishes list
+    let dishesText = '';
+    if (b.billing?.dishes && b.billing.dishes.length > 0) {
+      dishesText = b.billing.dishes.map((d: any, i: number) => `  ${i + 1}. ${d.name} (${d.qty || 1} qty)`).join('\n');
+    } else if (b.selectedMenu && b.selectedMenu.length > 0) {
+      dishesText = b.selectedMenu.map((m: string, i: number) => `  ${i + 1}. ${m}`).join('\n');
+    }
+
+    return `*🧾 ભતીગળ ભાનુ - રેસ્ટોરન્ટ અને બેન્ક્વેટ*
+*Bhatigal Bhanu Traditional Dining & Banquet*
+━━━━━━━━━━━━━━━━━━━━
+નમસ્તે *${b.customerName || 'ગ્રાહક'}* જી,
+આપના ફંક્શનનું બિલિંગ સફળતાપૂર્વક થઈ ગયું છે. ✅
+
+📋 *બિલની વિગતો (Tax Invoice Receipt):*
+• બિલ નંબર: *${billNumber}*
+• બુકિંગ નંબર: *${b.bookingNumber}*
+• તારીખ: *${b.bookingDate}* ${dayName ? `(${dayName})` : ''}
+• સમય ગાળો: *${b.timeSlot || 'સાંજે (Dinner)'}* (${b.bookingTime || ''})
+• મહેમાનોની સંખ્યા: *${b.guestCount} વ્યક્તિ*
+${dishesText ? `\n🍲 *પીરસાયેલ ભોજન મેનુ:*\n${dishesText}\n` : ''}
+💰 *ચુકવણીની વિગતો (Payment Summary):*
+• કુલ બિલ રકમ (Total): *₹${Number(totalAmount).toLocaleString('en-IN')}*
+${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(discount).toLocaleString('en-IN')}*\n` : ''}• જમા એડવાન્સ (Advance Paid): *₹${Number(advanceAmount).toLocaleString('en-IN')}*
+• ચોખ્ખી ચૂકવેલ રકમ (Net Paid): *₹${Number(netPayable).toLocaleString('en-IN')}*
+• ચુકવણીનો પ્રકાર (Mode): *${paymentMode}* ${paymentRef ? `(Ref: ${paymentRef})` : ''}
+• પેમેન્ટ સ્ટેટસ: *સંપૂર્ણ ચૂકતે (PAID & COMPLETED)* ✅
+━━━━━━━━━━━━━━━━━━━━
+🙏 *ભતીગળ ભાનુમાં પધારવા બદલ આપનો ખૂબ ખૂબ આભાર!*
+આશા છે કે આપને અમારું કાઠિયાવાડી ભોજન અને સેવા પસંદ આવ્યા હશે. ફરી પધારશો.
+
+💬 *જો આપને બિલ બાબતે કોઈ પ્રશ્ન કે ક્વેરી હોય, તો આપ આ જ મેસેજ પર સીધો Reply (જવાબ) આપી શકો છો.*
+📞 સંપર્ક: ${restaurantPhone}
+
+ધન્યવાદ!
+*ભતીગળ ભાનુ ટીમ*`;
+  };
+
+  const sendWhatsAppBill = (b: Booking) => {
+    let cleanPhone = (b.customerPhone || '').replace(/\D/g, '');
+    if (cleanPhone.length === 10) {
+      cleanPhone = '91' + cleanPhone;
+    }
+    const msg = buildWhatsAppBillMessage(b);
+    const url = `https://api.whatsapp.com/send?phone=${cleanPhone}&text=${encodeURIComponent(msg)}`;
+    window.open(url, '_blank');
+  };
+
+  const handleWhatsAppShare = (b: Booking) => {
+    if (b.status === 'COMPLETED' || b.status === 'CHECKED_OUT' || b.billing) {
+      sendWhatsAppBill(b);
+    } else {
+      sendWhatsAppConfirmation(b);
+    }
   };
 
   // Calendar Helpers
@@ -2171,13 +2252,13 @@ ${dishesList}
                         <div className="d-flex gap-1 justify-content-end">
                           <button onClick={() => setViewingLockedMenuBooking(b)} className="btn btn-outline-warning btn-sm p-1 text-dark" title="View Catering Menu"><Utensils size={14} /></button>
                           <button
-                            onClick={() => sendWhatsAppConfirmation(b)}
+                            onClick={() => handleWhatsAppShare(b)}
                             className="btn btn-outline-success btn-sm p-1 px-2 d-flex align-items-center gap-1 shadow-xs fw-semibold"
                             style={{ color: '#25D366', borderColor: '#25D366' }}
-                            title="Send WhatsApp confirmation / query reply link"
+                            title={b.status === 'COMPLETED' || b.status === 'CHECKED_OUT' ? 'Send WhatsApp Bill Receipt to customer' : 'Send WhatsApp Confirmation to customer'}
                           >
                             <MessageCircle size={14} />
-                            <span className="small d-none d-xxl-inline">WhatsApp</span>
+                            <span className="small d-none d-xxl-inline">{b.status === 'COMPLETED' || b.status === 'CHECKED_OUT' ? 'WhatsApp Bill' : 'WhatsApp'}</span>
                           </button>
                           {b.status !== 'CANCELLED' && b.status !== 'COMPLETED' && b.status !== 'CHECKED_OUT' && (
                             <button onClick={() => openBookingEditor(b)} className="btn btn-outline-secondary btn-sm p-1" title="Edit booking"><Pencil size={14} /></button>
@@ -2971,11 +3052,11 @@ ${dishesList}
                           type="button"
                           className="btn btn-outline-success btn-sm d-flex align-items-center gap-1.5 fw-semibold shadow-xs"
                           style={{ color: '#25D366', borderColor: '#25D366' }}
-                          onClick={() => sendWhatsAppConfirmation(b)}
-                          title="Send WhatsApp confirmation / query reply"
+                          onClick={() => handleWhatsAppShare(b)}
+                          title={isCompleted ? "Send WhatsApp Bill Receipt to customer" : "Send WhatsApp confirmation to customer"}
                         >
                           <MessageCircle size={14} />
-                          <span>WhatsApp મેસેજ</span>
+                          <span>{isCompleted ? 'WhatsApp બિલ' : 'WhatsApp મેસેજ'}</span>
                         </button>
 
                         {isCompleted && (
@@ -3589,7 +3670,7 @@ ${dishesList}
             </div>
 
             {/* Modal Actions */}
-            <div className="d-flex justify-content-between align-items-center pt-3 mt-2 border-top no-print">
+            <div className="d-flex justify-content-between align-items-center pt-3 mt-2 border-top no-print flex-wrap gap-2">
               <button
                 type="button"
                 className="btn btn-secondary btn-sm"
@@ -3597,14 +3678,26 @@ ${dishesList}
               >
                 Close (બંધ કરો)
               </button>
-              <button
-                type="button"
-                className="btn btn-primary btn-sm fw-bold shadow-sm d-flex align-items-center gap-1.5 px-3"
-                onClick={() => window.print()}
-              >
-                <Printer size={15} />
-                <span>Print Bill (બિલ પ્રિન્ટ કરો)</span>
-              </button>
+              <div className="d-flex gap-2">
+                <button
+                  type="button"
+                  className="btn btn-success btn-sm fw-bold shadow-sm d-flex align-items-center gap-1.5 px-3 text-white"
+                  style={{ backgroundColor: '#25D366', borderColor: '#25D366' }}
+                  onClick={() => sendWhatsAppBill(viewingBillBooking)}
+                  title="Send WhatsApp Bill / Receipt to Customer"
+                >
+                  <MessageCircle size={15} />
+                  <span>WhatsApp બિલ મોકલો</span>
+                </button>
+                <button
+                  type="button"
+                  className="btn btn-primary btn-sm fw-bold shadow-sm d-flex align-items-center gap-1.5 px-3"
+                  onClick={() => window.print()}
+                >
+                  <Printer size={15} />
+                  <span>Print Bill (બિલ પ્રિન્ટ કરો)</span>
+                </button>
+              </div>
             </div>
           </div>
         </Modal>
