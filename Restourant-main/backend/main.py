@@ -60,13 +60,15 @@ app = FastAPI(
 )
 
 # CORS Configuration
+# Allow requests from localhost, all Vercel domains (*.vercel.app), Render, and any custom web origins
 app.add_middleware(
     CORSMiddleware,
     allow_origins=settings.CORS_ORIGINS if settings.CORS_ORIGINS else ["*"],
-    allow_origin_regex=r"^https?://(localhost|127\.0\.0\.1|192\.168\.\d+\.\d+|10\.\d+\.\d+\.\d+)(:\d+)?$",
+    allow_origin_regex=r"^https?://.*$",
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
+    expose_headers=["*"],
 )
 
 # System Guard (Lockdown / Maintenance mode)
@@ -120,7 +122,8 @@ app.include_router(system.router, prefix=api_prefix)
 app.include_router(daily_menu.router, prefix=api_prefix)
 app.include_router(calendar_router.router, prefix=api_prefix)
 
-# Health endpoints
+# Health and Root endpoints
+@app.get("/")
 @app.get("/health")
 @app.get("/api/health")
 async def health_check():
@@ -128,7 +131,8 @@ async def health_check():
         "success": True,
         "status": "HEALTHY",
         "service": "Kathiyawadi Restaurant ERP Backend",
-        "stack": "FastAPI + Python Socket.IO + PyMongo"
+        "stack": "FastAPI + Python Socket.IO + PyMongo",
+        "docs": "/docs"
     }
 
 # Static Uploads directory

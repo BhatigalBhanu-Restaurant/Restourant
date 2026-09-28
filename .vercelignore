@@ -1,0 +1,29 @@
+# =========================================================
+# Vercel Ignore File
+# Excludes backend, Python, and serverless files from Vercel
+# =========================================================
+
+# Python backend files & virtual environments
+main.py
+run.py
+requirements.txt
+*.py
+*.pyc
+__pycache__/
+.pytest_cache/
+*.log
+
+# Backend directory
+backend/
+Restourant-main/backend/
+Restourant-main/requirements.txt
+Restourant-main/run.py
+Restourant-main/clean_dummy_data.py
+Restourant-main/start.bat
+Restourant-main/start.ps1
+
+# Uploads & local media folders
+uploads/
+generated_posters/
+Restourant-main/uploads/
+Restourant-main/generated_posters/

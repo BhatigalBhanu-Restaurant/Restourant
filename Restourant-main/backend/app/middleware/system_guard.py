@@ -8,9 +8,11 @@ class SystemStatusGuardMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
         url = request.url.path
 
-        # Always bypass health checks, auth endpoints, static uploads, and system status switchboard
+        # Always bypass OPTIONS preflight, health checks, auth endpoints, static uploads, and system status switchboard
         if (
-            url == "/health"
+            request.method == "OPTIONS"
+            or url == "/"
+            or url == "/health"
             or url.startswith("/api/auth")
             or url.startswith("/api/system/system-control")
             or url.startswith("/uploads")

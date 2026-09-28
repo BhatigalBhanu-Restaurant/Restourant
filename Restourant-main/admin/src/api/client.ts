@@ -10,7 +10,21 @@ declare module 'axios' {
 
 // Dynamic Backend URL - auto-detects Vite dev server vs Python server vs custom env
 export const getBackendOrigin = (): string => {
-  if (import.meta.env.VITE_BACKEND_URL) return import.meta.env.VITE_BACKEND_URL;
+  const envBackend = (import.meta.env.VITE_BACKEND_URL || (import.meta.env as any).REACT_APP_BACKEND_URL || '').trim();
+  if (envBackend) {
+    return envBackend.replace(/\/+$/, '');
+  }
+
+  const envApi = (import.meta.env.VITE_API_URL || (import.meta.env as any).REACT_APP_API_URL || '').trim();
+  if (envApi) {
+    try {
+      const parsed = new URL(envApi);
+      return parsed.origin;
+    } catch {
+      // not a full url
+    }
+  }
+
   if (typeof window !== 'undefined') {
     if (window.location.port === '3000' || window.location.port === '5173') {
       return `${window.location.protocol}//${window.location.hostname}:5000`;
@@ -21,7 +35,17 @@ export const getBackendOrigin = (): string => {
 };
 
 export const LIVE_BACKEND_URL = getBackendOrigin();
-export const API_BASE_URL = import.meta.env.VITE_API_URL || `${LIVE_BACKEND_URL}/api`;
+
+export const getApiBaseUrl = (): string => {
+  const envApi = (import.meta.env.VITE_API_URL || (import.meta.env as any).REACT_APP_API_URL || '').trim();
+  if (envApi) {
+    const cleaned = envApi.replace(/\/+$/, '');
+    return cleaned.endsWith('/api') ? cleaned : `${cleaned}/api`;
+  }
+  return `${LIVE_BACKEND_URL}/api`;
+};
+
+export const API_BASE_URL = getApiBaseUrl();
 
 export const apiClient = axios.create({
   baseURL: API_BASE_URL,

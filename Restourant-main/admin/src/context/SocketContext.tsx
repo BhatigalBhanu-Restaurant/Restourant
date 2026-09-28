@@ -15,7 +15,20 @@ const SocketContext = createContext<SocketContextType | undefined>(undefined);
 
 // Dynamic Socket.IO URL - auto-detects Vite dev server vs Python server vs custom env
 const getSocketUrl = (): string => {
-  if (import.meta.env.VITE_SOCKET_URL) return import.meta.env.VITE_SOCKET_URL;
+  const envSocket = (import.meta.env.VITE_SOCKET_URL || '').trim();
+  if (envSocket) return envSocket.replace(/\/+$/, '');
+
+  const envBackend = (import.meta.env.VITE_BACKEND_URL || (import.meta.env as any).REACT_APP_BACKEND_URL || '').trim();
+  if (envBackend) return envBackend.replace(/\/+$/, '');
+
+  const envApi = (import.meta.env.VITE_API_URL || (import.meta.env as any).REACT_APP_API_URL || '').trim();
+  if (envApi) {
+    try {
+      const parsed = new URL(envApi);
+      return parsed.origin;
+    } catch {}
+  }
+
   if (typeof window !== 'undefined') {
     if (window.location.port === '3000' || window.location.port === '5173') {
       return `${window.location.protocol}//${window.location.hostname}:5000`;
