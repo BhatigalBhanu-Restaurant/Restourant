@@ -8,13 +8,14 @@ sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 from backend.app.config import settings
 
-def migrate_menu():
+def migrate_menu(db=None):
     print("=============================================================")
     print("Starting Menu & Category Migration for Bhatigal Bhanu...")
     print("=============================================================")
 
-    client = MongoClient(settings.MONGODB_URI)
-    db = client[settings.DB_NAME]
+    if db is None:
+        client = MongoClient(settings.MONGODB_URI)
+        db = client[settings.DB_NAME]
 
     # 1. Define Authentic Categories from Photo 1 & 2
     categories = [
