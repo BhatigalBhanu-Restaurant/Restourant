@@ -446,8 +446,13 @@ export const BookingPage: React.FC = () => {
   }, [socket]);
 
   // Existing bookings on the currently selected date (multiple allowed!)
+  // COMPLETED / CHECKED_OUT / CANCELLED functions no longer hold the date lock.
+  const LOCK_RELEASED_STATUSES = ['COMPLETED', 'CHECKED_OUT', 'CANCELLED'];
+  const isDateLocking = (b: Booking) =>
+    !LOCK_RELEASED_STATUSES.includes(String(b.status || '').toUpperCase()) && b.isLocked !== false;
+
   const selectedDateBookings = useMemo(() => {
-    return bookings.filter(b => b.bookingDate === selectedDate && b.status !== 'CANCELLED');
+    return bookings.filter(b => b.bookingDate === selectedDate && isDateLocking(b));
   }, [bookings, selectedDate]);
 
   // Validate first, then use the branded confirmation dialog before locking a slot.
@@ -930,9 +935,7 @@ export const BookingPage: React.FC = () => {
 
     for (let day = 1; day <= daysInMonth; day++) {
       const dateStr = `${year}-${String(month + 1).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
-      const dayBookings = bookings.filter(
-        b => b.bookingDate === dateStr && b.status !== 'CANCELLED'
-      );
+      const dayBookings = bookings.filter(b => b.bookingDate === dateStr && isDateLocking(b));
 
       const isToday = dateStr === todayStr;
       const isPast = dateStr < todayStr;

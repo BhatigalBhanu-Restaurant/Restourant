@@ -54,7 +54,7 @@ async def get_calendar_events(
         if d not in date_map:
             date_map[d] = {"bookings": [], "isLocked": False}
         date_map[d]["bookings"].append(booking)
-        if booking.get("isLocked"):
+        if BookingService.is_date_locking(booking):
             date_map[d]["isLocked"] = True
 
     return ApiResponse.success(data={

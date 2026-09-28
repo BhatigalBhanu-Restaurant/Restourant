@@ -8,7 +8,20 @@ from ..sockets import SocketEvents, sio
 from .audit_service import create_audit_log
 from .google_calendar_service import GoogleCalendarService
 
+# Statuses that no longer hold a date lock. Once a function is billed /
+# checked out (COMPLETED / CHECKED_OUT) or cancelled, the date is free again.
+UNLOCKED_STATUSES = ("CANCELLED", "COMPLETED", "CHECKED_OUT")
+
+
 class BookingService:
+    @staticmethod
+    def is_date_locking(booking: Dict[str, Any]) -> bool:
+        """A booking locks its date only while it is still an active function."""
+        status = str(booking.get("status", "")).upper()
+        if status in UNLOCKED_STATUSES:
+            return False
+        return bool(booking.get("isLocked", True))
+
     @staticmethod
     def booking_period(data: Dict[str, Any]) -> str:
         value = f"{data.get('bookingPeriod', '')} {data.get('timeSlot', '')}".lower()
@@ -17,7 +30,10 @@ class BookingService:
     @staticmethod
     def ensure_period_available(booking_date: str, period: str, exclude_id: Optional[str] = None) -> None:
         db = get_db()
-        candidates = db.bookings.find({"bookingDate": booking_date, "status": {"$ne": "CANCELLED"}}, {"_id": 0, "id": 1, "bookingPeriod": 1, "timeSlot": 1})
+        candidates = db.bookings.find(
+            {"bookingDate": booking_date, "status": {"$nin": list(UNLOCKED_STATUSES)}},
+            {"_id": 0, "id": 1, "bookingPeriod": 1, "timeSlot": 1, "status": 1}
+        )
         for booking in candidates:
             if booking.get("id") != exclude_id and BookingService.booking_period(booking) == period:
                 label = "Lunch" if period == "LUNCH" else "Dinner"
@@ -49,7 +65,7 @@ class BookingService:
         # Validate date format YYYY-MM-DD
         if not re.match(r"^\d{4}-\d{2}-\d{2}$", raw_booking_date):
             raise HTTPException(
-                status_code=400, 
+                status_code=400,
                 detail={"success": False, "message": "Invalid date format. Expected YYYY-MM-DD (e.g. 2026-09-18)."}
             )
 
@@ -238,6 +254,10 @@ class BookingService:
         if status in ("COMPLETED", "CHECKED_OUT") and not booking.get("checkedOutAt"):
             update_fields["checkedOutAt"] = now_utc.isoformat()
             update_fields["checkedOutBy"] = username or "Staff"
+        # Function finished / cancelled -> release the date lock automatically.
+        if status in UNLOCKED_STATUSES:
+            update_fields["isLocked"] = False
+            update_fields["unlockedAt"] = now_utc.isoformat()
         if reason:
             update_fields["notes"] = f"{booking.get('notes', '')}; Status {status}: {reason}".strip("; ")
         if extra_fields:
