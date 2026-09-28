@@ -5,7 +5,7 @@ from ..services.poster_service import PosterService
 from ..middleware.auth import get_current_user
 from ..utils.response import ApiResponse
 
-router = APIRouter(prefix="/bookings", tags=["Table Bookings"])
+router = APIRouter(prefix="/bookings", tags=["Bookings & Events"])
 
 @router.get("")
 async def get_bookings(

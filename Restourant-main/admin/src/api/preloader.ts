@@ -3,11 +3,9 @@ import { appCache } from './cache';
 
 // Priority critical endpoints to warm in background smoothly without flooding backend
 const CRITICAL_PRELOAD_ENDPOINTS = [
-  '/tables/floor-layout',
-  '/masters/floor-zones',
   '/masters/menu-categories',
   '/masters/menu-items',
-  '/daily-menu/today'
+  '/daily-menu'
 ];
 
 let isPreloading = false;
