@@ -6,7 +6,7 @@ from ..utils.response import ApiResponse
 
 router = APIRouter(prefix="/hr", tags=["Human Resources"])
 
-# --- EMPLOYEES ---
+# --- EMPLOYEES & STAFF MANAGEMENT ---
 @router.get("/employees")
 async def get_employees(current_user: Dict[str, Any] = Depends(get_current_user)):
     employees = await HRService.get_employees()
@@ -14,18 +14,44 @@ async def get_employees(current_user: Dict[str, Any] = Depends(get_current_user)
 
 @router.post("/employees")
 async def create_employee(body: Dict[str, Any], current_user: Dict[str, Any] = Depends(get_current_user)):
-    emp = await HRService.create_employee(body, current_user["userId"], current_user["username"])
-    return ApiResponse.success(data=emp, message="Employee added successfully")
+    emp = await HRService.create_employee(body, current_user.get("userId"), current_user.get("username"))
+    return ApiResponse.success(data=emp, message="Staff member added successfully")
 
 @router.get("/employees/{emp_id}")
 async def get_employee(emp_id: str, current_user: Dict[str, Any] = Depends(get_current_user)):
     data = await HRService.get_employee_by_id(emp_id)
     return ApiResponse.success(data=data)
 
+@router.put("/employees/{emp_id}")
+async def update_employee(emp_id: str, body: Dict[str, Any], current_user: Dict[str, Any] = Depends(get_current_user)):
+    emp = await HRService.update_employee(emp_id, body, current_user.get("userId"), current_user.get("username"))
+    return ApiResponse.success(data=emp, message="Staff member updated successfully")
+
 @router.delete("/employees/{emp_id}")
 async def delete_employee(emp_id: str, current_user: Dict[str, Any] = Depends(get_current_user)):
     await HRService.delete_employee(emp_id)
-    return ApiResponse.success(message="Employee deleted successfully")
+    return ApiResponse.success(message="Staff member deleted successfully")
+
+# --- STAFF UPAD (ADVANCE) & SALARY PAYMENT ---
+@router.post("/employees/{emp_id}/advance")
+async def add_advance(emp_id: str, body: Dict[str, Any], current_user: Dict[str, Any] = Depends(get_current_user)):
+    res = await HRService.add_advance(emp_id, body, current_user.get("userId"), current_user.get("username"))
+    return ApiResponse.success(data=res, message="Upad / Advance recorded successfully")
+
+@router.post("/employees/{emp_id}/salary-payment")
+async def pay_salary(emp_id: str, body: Dict[str, Any], current_user: Dict[str, Any] = Depends(get_current_user)):
+    res = await HRService.pay_salary(emp_id, body, current_user.get("userId"), current_user.get("username"))
+    return ApiResponse.success(data=res, message="Salary payment recorded successfully")
+
+@router.get("/employees/{emp_id}/ledger")
+async def get_employee_ledger(emp_id: str, current_user: Dict[str, Any] = Depends(get_current_user)):
+    data = await HRService.get_employee_ledger(emp_id)
+    return ApiResponse.success(data=data)
+
+@router.delete("/transactions/{tx_id}")
+async def delete_transaction(tx_id: str, current_user: Dict[str, Any] = Depends(get_current_user)):
+    await HRService.delete_transaction(tx_id)
+    return ApiResponse.success(message="Transaction deleted successfully")
 
 # --- ATTENDANCE ---
 @router.get("/attendance")
