@@ -38,22 +38,7 @@ async def lifespan(app: FastAPI):
     try:
         ensure_indexes()
         db = get_db()
-        # 1. Clean up obsolete collections that do not belong to Bhatigal Bhanu ERP
-        obsolete_collections = [
-            "floor_zones", "floorzones", "dining_tables", "diningtables",
-            "kot_tickets", "kottickets", "orders", "recipes",
-            "queue_tokens", "queuetokens", "chart_of_accounts", "chartofaccounts",
-            "taxmasters", "dailymenuconfigs", "dailymenus", "menuitems", "menucategories"
-        ]
-        for col_name in obsolete_collections:
-            if col_name in db.list_collection_names():
-                try:
-                    db.drop_collection(col_name)
-                    logger.info(f"Cleaned obsolete collection: {col_name}")
-                except Exception as ex:
-                    logger.warning(f"Could not drop {col_name}: {ex}")
-
-        # 2. Auto-seed users & core permissions if superadmin is missing
+        # Auto-seed if database is brand new or superadmin is missing
         user_count = db.users.count_documents({})
         superadmin = db.users.find_one({"username": "superadmin"})
         if user_count == 0 or not superadmin:
@@ -62,16 +47,6 @@ async def lifespan(app: FastAPI):
             logger.info("Auto-seeding complete.")
         else:
             logger.info(f"Database connected. Found {user_count} registered users.")
-
-        # 3. Ensure authentic Bhatigal Bhanu Kathiyawadi menu items & daily menu exist
-        if db.menu_items.count_documents({}) < 10:
-            logger.info("Seeding authentic Bhatigal Bhanu Kathiyawadi categories & menu items...")
-            try:
-                from .migrate_menu import migrate_menu
-                migrate_menu(db)
-                logger.info("Kathiyawadi menu migration complete.")
-            except Exception as ex:
-                logger.error(f"Error during menu migration: {ex}")
     except Exception as e:
         logger.error(f"Startup initialization error: {e}")
     yield

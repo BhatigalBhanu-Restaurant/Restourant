@@ -99,25 +99,33 @@ export const DailyMenuPage: React.FC = () => {
   // Helper to extract lunch and dinner IDs from a menu record
   const parseMenuDishIds = (menu?: DailyMenu, itemsList: MenuItem[] = allMenuItems) => {
     if (!menu) return { lunch: [], dinner: [] };
-    if (Array.isArray(menu.lunchItemIds) || Array.isArray(menu.dinnerItemIds)) {
+    if ((Array.isArray(menu.lunchItemIds) && menu.lunchItemIds.length > 0) || 
+        (Array.isArray(menu.dinnerItemIds) && menu.dinnerItemIds.length > 0)) {
       return {
         lunch: menu.lunchItemIds || [],
         dinner: menu.dinnerItemIds || []
       };
     }
-    // Fallback if legacy record only had itemIds
+    // Fallback if legacy record only had itemIds:
     const rawIds = menu.itemIds || [];
-    const lunch: string[] = [];
-    const dinner: string[] = [];
-    rawIds.forEach(id => {
-      const it = itemsList.find(m => m.id === id);
-      if (it?.mealPeriod === 'DINNER') {
-        dinner.push(id);
-      } else {
-        lunch.push(id);
-      }
-    });
-    return { lunch, dinner };
+    if (rawIds.length > 0) {
+      const lunch: string[] = [];
+      const dinner: string[] = [];
+      rawIds.forEach(id => {
+        const it = itemsList.find(m => m.id === id);
+        if (it?.mealPeriod === 'DINNER') {
+          dinner.push(id);
+        } else if (it?.mealPeriod === 'LUNCH') {
+          lunch.push(id);
+        } else {
+          // Both Lunch and Dinner get the dish by default
+          lunch.push(id);
+          dinner.push(id);
+        }
+      });
+      return { lunch, dinner };
+    }
+    return { lunch: [], dinner: [] };
   };
 
   const loadAllData = async (showSpinner = false, forceFresh = false) => {
@@ -218,17 +226,22 @@ export const DailyMenuPage: React.FC = () => {
   // Active item IDs for the currently active meal period
   const activeItemIds = selectedMealPeriod === 'LUNCH' ? lunchItemIds : dinnerItemIds;
 
-  // STRICTLY filter categories matching the active meal period
+  // Filter categories matching the active meal period (all categories available by default)
   const timingCategories = useMemo(() => {
-    return categories.filter(category => (category.mealPeriod || 'LUNCH') === selectedMealPeriod);
+    return categories.filter(category => {
+      const meal = category.mealPeriod;
+      if (!meal) return true;
+      return meal === selectedMealPeriod;
+    });
   }, [categories, selectedMealPeriod]);
 
-  // STRICTLY filter catalog items matching the active meal period
+  // Filter catalog items matching the active meal period (available for both Lunch and Dinner by default)
   const timingCatalogItems = useMemo(() => {
     return allMenuItems.filter(item => {
       const itemCat = categories.find(c => c.id === item.categoryId);
-      const itemMeal = item.mealPeriod || itemCat?.mealPeriod || 'LUNCH';
-      return itemMeal === selectedMealPeriod;
+      const meal = item.mealPeriod || itemCat?.mealPeriod;
+      if (!meal) return true;
+      return meal === selectedMealPeriod;
     });
   }, [allMenuItems, categories, selectedMealPeriod]);
 

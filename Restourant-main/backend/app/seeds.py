@@ -1861,13 +1861,24 @@ def run_database_seeds():
             UpdateOne({"id": m["id"]}, {"$set": m}, upsert=True) for m in MENU_ITEMS
         ])
 
-    # 8. Floor Zones & Tables removed - Not part of Bhatigal Bhanu ERP
-    pass
+    # 8. Floor Zones & Tables
+    if DEFAULT_FLOOR_ZONES:
+        db.floor_zones.bulk_write([
+            UpdateOne({"code": z["code"]}, {"$set": z}, upsert=True) for z in DEFAULT_FLOOR_ZONES
+        ])
+    if TABLES:
+        db.dining_tables.bulk_write([
+            UpdateOne({"id": tbl["id"]}, {"$set": tbl}, upsert=True) for tbl in TABLES
+        ])
 
-    # 9. Inventory Items
+    # 9. Inventory Items & Recipes
     if INVENTORY_ITEMS:
         db.inventory_items.bulk_write([
             UpdateOne({"id": inv["id"]}, {"$set": inv}, upsert=True) for inv in INVENTORY_ITEMS
+        ])
+    if RECIPES:
+        db.recipes.bulk_write([
+            UpdateOne({"id": r["id"]}, {"$set": r}, upsert=True) for r in RECIPES
         ])
 
     # 10. Suppliers & Customers
