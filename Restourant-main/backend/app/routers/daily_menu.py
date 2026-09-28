@@ -83,7 +83,7 @@ import base64
 from ..services.poster_service import PosterService
 
 @router.get("/{day}/poster")
-async def get_menu_poster(day: str, price: int = 250, theme: str = "maroon", format: str = "image"):
+async def get_menu_poster(day: str, price: int = 220, theme: str = "royal_maroon", format: str = "image"):
     buf = PosterService.generate_menu_poster(day_of_week=day, price=price, theme=theme)
     if format == "json":
         b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
@@ -97,16 +97,18 @@ async def get_menu_poster(day: str, price: int = 250, theme: str = "maroon", for
 
 @router.post("/{day}/poster")
 async def create_custom_poster(day: str, body: Dict[str, Any] = {}):
-    price = body.get("price", 250)
-    theme = "royal_maroon"
-    format_style = "FORMAT_KATHIYAWADI_CARD"
+    price = body.get("price", 220)
+    theme = body.get("theme", "royal_maroon")
+    format_style = body.get("format", "FORMAT_KATHIYAWADI_CARD")
     custom_date = body.get("date")
+    item_ids = body.get("itemIds") or body.get("item_ids")
     buf = PosterService.generate_menu_poster(
         day_of_week=day,
         price=price,
         theme=theme,
         format_style=format_style,
-        custom_date_str=custom_date
+        custom_date_str=custom_date,
+        item_ids=item_ids
     )
     b64 = base64.b64encode(buf.getvalue()).decode("utf-8")
     return ApiResponse.success(data={
@@ -119,10 +121,11 @@ async def create_custom_poster(day: str, body: Dict[str, Any] = {}):
 
 @router.post("/{day}/poster/save")
 async def save_poster(day: str, body: Dict[str, Any] = {}, current_user: Optional[Dict[str, Any]] = Depends(get_optional_current_user)):
-    price = body.get("price", 250)
-    theme = "royal_maroon"
-    format_style = "FORMAT_KATHIYAWADI_CARD"
+    price = body.get("price", 220)
+    theme = body.get("theme", "royal_maroon")
+    format_style = body.get("format", "FORMAT_KATHIYAWADI_CARD")
     custom_date = body.get("date")
+    item_ids = body.get("itemIds") or body.get("item_ids")
     username = current_user.get("username") if current_user else "System"
     record = PosterService.save_poster(
         day_of_week=day,
@@ -131,7 +134,8 @@ async def save_poster(day: str, body: Dict[str, Any] = {}, current_user: Optiona
         format_style=format_style,
         custom_date_str=custom_date,
         saved_by=username,
-        preview_data_url=body.get("previewDataUrl")
+        preview_data_url=body.get("previewDataUrl"),
+        item_ids=item_ids
     )
     return ApiResponse.success(data=record, message=f"Poster saved for {day.upper()}")
 

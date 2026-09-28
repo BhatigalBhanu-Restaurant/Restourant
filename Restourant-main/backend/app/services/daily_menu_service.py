@@ -203,6 +203,7 @@ class DailyMenuService:
             "realDate": real_date_str,
             "lunchItemIds": lunch_item_ids,
             "dinnerItemIds": dinner_item_ids,
+            "itemIds": all_item_ids,
             "itemNames": item_names,
             "notes": notes or "",
             "isActive": is_active,

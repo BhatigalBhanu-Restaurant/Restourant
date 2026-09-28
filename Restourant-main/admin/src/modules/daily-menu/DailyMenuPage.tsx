@@ -81,7 +81,8 @@ export const DailyMenuPage: React.FC = () => {
   >(null);
 
   // Poster Generation UI State
-  const [posterPrice, setPosterPrice] = useState<number>(250);
+  const [posterPrice, setPosterPrice] = useState<number>(220);
+  const [posterTheme, setPosterTheme] = useState<'royal_maroon' | 'peacock_green'>('royal_maroon');
   const [posterCustomDate, setPosterCustomDate] = useState<string>('');
   const [posterDataUrl, setPosterDataUrl] = useState<string | null>(null);
   const [posterLoading, setPosterLoading] = useState(false);
@@ -432,18 +433,19 @@ export const DailyMenuPage: React.FC = () => {
   };
 
   // Poster preview & saving
-  const POSTER_THEME = 'royal_maroon';
   const POSTER_FORMAT = 'FORMAT_KATHIYAWADI_CARD';
 
   const handleGeneratePreview = async () => {
     setPosterLoading(true);
     setPosterError(null);
     try {
+      const allSelectedIds = Array.from(new Set([...lunchItemIds, ...dinnerItemIds]));
       const res: any = await apiClient.post(`/daily-menu/${selectedDay}/poster`, {
         price: posterPrice,
-        theme: POSTER_THEME,
+        theme: posterTheme,
         format: POSTER_FORMAT,
-        date: posterCustomDate || undefined
+        date: posterCustomDate || undefined,
+        itemIds: allSelectedIds
       });
       if (res.success && res.data?.dataUrl) {
         setPosterDataUrl(res.data.dataUrl);
@@ -465,12 +467,14 @@ export const DailyMenuPage: React.FC = () => {
     setPosterLoading(true);
     setPosterError(null);
     try {
+      const allSelectedIds = Array.from(new Set([...lunchItemIds, ...dinnerItemIds]));
       const res: any = await apiClient.post(`/daily-menu/${selectedDay}/poster/save`, {
         price: posterPrice,
-        theme: POSTER_THEME,
+        theme: posterTheme,
         format: POSTER_FORMAT,
         date: posterCustomDate || undefined,
-        previewDataUrl: posterDataUrl
+        previewDataUrl: posterDataUrl,
+        itemIds: allSelectedIds
       });
       if (res.success) {
         loadSavedPosters(selectedDay);
@@ -1197,10 +1201,49 @@ export const DailyMenuPage: React.FC = () => {
                     </div>
                   </div>
 
-                  <div className="rounded-3 border bg-primary-subtle p-3">
-                    <div className="fw-bold small text-primary">Kathiyawadi Restaurant Poster</div>
-                    <div className="text-muted small mt-1">
-                      Royal maroon, gold ribbons and Gujarati menu-card layout. The saved dishes, price and date are filled automatically.
+                  {/* Template Picker */}
+                  <div>
+                    <label className="form-label small fw-bold mb-1">પોસ્ટર ડિઝાઇન પસંદ કરો (Select Template)</label>
+                    <div className="d-grid gap-2">
+                      <div
+                        role="button"
+                        className={`p-2 border rounded-3 d-flex align-items-center justify-content-between transition-all ${
+                          posterTheme === 'royal_maroon'
+                            ? 'border-warning bg-warning-subtle text-dark fw-bold shadow-sm'
+                            : 'bg-white text-muted border-secondary-subtle'
+                        }`}
+                        onClick={() => { setPosterTheme('royal_maroon'); setPosterDataUrl(null); }}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <div className="d-flex align-items-center gap-2">
+                          <span style={{ fontSize: '1.25rem' }}>🐘</span>
+                          <div>
+                            <div className="small fw-bold text-dark">૧. રોયલ મરૂન (Royal Maroon)</div>
+                            <div className="text-muted" style={{ fontSize: '0.72rem' }}>હાથી, ગણેશજી, ઘંટડી & અનલિમિટેડ ૨૨૦/-</div>
+                          </div>
+                        </div>
+                        {posterTheme === 'royal_maroon' && <Check size={18} className="text-warning-emphasis" />}
+                      </div>
+
+                      <div
+                        role="button"
+                        className={`p-2 border rounded-3 d-flex align-items-center justify-content-between transition-all ${
+                          posterTheme === 'peacock_green'
+                            ? 'border-success bg-success-subtle text-dark fw-bold shadow-sm'
+                            : 'bg-white text-muted border-secondary-subtle'
+                        }`}
+                        onClick={() => { setPosterTheme('peacock_green'); setPosterDataUrl(null); }}
+                        style={{ cursor: 'pointer' }}
+                      >
+                        <div className="d-flex align-items-center gap-2">
+                          <span style={{ fontSize: '1.25rem' }}>🦚</span>
+                          <div>
+                            <div className="small fw-bold text-dark">૨. મોરપીંછ લીલું (Peacock Green)</div>
+                            <div className="text-muted" style={{ fontSize: '0.72rem' }}>મોરપીંછ, ફાનસ, પૈડું & રાજકોટ એડ્રેસ</div>
+                          </div>
+                        </div>
+                        {posterTheme === 'peacock_green' && <Check size={18} className="text-success" />}
+                      </div>
                     </div>
                   </div>
 
