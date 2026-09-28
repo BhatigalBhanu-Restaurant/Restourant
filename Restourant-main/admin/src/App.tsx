@@ -13,7 +13,6 @@ const MastersPage = lazy(() => import('./modules/masters/MastersPage').then(m =>
 const DailyMenuPage = lazy(() => import('./modules/daily-menu/DailyMenuPage').then(m => ({ default: m.DailyMenuPage })));
 const BookingPage = lazy(() => import('./modules/booking/BookingPage').then(m => ({ default: m.BookingPage })));
 const InventoryPage = lazy(() => import('./modules/inventory/InventoryPage').then(m => ({ default: m.InventoryPage })));
-const StaffPage = lazy(() => import('./modules/staff/StaffPage').then(m => ({ default: m.StaffPage })));
 const UsersRolesPage = lazy(() => import('./modules/users-roles/UsersRolesPage').then(m => ({ default: m.UsersRolesPage })));
 const NotificationsPage = lazy(() => import('./modules/notifications/NotificationsPage').then(m => ({ default: m.NotificationsPage })));
 const StoreSettingsPage = lazy(() => import('./modules/settings/StoreSettingsPage').then(m => ({ default: m.StoreSettingsPage })));
@@ -73,8 +72,6 @@ export const App: React.FC = () => {
                     <Route path="bookings" element={<BookingPage />} />
                     <Route path="functions" element={<BookingPage />} />
                     <Route path="inventory" element={<InventoryPage />} />
-                    <Route path="staff" element={<StaffPage />} />
-                    <Route path="employees" element={<StaffPage />} />
                     <Route path="users-roles" element={<UsersRolesPage />} />
                     <Route path="notifications" element={<NotificationsPage />} />
                     <Route path="settings" element={<StoreSettingsPage />} />

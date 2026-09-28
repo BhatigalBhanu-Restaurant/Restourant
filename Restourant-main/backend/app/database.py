@@ -88,11 +88,6 @@ def ensure_indexes():
         db.bookings.create_index([("bookingDate", ASCENDING), ("status", ASCENDING)])
         db.queue_tokens.create_index([("tokenDate", ASCENDING), ("tokenNumber", ASCENDING)])
         
-        # HR & Staff Management
-        db.employees.create_index([("id", ASCENDING)], unique=True)
-        db.employees.create_index([("employeeCode", ASCENDING)], unique=True)
-        db.employee_ledger.create_index([("employeeId", ASCENDING), ("date", DESCENDING)])
-
         # System
         db.system_settings.create_index([("key", ASCENDING)], unique=True)
         db.audit_logs.create_index([("timestamp", DESCENDING)])
