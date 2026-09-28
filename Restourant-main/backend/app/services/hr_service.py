@@ -5,40 +5,88 @@ from fastapi import HTTPException
 from ..database import get_db
 
 class HRService:
-    # --- EMPLOYEES ---
+    # --- EMPLOYEES & STAFF MANAGEMENT ---
     @staticmethod
     async def get_employees() -> List[Dict[str, Any]]:
         db = get_db()
-        return list(db.employees.find({}, {"_id": 0}).sort("firstName", 1))
+        employees = list(db.employees.find({}, {"_id": 0}).sort("employeeCode", 1))
+        # Compute live hisab totals for each employee from employee_ledger
+        for emp in employees:
+            emp_id = emp.get("id")
+            txs = list(db.employee_ledger.find({"employeeId": emp_id}))
+            total_upad = sum(float(t.get("amount", 0)) for t in txs if t.get("type") == "UPAD")
+            upad_deductions = sum(float(t.get("deductionAmount", 0)) for t in txs if t.get("type") == "SALARY_PAYMENT")
+            salary_paid = sum(float(t.get("netPaid", t.get("amount", 0))) for t in txs if t.get("type") == "SALARY_PAYMENT")
+            
+            emp["totalUpad"] = total_upad
+            emp["totalUpadDeducted"] = upad_deductions
+            emp["outstandingUpad"] = max(0.0, total_upad - upad_deductions)
+            emp["totalSalaryPaid"] = salary_paid
+            emp["txCount"] = len(txs)
+        return employees
 
     @staticmethod
     async def get_employee_by_id(emp_id: str) -> Dict[str, Any]:
         db = get_db()
         emp = db.employees.find_one({"id": emp_id}, {"_id": 0})
         if not emp:
-            raise HTTPException(status_code=404, detail={"success": False, "message": "Employee not found."})
-        salary = db.salary_structures.find_one({"employeeId": emp_id}, {"_id": 0})
-        return {"employee": emp, "salary": salary}
+            raise HTTPException(status_code=404, detail={"success": False, "message": "Staff member not found."})
+        txs = list(db.employee_ledger.find({"employeeId": emp_id}, {"_id": 0}).sort("date", -1))
+        total_upad = sum(float(t.get("amount", 0)) for t in txs if t.get("type") == "UPAD")
+        upad_deductions = sum(float(t.get("deductionAmount", 0)) for t in txs if t.get("type") == "SALARY_PAYMENT")
+        salary_paid = sum(float(t.get("netPaid", t.get("amount", 0))) for t in txs if t.get("type") == "SALARY_PAYMENT")
+        outstanding = max(0.0, total_upad - upad_deductions)
+        emp["totalUpad"] = total_upad
+        emp["totalUpadDeducted"] = upad_deductions
+        emp["outstandingUpad"] = outstanding
+        emp["totalSalaryPaid"] = salary_paid
+        emp["txCount"] = len(txs)
+        return {"employee": emp, "transactions": txs}
 
     @staticmethod
     async def create_employee(data: Dict[str, Any], user_id: Optional[str] = None, username: Optional[str] = None) -> Dict[str, Any]:
         db = get_db()
         emp_id = data.get("id") or f"emp_{uuid.uuid4().hex[:8]}"
-        count = db.employees.count_documents({})
+        
+        # Determine next employee code if not specified or empty
+        code = (data.get("employeeCode") or "").strip().upper()
+        if not code:
+            existing_codes = db.employees.distinct("employeeCode")
+            max_num = 0
+            for ec in existing_codes:
+                if ec and ec.startswith("EMP-"):
+                    try:
+                        num = int(ec.split("-")[1])
+                        if num > max_num:
+                            max_num = num
+                    except Exception:
+                        pass
+            code = f"EMP-{str(max_num + 1).zfill(3)}"
+
+        name = (data.get("name") or f"{data.get('firstName', '')} {data.get('lastName', '')}").strip()
+        wage_type = (data.get("wageType") or "MONTHLY").upper()
+        base_salary = float(data.get("baseSalary") or 0.0)
+        daily_rate = float(data.get("dailyRate") or 0.0)
+
         doc = {
             "id": emp_id,
-            "employeeCode": data.get("employeeCode") or f"EMP-{str(count + 1).zfill(3)}",
-            "firstName": data.get("firstName"),
-            "lastName": data.get("lastName"),
-            "email": data.get("email"),
-            "phone": data.get("phone"),
-            "departmentId": data.get("departmentId"),
-            "departmentName": data.get("departmentName"),
-            "designationId": data.get("designationId"),
-            "designationTitle": data.get("designationTitle"),
-            "joiningDate": data.get("joiningDate", datetime.now(timezone.utc).strftime("%Y-%m-%d")),
-            "baseSalary": float(data.get("baseSalary", 25000)),
-            "status": "ACTIVE",
+            "employeeCode": code,
+            "name": name,
+            "firstName": data.get("firstName") or name,
+            "lastName": data.get("lastName") or "",
+            "phone": (data.get("phone") or "").strip(),
+            "designationTitle": data.get("designationTitle") or data.get("role") or "સ્ટાફ (Staff)",
+            "wageType": wage_type,
+            "baseSalary": base_salary,
+            "dailyRate": daily_rate,
+            "aadharCardUrl": data.get("aadharCardUrl") or data.get("photoUrl") or "",
+            "joiningDate": data.get("joiningDate") or datetime.now(timezone.utc).strftime("%Y-%m-%d"),
+            "status": data.get("status") or "ACTIVE",
+            "notes": (data.get("notes") or "").strip(),
+            "totalUpad": 0.0,
+            "totalUpadDeducted": 0.0,
+            "outstandingUpad": 0.0,
+            "totalSalaryPaid": 0.0,
             "createdAt": datetime.now(timezone.utc),
             "updatedAt": datetime.now(timezone.utc)
         }
@@ -49,14 +97,131 @@ class HRService:
     @staticmethod
     async def update_employee(emp_id: str, data: Dict[str, Any], user_id: Optional[str] = None, username: Optional[str] = None) -> Dict[str, Any]:
         db = get_db()
-        data["updatedAt"] = datetime.now(timezone.utc)
-        db.employees.update_one({"id": emp_id}, {"$set": data})
+        update_data = {**data}
+        update_data.pop("_id", None)
+        update_data.pop("id", None)
+        update_data["updatedAt"] = datetime.now(timezone.utc)
+        if "name" in update_data and not update_data.get("firstName"):
+            update_data["firstName"] = update_data["name"]
+        db.employees.update_one({"id": emp_id}, {"$set": update_data})
         return db.employees.find_one({"id": emp_id}, {"_id": 0})
 
     @staticmethod
     async def delete_employee(emp_id: str):
         db = get_db()
         db.employees.delete_one({"id": emp_id})
+        db.employee_ledger.delete_many({"employeeId": emp_id})
+        db.employee_advances.delete_many({"employeeId": emp_id})
+        db.salary_records.delete_many({"employeeId": emp_id})
+        return {"success": True}
+
+    # --- STAFF UPAD (ADVANCE) & SALARY PAYMENT ---
+    @staticmethod
+    async def add_advance(emp_id: str, data: Dict[str, Any], user_id: Optional[str] = None, username: Optional[str] = None) -> Dict[str, Any]:
+        db = get_db()
+        emp = db.employees.find_one({"id": emp_id})
+        if not emp:
+            raise HTTPException(status_code=404, detail={"success": False, "message": "Staff member not found."})
+
+        amount = float(data.get("amount") or 0.0)
+        if amount <= 0:
+            raise HTTPException(status_code=400, detail={"success": False, "message": "Upad amount must be greater than zero."})
+
+        date_str = data.get("date") or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        tx_id = f"upad_{uuid.uuid4().hex[:8]}"
+
+        tx_doc = {
+            "id": tx_id,
+            "employeeId": emp_id,
+            "employeeCode": emp.get("employeeCode"),
+            "employeeName": emp.get("name") or f"{emp.get('firstName', '')} {emp.get('lastName', '')}".strip(),
+            "type": "UPAD",
+            "amount": amount,
+            "grossSalary": 0.0,
+            "deductionAmount": 0.0,
+            "netPaid": 0.0,
+            "date": date_str,
+            "paymentMode": data.get("paymentMode") or "Cash",
+            "reason": data.get("reason") or data.get("notes") or "ઉપાડ (Advance)",
+            "referenceId": data.get("referenceId") or "",
+            "createdBy": username or user_id or "admin",
+            "createdAt": datetime.now(timezone.utc)
+        }
+        db.employee_ledger.insert_one(tx_doc)
+        db.employee_advances.insert_one(tx_doc.copy())
+        tx_doc.pop("_id", None)
+        return tx_doc
+
+    @staticmethod
+    async def pay_salary(emp_id: str, data: Dict[str, Any], user_id: Optional[str] = None, username: Optional[str] = None) -> Dict[str, Any]:
+        db = get_db()
+        emp = db.employees.find_one({"id": emp_id})
+        if not emp:
+            raise HTTPException(status_code=404, detail={"success": False, "message": "Staff member not found."})
+
+        gross = float(data.get("grossSalary") or 0.0)
+        deduction = float(data.get("advanceDeducted") or 0.0)
+        net_paid = float(data.get("netPaid") or max(0.0, gross - deduction))
+        date_str = data.get("date") or datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        period = data.get("period") or datetime.now(timezone.utc).strftime("%B %Y")
+        tx_id = f"sal_{uuid.uuid4().hex[:8]}"
+
+        tx_doc = {
+            "id": tx_id,
+            "employeeId": emp_id,
+            "employeeCode": emp.get("employeeCode"),
+            "employeeName": emp.get("name") or f"{emp.get('firstName', '')} {emp.get('lastName', '')}".strip(),
+            "type": "SALARY_PAYMENT",
+            "amount": net_paid,
+            "grossSalary": gross,
+            "deductionAmount": deduction,
+            "netPaid": net_paid,
+            "daysWorked": data.get("daysWorked"),
+            "period": period,
+            "date": date_str,
+            "paymentMode": data.get("paymentMode") or "Cash",
+            "reason": data.get("notes") or f"પગાર ચુકવણી ({period})",
+            "referenceId": data.get("referenceId") or "",
+            "createdBy": username or user_id or "admin",
+            "createdAt": datetime.now(timezone.utc)
+        }
+        db.employee_ledger.insert_one(tx_doc)
+        db.salary_records.insert_one(tx_doc.copy())
+        tx_doc.pop("_id", None)
+        return tx_doc
+
+    @staticmethod
+    async def get_employee_ledger(emp_id: str) -> Dict[str, Any]:
+        db = get_db()
+        emp = db.employees.find_one({"id": emp_id}, {"_id": 0})
+        if not emp:
+            raise HTTPException(status_code=404, detail={"success": False, "message": "Staff member not found."})
+
+        txs = list(db.employee_ledger.find({"employeeId": emp_id}, {"_id": 0}).sort("date", -1))
+        
+        total_upad = sum(float(t.get("amount", 0)) for t in txs if t.get("type") == "UPAD")
+        total_deducted = sum(float(t.get("deductionAmount", 0)) for t in txs if t.get("type") == "SALARY_PAYMENT")
+        total_salary_paid = sum(float(t.get("netPaid", t.get("amount", 0))) for t in txs if t.get("type") == "SALARY_PAYMENT")
+        outstanding = max(0.0, total_upad - total_deducted)
+
+        return {
+            "employee": emp,
+            "transactions": txs,
+            "summary": {
+                "totalUpad": total_upad,
+                "totalDeducted": total_deducted,
+                "outstandingUpad": outstanding,
+                "totalSalaryPaid": total_salary_paid,
+                "txCount": len(txs)
+            }
+        }
+
+    @staticmethod
+    async def delete_transaction(tx_id: str):
+        db = get_db()
+        db.employee_ledger.delete_one({"id": tx_id})
+        db.employee_advances.delete_one({"id": tx_id})
+        db.salary_records.delete_one({"id": tx_id})
         return {"success": True}
 
     # --- ATTENDANCE ---

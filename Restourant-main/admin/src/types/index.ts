@@ -472,14 +472,27 @@ export interface DayClosing {
 export interface Employee {
   id: string;
   employeeCode: string;
-  firstName: string;
-  lastName: string;
-  email: string;
+  name: string;
+  firstName?: string;
+  lastName?: string;
+  email?: string;
   phone: string;
   departmentName?: string;
   designationTitle?: string;
+  wageType?: 'MONTHLY' | 'DAILY';
   baseSalary: number;
+  dailyRate?: number;
+  aadharCardUrl?: string;
+  joiningDate?: string;
   status: string;
+  notes?: string;
+  totalUpad?: number;
+  totalUpadDeducted?: number;
+  outstandingUpad?: number;
+  totalSalaryPaid?: number;
+  txCount?: number;
+  createdAt?: string;
+  updatedAt?: string;
 }
 
 export interface AttendanceRecord {
@@ -585,4 +598,24 @@ export interface SystemHealthMetrics {
   dbStatus: string;
   dbCollections: number;
   dbTotalRecords: number;
+}
+
+export interface EmployeeTransaction {
+  id: string;
+  employeeId: string;
+  employeeCode?: string;
+  employeeName?: string;
+  type: 'UPAD' | 'SALARY_PAYMENT';
+  amount: number;
+  grossSalary?: number;
+  deductionAmount?: number;
+  netPaid?: number;
+  daysWorked?: number;
+  period?: string;
+  date: string;
+  paymentMode: string;
+  reason?: string;
+  referenceId?: string;
+  createdBy?: string;
+  createdAt?: string;
 }
