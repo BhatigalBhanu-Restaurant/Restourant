@@ -139,22 +139,26 @@ class PosterService:
 
         # 1. Resolve Theme
         theme_key = (theme or "royal_maroon").lower()
-        if "green" in theme_key or "peacock" in theme_key:
+        if "desi" in theme_key or "kathiyawadi" in theme_key:
+            selected_theme = THEMES["desi_kathiyawadi"]
+        elif "green" in theme_key or "peacock" in theme_key:
             selected_theme = THEMES["peacock_green"]
+        elif theme_key in THEMES:
+            selected_theme = THEMES[theme_key]
         else:
             selected_theme = THEMES["royal_maroon"]
 
         # 2. Resolve items - STRICTLY USER-ADDED ITEMS ONLY (NO RANDOM FALLBACKS)
         if item_ids is None:
             menu = db.daily_menus.find_one({"dayOfWeek": day_upper}) or {}
-            period_upper = (meal_period or "LUNCH").upper()
-            if period_upper == "DINNER":
-                item_ids = menu.get("dinnerItemIds") or []
-            else:
-                # Default to Lunch items for lunch poster
-                item_ids = menu.get("lunchItemIds") or []
-            if not item_ids:
-                item_ids = menu.get("itemIds") or []
+            lunch_ids = menu.get("lunchItemIds") or []
+            dinner_ids = menu.get("dinnerItemIds") or []
+            all_menu_ids = menu.get("itemIds") or []
+            merged_ids: List[str] = []
+            for iid in (lunch_ids + dinner_ids + all_menu_ids):
+                if iid and iid not in merged_ids:
+                    merged_ids.append(iid)
+            item_ids = merged_ids
 
         # Fetch scheduled items
         items = []
@@ -384,7 +388,13 @@ class PosterService:
         with open(out_path, "wb") as f:
             f.write(buf.getvalue())
 
-        theme_info = THEMES.get(theme.lower(), THEMES["royal_maroon"])
+        theme_key = (theme or "royal_maroon").lower()
+        if "desi" in theme_key or "kathiyawadi" in theme_key:
+            theme_info = THEMES["desi_kathiyawadi"]
+        elif "green" in theme_key or "peacock" in theme_key:
+            theme_info = THEMES["peacock_green"]
+        else:
+            theme_info = THEMES.get(theme_key, THEMES["royal_maroon"])
         record = {
             "id": poster_id,
             "dayOfWeek": day_upper,
