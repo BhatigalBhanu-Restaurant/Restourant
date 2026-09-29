@@ -45,6 +45,14 @@ THEMES = {
         "gold_color": (255, 225, 120),
         "divider_color": (245, 185, 60),
         "text_color": (255, 255, 255)
+    },
+    "desi_kathiyawadi": {
+        "id": "desi_kathiyawadi",
+        "name": "દેશી કાઠિયાવાડી (ફાનસ & પૈડું વાળી ડિઝાઇન)",
+        "file": "poster_desi_kathiyawadi.png",
+        "gold_color": (120, 50, 15),
+        "divider_color": (165, 115, 75),
+        "text_color": (78, 48, 25)
     }
 }
 
@@ -203,12 +211,14 @@ class PosterService:
 
         # 5. Colors & Fonts
         is_green = selected_theme["id"] == "peacock_green"
+        is_desi = selected_theme["id"] == "desi_kathiyawadi"
         gold_color = selected_theme["gold_color"]
         divider_color = selected_theme["divider_color"]
+        dish_text_color = selected_theme.get("text_color", (255, 255, 255))
 
-        font_date = PosterService.get_font(24, bold=True)
-        font_cat = PosterService.get_font(21, bold=True)
-        font_dish = PosterService.get_font(19, bold=True)
+        font_date = PosterService.get_font(22 if is_desi else 24, bold=True)
+        font_cat = PosterService.get_font(20 if is_desi else 21, bold=True)
+        font_dish = PosterService.get_font(18 if is_desi else 19, bold=True)
         font_msg1 = PosterService.get_font(23, bold=True)
         font_msg2 = PosterService.get_font(20, bold=True)
 
@@ -216,10 +226,14 @@ class PosterService:
         header_text = f"{day_guj} • {date_guj}"
         bbox = draw.textbbox((0, 0), header_text, font=font_date)
         tw = bbox[2] - bbox[0]
-        header_y = 380 if is_green else 415
-        divider_y = 418 if is_green else 452
-        draw.text(((w - tw) // 2, header_y), header_text, font=font_date, fill=gold_color)
-        draw.line([(200, divider_y), (w - 200, divider_y)], fill=divider_color, width=2)
+        if is_desi:
+            banner_cx = 320
+            draw.text((banner_cx - tw // 2, 222), header_text, font=font_date, fill=(255, 255, 255))
+        else:
+            header_y = 380 if is_green else 415
+            divider_y = 418 if is_green else 452
+            draw.text(((w - tw) // 2, header_y), header_text, font=font_date, fill=gold_color)
+            draw.line([(200, divider_y), (w - 200, divider_y)], fill=divider_color, width=2)
 
         # 6. Render Grouped Categories & Dishes
         if not grouped_items:
@@ -230,9 +244,10 @@ class PosterService:
             tw1 = draw.textbbox((0, 0), msg1, font=font_msg1)[2] - draw.textbbox((0, 0), msg1, font=font_msg1)[0]
             tw2 = draw.textbbox((0, 0), msg2, font=font_msg2)[2] - draw.textbbox((0, 0), msg2, font=font_msg2)[0]
             tw3 = draw.textbbox((0, 0), msg3, font=font_msg2)[2] - draw.textbbox((0, 0), msg3, font=font_msg2)[0]
-            draw.text(((w - tw1) // 2, 530 if not is_green else 490), msg1, font=font_msg1, fill=gold_color)
-            draw.text(((w - tw2) // 2, 575 if not is_green else 535), msg2, font=font_msg2, fill=(255, 255, 255))
-            draw.text(((w - tw3) // 2, 615 if not is_green else 575), msg3, font=font_msg2, fill=divider_color)
+            msg_y1 = 430 if is_desi else (490 if is_green else 530)
+            draw.text(((w - tw1) // 2, msg_y1), msg1, font=font_msg1, fill=gold_color)
+            draw.text(((w - tw2) // 2, msg_y1 + 45), msg2, font=font_msg2, fill=dish_text_color)
+            draw.text(((w - tw3) // 2, msg_y1 + 85), msg3, font=font_msg2, fill=divider_color)
         else:
             cats = list(grouped_items.items())
             col1_cats, col2_cats = [], []
@@ -246,9 +261,18 @@ class PosterService:
                     col2_cats.append((cat_name, dishes))
                     c2_count += weight
 
-            x_col1 = 155 if is_green else 190
-            x_col2 = 375 if is_green else 415
-            y_start = 440 if is_green else 470
+            if is_desi:
+                x_col1 = 95
+                x_col2 = 375
+                y_start = 285
+            elif is_green:
+                x_col1 = 155
+                x_col2 = 375
+                y_start = 440
+            else:
+                x_col1 = 190
+                x_col2 = 415
+                y_start = 470
 
             def draw_category_col(col_data, start_x):
                 curr_y = y_start
@@ -256,15 +280,16 @@ class PosterService:
                     c_title = f"[ {cat_name} ]"
                     draw.text((start_x, curr_y), c_title, font=font_cat, fill=gold_color)
                     c_tw = draw.textbbox((0, 0), c_title, font=font_cat)[2] - draw.textbbox((0, 0), c_title, font=font_cat)[0]
-                    draw.line([(start_x, curr_y + 26), (start_x + c_tw, curr_y + 26)], fill=divider_color, width=1)
-                    curr_y += 32
+                    line_y = curr_y + (24 if is_desi else 26)
+                    draw.line([(start_x, line_y), (start_x + c_tw, line_y)], fill=divider_color, width=1)
+                    curr_y += (30 if is_desi else 32)
 
                     for dish in dishes:
                         bx, by = start_x + 6, curr_y + 8
-                        # Golden diamond bullet
-                        draw.polygon([(bx, by - 4), (bx + 4, by), (bx, by + 4), (bx - 4, by)], fill=gold_color)
-                        draw.text((bx + 12, curr_y), dish[:18], font=font_dish, fill=(255, 255, 255))
-                        curr_y += 29
+                        # Diamond bullet
+                        draw.polygon([(bx, by - 3), (bx + 3, by), (bx, by + 3), (bx - 3, by)], fill=gold_color)
+                        draw.text((bx + (10 if is_desi else 12), curr_y), dish[:18], font=font_dish, fill=dish_text_color)
+                        curr_y += (27 if is_desi else 29)
                     curr_y += 12
 
             draw_category_col(col1_cats, x_col1)
@@ -272,7 +297,19 @@ class PosterService:
                 draw_category_col(col2_cats, x_col2)
 
         # 7. Price badge (Default 250, seamless native cloud & seal design)
-        if is_green:
+        if is_desi:
+            font_u = PosterService.get_font(23, bold=True)
+            font_p = PosterService.get_font(38, bold=True)
+            u_txt = "અનલિમિટેડ"
+            p_txt = f"{to_gujarati_digits(price)}/-"
+            u_bbox = draw.textbbox((0, 0), u_txt, font=font_u)
+            p_bbox = draw.textbbox((0, 0), p_txt, font=font_p)
+            u_tw = u_bbox[2] - u_bbox[0]
+            p_tw = p_bbox[2] - p_bbox[0]
+            cloud_cx = 354
+            draw.text((cloud_cx - u_tw // 2, 852), u_txt, font=font_u, fill=(55, 45, 35))
+            draw.text((cloud_cx - p_tw // 2, 892), p_txt, font=font_p, fill=(168, 25, 25))
+        elif is_green:
             # Seamlessly clear cloud interior
             draw.rounded_rectangle([218, 862, 438, 974], radius=26, fill=(255, 255, 255))
             draw.ellipse([212, 876, 286, 958], fill=(255, 255, 255))

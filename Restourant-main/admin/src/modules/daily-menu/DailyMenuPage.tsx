@@ -129,8 +129,8 @@ export const DailyMenuPage: React.FC = () => {
     | null
   >(null);
 
-  // Poster Generation UI State: Support both Royal Maroon & Peacock Green, default price 250
-  const [posterTheme, setPosterTheme] = useState<'royal_maroon' | 'peacock_green'>('royal_maroon');
+  // Poster Generation UI State: Support Royal Maroon, Peacock Green & Desi Kathiyawadi, default price 250
+  const [posterTheme, setPosterTheme] = useState<'royal_maroon' | 'peacock_green' | 'desi_kathiyawadi'>('royal_maroon');
   const [posterMealPeriod, setPosterMealPeriod] = useState<MealPeriod>('LUNCH');
   const [posterPrice, setPosterPrice] = useState<number>(250);
   const [posterCustomDate, setPosterCustomDate] = useState<string>('');
@@ -1303,10 +1303,10 @@ export const DailyMenuPage: React.FC = () => {
                   <div>
                     <label className="form-label small fw-bold mb-1">પોસ્ટર થીમ સિલેક્શન (Poster Theme):</label>
                     <div className="row g-2">
-                      <div className="col-6">
+                      <div className="col-4">
                         <button
                           type="button"
-                          className={`btn btn-sm w-100 p-2 text-start rounded-3 border transition-all ${
+                          className={`btn btn-sm w-100 p-2 text-center rounded-3 border transition-all ${
                             posterTheme === 'royal_maroon'
                               ? 'border-2 border-danger bg-danger-subtle text-dark fw-bold shadow-xs'
                               : 'bg-white border text-muted hover-bg-light'
@@ -1318,11 +1318,11 @@ export const DailyMenuPage: React.FC = () => {
                         >
                           <div className="d-flex align-items-center justify-content-center gap-1.5 py-1">
                             <span style={{ fontSize: '1.05rem' }}>👑</span>
-                            <span className="fw-semibold" style={{ fontSize: '0.85rem' }}>રોયલ મરૂન</span>
+                            <span className="fw-semibold" style={{ fontSize: '0.82rem' }}>રોયલ મરૂન</span>
                           </div>
                         </button>
                       </div>
-                      <div className="col-6">
+                      <div className="col-4">
                         <button
                           type="button"
                           className={`btn btn-sm w-100 p-2 text-center rounded-3 border transition-all ${
@@ -1337,7 +1337,26 @@ export const DailyMenuPage: React.FC = () => {
                         >
                           <div className="d-flex align-items-center justify-content-center gap-1.5 py-1">
                             <span style={{ fontSize: '1.05rem' }}>🦚</span>
-                            <span className="fw-semibold" style={{ fontSize: '0.85rem' }}>મોરપીંછ લીલું</span>
+                            <span className="fw-semibold" style={{ fontSize: '0.82rem' }}>મોરપીંછ લીલું</span>
+                          </div>
+                        </button>
+                      </div>
+                      <div className="col-4">
+                        <button
+                          type="button"
+                          className={`btn btn-sm w-100 p-2 text-center rounded-3 border transition-all ${
+                            posterTheme === 'desi_kathiyawadi'
+                              ? 'border-2 border-warning bg-warning-subtle text-dark fw-bold shadow-xs'
+                              : 'bg-white border text-muted hover-bg-light'
+                          }`}
+                          onClick={() => {
+                            setPosterTheme('desi_kathiyawadi');
+                            setPosterDataUrl(null);
+                          }}
+                        >
+                          <div className="d-flex align-items-center justify-content-center gap-1.5 py-1">
+                            <span style={{ fontSize: '1.05rem' }}>🌾</span>
+                            <span className="fw-semibold" style={{ fontSize: '0.82rem' }}>દેશી કાઠિયાવાડી</span>
                           </div>
                         </button>
                       </div>

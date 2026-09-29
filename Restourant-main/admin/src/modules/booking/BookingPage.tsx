@@ -1669,20 +1669,9 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                 {/* 8. Function Type & Manager */}
                 <div className="row g-2">
                   <div className="col-12 col-sm-6">
-                    <div className="d-flex justify-content-between align-items-center mb-1">
-                      <label className="form-label small fw-semibold text-secondary mb-0">
-                        Function Type (પ્રસંગનો પ્રકાર)
-                      </label>
-                      <Link
-                        to="/settings?tab=functions"
-                        className="text-primary text-decoration-none small d-inline-flex align-items-center gap-1"
-                        style={{ fontSize: '0.73rem' }}
-                        title="સેટિંગ્સમાંથી નવા પ્રસંગ ઉમેરો અથવા બદલો"
-                      >
-                        <Settings size={11} />
-                        <span>Settings માં બદલો</span>
-                      </Link>
-                    </div>
+                    <label className="form-label small fw-semibold text-secondary mb-1">
+                      Function Type (પ્રસંગનો પ્રકાર)
+                    </label>
                     <select
                       className="form-select form-select-sm border rounded-3 p-2"
                       value={formData.functionType}
@@ -1695,20 +1684,9 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                     </select>
                   </div>
                   <div className="col-12 col-sm-6">
-                    <div className="d-flex justify-content-between align-items-center mb-1">
-                      <label className="form-label small fw-semibold text-secondary mb-0">
-                        Accepted By (મેનેજર)
-                      </label>
-                      <Link
-                        to="/settings?tab=functions"
-                        className="text-primary text-decoration-none small d-inline-flex align-items-center gap-1"
-                        style={{ fontSize: '0.73rem' }}
-                        title="સેટિંગ્સમાંથી મેનેજરના નામ બદલો કે ઉમેરો"
-                      >
-                        <Settings size={11} />
-                        <span>Settings માં બદલો</span>
-                      </Link>
-                    </div>
+                    <label className="form-label small fw-semibold text-secondary mb-1">
+                      Accepted By (મેનેજર)
+                    </label>
                     <select
                       className="form-select form-select-sm border rounded-3 p-2"
                       value={formData.acceptedBy}
