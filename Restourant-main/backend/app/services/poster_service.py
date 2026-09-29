@@ -119,11 +119,12 @@ class PosterService:
     @staticmethod
     def generate_menu_poster(
         day_of_week: str,
-        price: int = 220,
+        price: int = 250,
         theme: str = "royal_maroon",
         format_style: str = "FORMAT_KATHIYAWADI_CARD",
         custom_date_str: Optional[str] = None,
-        item_ids: Optional[List[str]] = None
+        item_ids: Optional[List[str]] = None,
+        meal_period: Optional[str] = None
     ) -> BytesIO:
         db = get_db()
         day_upper = day_of_week.upper()
@@ -138,9 +139,14 @@ class PosterService:
         # 2. Resolve items - STRICTLY USER-ADDED ITEMS ONLY (NO RANDOM FALLBACKS)
         if item_ids is None:
             menu = db.daily_menus.find_one({"dayOfWeek": day_upper}) or {}
-            item_ids = menu.get("itemIds") or []
+            period_upper = (meal_period or "LUNCH").upper()
+            if period_upper == "DINNER":
+                item_ids = menu.get("dinnerItemIds") or []
+            else:
+                # Default to Lunch items for lunch poster
+                item_ids = menu.get("lunchItemIds") or []
             if not item_ids:
-                item_ids = list(dict.fromkeys(menu.get("lunchItemIds", []) + menu.get("dinnerItemIds", [])))
+                item_ids = menu.get("itemIds") or []
 
         # Fetch scheduled items
         items = []
@@ -265,27 +271,26 @@ class PosterService:
             if col2_cats:
                 draw_category_col(col2_cats, x_col2)
 
-        # 7. Update price badge if custom price provided (different from default 220)
-        if price != 220:
-            if is_green:
-                font_p = PosterService.get_font(28, bold=True)
-                draw.rounded_rectangle([296, 915, 436, 965], radius=8, fill=(255, 255, 255))
-                p_txt = f"{to_gujarati_digits(price)}/-"
-                p_bbox = draw.textbbox((0, 0), p_txt, font=font_p)
-                p_tw = p_bbox[2] - p_bbox[0]
-                draw.text(((296 + 436 - p_tw) // 2, 920), p_txt, font=font_p, fill=(140, 20, 20))
-            else:
-                font_u = PosterService.get_font(21, bold=True)
-                font_p = PosterService.get_font(28, bold=True)
-                draw.rounded_rectangle([325, 845, 460, 932], radius=16, fill=(75, 5, 18))
-                u_txt = "અનલિમિટેડ"
-                p_txt = f"{to_gujarati_digits(price)}/-"
-                u_bbox = draw.textbbox((0, 0), u_txt, font=font_u)
-                p_bbox = draw.textbbox((0, 0), p_txt, font=font_p)
-                u_tw = u_bbox[2] - u_bbox[0]
-                p_tw = p_bbox[2] - p_bbox[0]
-                draw.text(((325 + 460 - u_tw) // 2, 852), u_txt, font=font_u, fill=(255, 255, 255))
-                draw.text(((325 + 460 - p_tw) // 2, 888), p_txt, font=font_p, fill=(255, 215, 0))
+        # 7. Price badge (ALWAYS DRAW WITH REQUESTED PRICE, default 250)
+        if is_green:
+            font_p = PosterService.get_font(28, bold=True)
+            draw.rounded_rectangle([296, 915, 436, 965], radius=8, fill=(255, 255, 255))
+            p_txt = f"{to_gujarati_digits(price)}/-"
+            p_bbox = draw.textbbox((0, 0), p_txt, font=font_p)
+            p_tw = p_bbox[2] - p_bbox[0]
+            draw.text(((296 + 436 - p_tw) // 2, 920), p_txt, font=font_p, fill=(140, 20, 20))
+        else:
+            font_u = PosterService.get_font(21, bold=True)
+            font_p = PosterService.get_font(28, bold=True)
+            draw.rounded_rectangle([325, 845, 460, 932], radius=16, fill=(75, 5, 18))
+            u_txt = "અનલિમિટેડ"
+            p_txt = f"{to_gujarati_digits(price)}/-"
+            u_bbox = draw.textbbox((0, 0), u_txt, font=font_u)
+            p_bbox = draw.textbbox((0, 0), p_txt, font=font_p)
+            u_tw = u_bbox[2] - u_bbox[0]
+            p_tw = p_bbox[2] - p_bbox[0]
+            draw.text(((325 + 460 - u_tw) // 2, 852), u_txt, font=font_u, fill=(255, 255, 255))
+            draw.text(((325 + 460 - p_tw) // 2, 888), p_txt, font=font_p, fill=(255, 215, 0))
 
         # Return BytesIO stream
         buf = BytesIO()
@@ -296,13 +301,14 @@ class PosterService:
     @staticmethod
     def save_poster(
         day_of_week: str,
-        price: int = 220,
+        price: int = 250,
         theme: str = "royal_maroon",
         format_style: str = "FORMAT_KATHIYAWADI_CARD",
         custom_date_str: Optional[str] = None,
         saved_by: Optional[str] = None,
         preview_data_url: Optional[str] = None,
-        item_ids: Optional[List[str]] = None
+        item_ids: Optional[List[str]] = None,
+        meal_period: Optional[str] = None
     ) -> Dict[str, Any]:
         if preview_data_url and preview_data_url.startswith("data:image/png;base64,"):
             try:
@@ -317,7 +323,8 @@ class PosterService:
                 theme=theme,
                 format_style=format_style,
                 custom_date_str=custom_date_str,
-                item_ids=item_ids
+                item_ids=item_ids,
+                meal_period=meal_period
             )
         day_upper = day_of_week.upper()
         ts = datetime.now()

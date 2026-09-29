@@ -129,9 +129,10 @@ export const DailyMenuPage: React.FC = () => {
     | null
   >(null);
 
-  // Poster Generation UI State: Support both Royal Maroon & Peacock Green, default price 220
+  // Poster Generation UI State: Support both Royal Maroon & Peacock Green, default price 250
   const [posterTheme, setPosterTheme] = useState<'royal_maroon' | 'peacock_green'>('royal_maroon');
-  const [posterPrice, setPosterPrice] = useState<number>(220);
+  const [posterMealPeriod, setPosterMealPeriod] = useState<MealPeriod>('LUNCH');
+  const [posterPrice, setPosterPrice] = useState<number>(250);
   const [posterCustomDate, setPosterCustomDate] = useState<string>('');
   const [posterDataUrl, setPosterDataUrl] = useState<string | null>(null);
   const [posterLoading, setPosterLoading] = useState(false);
@@ -327,10 +328,12 @@ export const DailyMenuPage: React.FC = () => {
     return groups;
   }, [selectedDishes, categories]);
 
-  // Meal timing switcher: when clicked, reset category filter
+  // Meal timing switcher: when clicked, reset category filter and sync poster meal period
   const handleMealTimingSwitch = (timing: MealPeriod) => {
     setSelectedMealPeriod(timing);
     setSelectedCategoryId('ALL');
+    setPosterMealPeriod(timing);
+    setPosterDataUrl(null);
   };
 
   // Add a single dish to active meal period
@@ -519,10 +522,13 @@ export const DailyMenuPage: React.FC = () => {
     setPosterLoading(true);
     setPosterError(null);
     try {
+      const currentItemIds = posterMealPeriod === 'LUNCH' ? lunchItemIds : dinnerItemIds;
       const res: any = await apiClient.post(`/daily-menu/${selectedDay}/poster`, {
         price: posterPrice,
         theme: posterTheme,
         format: POSTER_FORMAT,
+        mealPeriod: posterMealPeriod,
+        itemIds: currentItemIds,
         date: posterCustomDate || undefined
       });
       if (res.success && res.data?.dataUrl) {
@@ -545,10 +551,13 @@ export const DailyMenuPage: React.FC = () => {
     setPosterLoading(true);
     setPosterError(null);
     try {
+      const currentItemIds = posterMealPeriod === 'LUNCH' ? lunchItemIds : dinnerItemIds;
       const res: any = await apiClient.post(`/daily-menu/${selectedDay}/poster/save`, {
         price: posterPrice,
         theme: posterTheme,
         format: POSTER_FORMAT,
+        mealPeriod: posterMealPeriod,
+        itemIds: currentItemIds,
         date: posterCustomDate || undefined,
         previewDataUrl: posterDataUrl
       });
@@ -1279,6 +1288,47 @@ export const DailyMenuPage: React.FC = () => {
                       Save the {selectedDay} menu first. Poster Preview always uses the final saved menu.
                     </div>
                   )}
+                  {/* Poster Meal Period Selector */}
+                  <div>
+                    <label className="form-label small fw-bold mb-1">પોસ્ટર સમય (Meal Timing):</label>
+                    <div className="d-flex bg-light p-1 rounded-3 border" role="group">
+                      <button
+                        type="button"
+                        className={`btn btn-sm w-50 py-1.5 fw-bold rounded-2 transition-all ${
+                          posterMealPeriod === 'LUNCH'
+                            ? 'btn-white bg-white text-primary shadow-xs'
+                            : 'text-muted border-0 bg-transparent'
+                        }`}
+                        onClick={() => {
+                          setPosterMealPeriod('LUNCH');
+                          setPosterDataUrl(null);
+                        }}
+                      >
+                        <span>☀️ બપોર (Lunch)</span>
+                        <span className={`badge ms-1.5 rounded-pill ${posterMealPeriod === 'LUNCH' ? 'bg-primary text-white' : 'bg-secondary-subtle text-muted'}`}>
+                          {lunchItemIds.length}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn btn-sm w-50 py-1.5 fw-bold rounded-2 transition-all ${
+                          posterMealPeriod === 'DINNER'
+                            ? 'btn-white bg-white text-dark shadow-xs'
+                            : 'text-muted border-0 bg-transparent'
+                        }`}
+                        onClick={() => {
+                          setPosterMealPeriod('DINNER');
+                          setPosterDataUrl(null);
+                        }}
+                      >
+                        <span>🌙 સાંજ (Dinner)</span>
+                        <span className={`badge ms-1.5 rounded-pill ${posterMealPeriod === 'DINNER' ? 'bg-dark text-white' : 'bg-secondary-subtle text-muted'}`}>
+                          {dinnerItemIds.length}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Theme Selector */}
                   <div>
                     <label className="form-label small fw-bold mb-1">પોસ્ટર થીમ સિલેક્શન (Poster Theme):</label>
@@ -1339,7 +1389,7 @@ export const DailyMenuPage: React.FC = () => {
                         value={posterPrice}
                         min={50}
                         max={1000}
-                        onChange={e => setPosterPrice(parseInt(e.target.value) || 220)}
+                        onChange={e => setPosterPrice(parseInt(e.target.value) || 250)}
                       />
                     </div>
                     <div className="col-6">
@@ -1359,8 +1409,8 @@ export const DailyMenuPage: React.FC = () => {
                     </div>
                     <div className="text-muted small mt-1">
                       {posterTheme === 'peacock_green'
-                        ? 'મોરપીંછ લીલું બેકડ્રોપ, લાલટેન અને પૈડું વાળી કાઠિયાવાડી ડિઝાઇન. કેટેગરી મુજબ વાનગીઓ અને ₹220 ભાવ આપમેળે લખાઈ જશે.'
-                        : 'રોયલ મરૂન બેકડ્રોપ, ગોલ્ડન રિબન, હાથી & ગણેશજી વાળી ડિઝાઇન. કેટેગરી મુજબ વાનગીઓ આપમેળે લખાઈ જશે.'}
+                        ? 'મોરપીંછ લીલું બેકડ્રોપ, લાલટેન અને પૈડું વાળી કાઠિયાવાડી ડિઝાઇન. કેટેગરી મુજબ વાનગીઓ અને ₹250 ભાવ આપમેળે લખાઈ જશે.'
+                        : 'રોયલ મરૂન બેકડ્રોપ, ગોલ્ડન રિબન, હાથી & ગણેશજી વાળી ડિઝાઇન. કેટેગરી મુજબ વાનગીઓ અને ₹250 ભાવ આપમેળે લખાઈ જશે.'}
                     </div>
                   </div>
 
