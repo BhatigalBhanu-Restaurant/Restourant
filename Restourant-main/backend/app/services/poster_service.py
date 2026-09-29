@@ -74,7 +74,6 @@ class PosterService:
 
     @staticmethod
     def _posters_dir() -> Path:
-        # Save to the static mount location in Restourant-main/generated_posters
         base = Path(__file__).resolve().parents[3] / "generated_posters"
         base.mkdir(parents=True, exist_ok=True)
         return base
@@ -136,8 +135,8 @@ class PosterService:
         else:
             selected_theme = THEMES["royal_maroon"]
 
-        # 2. Resolve items
-        if not item_ids:
+        # 2. Resolve items - STRICTLY USER-ADDED ITEMS ONLY (NO RANDOM FALLBACKS)
+        if item_ids is None:
             menu = db.daily_menus.find_one({"dayOfWeek": day_upper}) or {}
             item_ids = menu.get("itemIds") or []
             if not item_ids:
@@ -150,16 +149,17 @@ class PosterService:
             item_map = {it["id"]: it for it in fetched}
             items = [item_map[iid] for iid in item_ids if iid in item_map]
 
-        # If still empty, fetch top 12 active items from menu so poster is NEVER blank
-        if not items:
-            items = list(db.menu_items.find({"isActive": True}, {"_id": 0}).limit(12))
+        # Fetch Category names map from database
+        cats_list = list(db.menu_categories.find({}, {"_id": 0, "id": 1, "name": 1}))
+        cat_map = {c["id"]: c.get("name", "વાનગી") for c in cats_list}
 
-        # Extract dish names
-        dish_names: List[str] = []
+        # Group items by Category (preserving order)
+        grouped_items: Dict[str, List[str]] = {}
         for it in items:
-            name = it.get("nameGujarati") or it.get("name_gujarati") or it.get("name")
-            if name and name not in dish_names:
-                dish_names.append(name)
+            cat_name = cat_map.get(it.get("categoryId"), "વાનગી")
+            dish_name = it.get("nameGujarati") or it.get("name_gujarati") or it.get("name")
+            if dish_name:
+                grouped_items.setdefault(cat_name, []).append(dish_name)
 
         # 3. Load authentic template image
         template_file = PosterService._templates_dir() / selected_theme["file"]
@@ -195,84 +195,86 @@ class PosterService:
         date_guj = to_gujarati_digits(date_str)
         day_guj = GUJARATI_DAYS.get(day_upper, "વાર")
 
-        # 5. Fonts
-        font_date = PosterService.get_font(24, bold=True)
+        # 5. Colors & Fonts
+        is_green = selected_theme["id"] == "peacock_green"
         gold_color = selected_theme["gold_color"]
         divider_color = selected_theme["divider_color"]
 
-        # Limit dishes to max 14 for optimal spacing
-        display_dishes = dish_names[:14]
-        n_dishes = len(display_dishes)
-        split_idx = (n_dishes + 1) // 2
-        col1 = display_dishes[:split_idx]
-        col2 = display_dishes[split_idx:]
+        font_date = PosterService.get_font(24, bold=True)
+        font_cat = PosterService.get_font(21, bold=True)
+        font_dish = PosterService.get_font(19, bold=True)
+        font_msg1 = PosterService.get_font(23, bold=True)
+        font_msg2 = PosterService.get_font(20, bold=True)
 
-        # Font sizing based on dish count
-        if n_dishes <= 8:
-            row_h = 42
-            font_size = 21
-        elif n_dishes <= 12:
-            row_h = 36
-            font_size = 20
+        # Header text (Day • Date)
+        header_text = f"{day_guj} • {date_guj}"
+        bbox = draw.textbbox((0, 0), header_text, font=font_date)
+        tw = bbox[2] - bbox[0]
+        header_y = 380 if is_green else 415
+        divider_y = 418 if is_green else 452
+        draw.text(((w - tw) // 2, header_y), header_text, font=font_date, fill=gold_color)
+        draw.line([(200, divider_y), (w - 200, divider_y)], fill=divider_color, width=2)
+
+        # 6. Render Grouped Categories & Dishes
+        if not grouped_items:
+            # If no items scheduled for this day, show clean announcement
+            msg1 = "[ આજના મેનુની વિગત ટૂંક સમયમાં ]"
+            msg2 = "શુદ્ધ અને સ્વાદિષ્ટ કાઠિયાવાડી ભાણું"
+            msg3 = "અનલિમિટેડ ભોજન દરરોજ બપોરે અને સાંજે"
+            tw1 = draw.textbbox((0, 0), msg1, font=font_msg1)[2] - draw.textbbox((0, 0), msg1, font=font_msg1)[0]
+            tw2 = draw.textbbox((0, 0), msg2, font=font_msg2)[2] - draw.textbbox((0, 0), msg2, font=font_msg2)[0]
+            tw3 = draw.textbbox((0, 0), msg3, font=font_msg2)[2] - draw.textbbox((0, 0), msg3, font=font_msg2)[0]
+            draw.text(((w - tw1) // 2, 530 if not is_green else 490), msg1, font=font_msg1, fill=gold_color)
+            draw.text(((w - tw2) // 2, 575 if not is_green else 535), msg2, font=font_msg2, fill=(255, 255, 255))
+            draw.text(((w - tw3) // 2, 615 if not is_green else 575), msg3, font=font_msg2, fill=divider_color)
         else:
-            row_h = 31
-            font_size = 18
+            cats = list(grouped_items.items())
+            col1_cats, col2_cats = [], []
+            c1_count, c2_count = 0, 0
+            for cat_name, dishes in cats:
+                weight = 1 + len(dishes)
+                if c1_count <= c2_count:
+                    col1_cats.append((cat_name, dishes))
+                    c1_count += weight
+                else:
+                    col2_cats.append((cat_name, dishes))
+                    c2_count += weight
 
-        font_item = PosterService.get_font(font_size, bold=True)
+            x_col1 = 155 if is_green else 190
+            x_col2 = 375 if is_green else 415
+            y_start = 440 if is_green else 470
 
-        if selected_theme["id"] == "peacock_green":
-            # Header text (Day • Date)
-            header_text = f"{day_guj} • {date_guj}"
-            bbox = draw.textbbox((0, 0), header_text, font=font_date)
-            tw = bbox[2] - bbox[0]
-            draw.text(((w - tw) // 2, 380), header_text, font=font_date, fill=gold_color)
-            draw.line([(200, 418), (w - 200, 418)], fill=divider_color, width=2)
+            def draw_category_col(col_data, start_x):
+                curr_y = y_start
+                for cat_name, dishes in col_data:
+                    c_title = f"[ {cat_name} ]"
+                    draw.text((start_x, curr_y), c_title, font=font_cat, fill=gold_color)
+                    c_tw = draw.textbbox((0, 0), c_title, font=font_cat)[2] - draw.textbbox((0, 0), c_title, font=font_cat)[0]
+                    draw.line([(start_x, curr_y + 26), (start_x + c_tw, curr_y + 26)], fill=divider_color, width=1)
+                    curr_y += 32
 
-            y_start = 438
-            for i, dish in enumerate(col1):
-                y = y_start + i * row_h
-                bx, by = 160, y + (font_size // 2)
-                # Diamond bullet
-                draw.polygon([(bx, by - 4), (bx + 4, by), (bx, by + 4), (bx - 4, by)], fill=gold_color)
-                draw.text((bx + 14, y), dish[:18], font=font_item, fill=(255, 255, 255))
+                    for dish in dishes:
+                        bx, by = start_x + 6, curr_y + 8
+                        # Golden diamond bullet
+                        draw.polygon([(bx, by - 4), (bx + 4, by), (bx, by + 4), (bx - 4, by)], fill=gold_color)
+                        draw.text((bx + 12, curr_y), dish[:18], font=font_dish, fill=(255, 255, 255))
+                        curr_y += 29
+                    curr_y += 12
 
-            for i, dish in enumerate(col2):
-                y = y_start + i * row_h
-                bx, by = 380, y + (font_size // 2)
-                draw.polygon([(bx, by - 4), (bx + 4, by), (bx, by + 4), (bx - 4, by)], fill=gold_color)
-                draw.text((bx + 14, y), dish[:18], font=font_item, fill=(255, 255, 255))
+            draw_category_col(col1_cats, x_col1)
+            if col2_cats:
+                draw_category_col(col2_cats, x_col2)
 
-            # Update price badge if different from template default (220)
-            if price != 220:
+        # 7. Update price badge if custom price provided (different from default 220)
+        if price != 220:
+            if is_green:
                 font_p = PosterService.get_font(28, bold=True)
                 draw.rounded_rectangle([296, 915, 436, 965], radius=8, fill=(255, 255, 255))
                 p_txt = f"{to_gujarati_digits(price)}/-"
                 p_bbox = draw.textbbox((0, 0), p_txt, font=font_p)
                 p_tw = p_bbox[2] - p_bbox[0]
                 draw.text(((296 + 436 - p_tw) // 2, 920), p_txt, font=font_p, fill=(140, 20, 20))
-
-        else: # royal_maroon
-            header_text = f"{day_guj} • {date_guj}"
-            bbox = draw.textbbox((0, 0), header_text, font=font_date)
-            tw = bbox[2] - bbox[0]
-            draw.text(((w - tw) // 2, 415), header_text, font=font_date, fill=gold_color)
-            draw.line([(240, 452), (w - 240, 452)], fill=divider_color, width=2)
-
-            y_start = 472
-            for i, dish in enumerate(col1):
-                y = y_start + i * row_h
-                bx, by = 195, y + (font_size // 2)
-                draw.polygon([(bx, by - 4), (bx + 4, by), (bx, by + 4), (bx - 4, by)], fill=gold_color)
-                draw.text((bx + 14, y), dish[:18], font=font_item, fill=(255, 255, 255))
-
-            for i, dish in enumerate(col2):
-                y = y_start + i * row_h
-                bx, by = 415, y + (font_size // 2)
-                draw.polygon([(bx, by - 4), (bx + 4, by), (bx, by + 4), (bx - 4, by)], fill=gold_color)
-                draw.text((bx + 14, y), dish[:18], font=font_item, fill=(255, 255, 255))
-
-            # Update price badge if different from template default (220)
-            if price != 220:
+            else:
                 font_u = PosterService.get_font(21, bold=True)
                 font_p = PosterService.get_font(28, bold=True)
                 draw.rounded_rectangle([325, 845, 460, 932], radius=16, fill=(75, 5, 18))

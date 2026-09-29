@@ -26,6 +26,9 @@ export const getBackendOrigin = (): string => {
   }
 
   if (typeof window !== 'undefined') {
+    if (window.location.hostname.includes('vercel.app')) {
+      return 'https://restourant-27uy.onrender.com';
+    }
     if (window.location.port === '3000' || window.location.port === '5173') {
       return `${window.location.protocol}//${window.location.hostname}:5000`;
     }
@@ -41,6 +44,9 @@ export const getApiBaseUrl = (): string => {
   if (envApi) {
     const cleaned = envApi.replace(/\/+$/, '');
     return cleaned.endsWith('/api') ? cleaned : `${cleaned}/api`;
+  }
+  if (typeof window !== 'undefined' && window.location.hostname.includes('vercel.app')) {
+    return 'https://restourant-27uy.onrender.com/api';
   }
   return `${LIVE_BACKEND_URL}/api`;
 };

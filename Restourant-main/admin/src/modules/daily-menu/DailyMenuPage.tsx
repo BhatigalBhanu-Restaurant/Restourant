@@ -34,34 +34,83 @@ const DAYS_LIST: Array<{ key: DayOfWeek; label: string; short: string }> = [
   { key: 'SUNDAY', label: 'Sunday (રવિવાર)', short: 'Sun' }
 ];
 
-export const DailyMenuPage: React.FC = () => {
-  const cachedCats = appCache.get('/masters/menu-categories')?.data || appCache.get('/masters/menu-categories');
-  const cachedItems = appCache.get('/masters/menu-items')?.data || appCache.get('/masters/menu-items');
-  const cachedDaily = appCache.get('/daily-menu')?.data || appCache.get('/daily-menu');
+const STORAGE_KEY_CATEGORIES = 'bhatigal_cached_categories';
+const STORAGE_KEY_ITEMS = 'bhatigal_cached_menu_items';
+const STORAGE_KEY_DAILY_MENUS = 'bhatigal_cached_daily_menus';
 
-  const [categories, setCategories] = useState<MenuCategory[]>(() => Array.isArray(cachedCats) ? cachedCats : []);
-  const [allMenuItems, setAllMenuItems] = useState<MenuItem[]>(() => Array.isArray(cachedItems) ? cachedItems : []);
-  const [dailyMenus, setDailyMenus] = useState<DailyMenu[]>(() => cachedDaily?.menus || []);
-  const [selectedDay, setSelectedDay] = useState<DayOfWeek>(() => cachedDaily?.currentDay || 'MONDAY');
+const getCachedStorage = <T,>(key: string, fallback: T): T => {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    return parsed !== null && parsed !== undefined ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
+// Helper to extract lunch and dinner IDs from a menu record
+const parseMenuDishIds = (menu?: DailyMenu, itemsList: MenuItem[] = []) => {
+  if (!menu) return { lunch: [], dinner: [] };
+  if (Array.isArray(menu.lunchItemIds) || Array.isArray(menu.dinnerItemIds)) {
+    return {
+      lunch: menu.lunchItemIds || [],
+      dinner: menu.dinnerItemIds || []
+    };
+  }
+  // Fallback if legacy record only had itemIds
+  const rawIds = menu.itemIds || [];
+  const lunch: string[] = [];
+  const dinner: string[] = [];
+  rawIds.forEach(id => {
+    const it = itemsList.find(m => m.id === id);
+    if (it?.mealPeriod === 'DINNER') {
+      dinner.push(id);
+    } else {
+      lunch.push(id);
+    }
+  });
+  return { lunch, dinner };
+};
+
+export const DailyMenuPage: React.FC = () => {
+  // Compute system today
+  const JS_TODAY_KEYS: DayOfWeek[] = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
+  const systemToday: DayOfWeek = JS_TODAY_KEYS[new Date().getDay()];
+
+  // Initial read from localStorage for 0ms Instant UI Load
+  const initialCats = getCachedStorage<MenuCategory[]>(STORAGE_KEY_CATEGORIES, []);
+  const initialItems = getCachedStorage<MenuItem[]>(STORAGE_KEY_ITEMS, []);
+  const initialDaily = getCachedStorage<DailyMenu[]>(STORAGE_KEY_DAILY_MENUS, []);
+
+  const cachedCats = (appCache.get('/masters/menu-categories')?.data || appCache.get('/masters/menu-categories')) || initialCats;
+  const cachedItems = (appCache.get('/masters/menu-items')?.data || appCache.get('/masters/menu-items')) || initialItems;
+  const cachedDaily = (appCache.get('/daily-menu')?.data || appCache.get('/daily-menu')) || { menus: initialDaily, currentDay: systemToday };
+
+  const [categories, setCategories] = useState<MenuCategory[]>(() => Array.isArray(cachedCats) && cachedCats.length > 0 ? cachedCats : initialCats);
+  const [allMenuItems, setAllMenuItems] = useState<MenuItem[]>(() => Array.isArray(cachedItems) && cachedItems.length > 0 ? cachedItems : initialItems);
+  const [dailyMenus, setDailyMenus] = useState<DailyMenu[]>(() => cachedDaily?.menus?.length ? cachedDaily.menus : initialDaily);
+  const [selectedDay, setSelectedDay] = useState<DayOfWeek>(systemToday);
+
+  // Initial active items from cached daily menu
+  const initialTodayMenu = (cachedDaily?.menus || initialDaily).find((m: any) => m.dayOfWeek === systemToday);
+  const initialParsed = parseMenuDishIds(initialTodayMenu, Array.isArray(cachedItems) && cachedItems.length > 0 ? cachedItems : initialItems);
 
   // Strict Meal Timing selector: ONLY LUNCH or DINNER (no 'both' or 'all')
   const [selectedMealPeriod, setSelectedMealPeriod] = useState<MealPeriod>('LUNCH');
 
-  // Compute the REAL current day dynamically in the browser
-  const JS_TODAY_KEYS: DayOfWeek[] = ['SUNDAY', 'MONDAY', 'TUESDAY', 'WEDNESDAY', 'THURSDAY', 'FRIDAY', 'SATURDAY'];
-  const systemToday: DayOfWeek = JS_TODAY_KEYS[new Date().getDay()];
-
   // Separate Lunch and Dinner active dish IDs for the selected day
-  const [lunchItemIds, setLunchItemIds] = useState<string[]>([]);
-  const [dinnerItemIds, setDinnerItemIds] = useState<string[]>([]);
-  const [notes, setNotes] = useState<string>('');
+  const [lunchItemIds, setLunchItemIds] = useState<string[]>(initialParsed.lunch);
+  const [dinnerItemIds, setDinnerItemIds] = useState<string[]>(initialParsed.dinner);
+  const [notes, setNotes] = useState<string>(initialTodayMenu?.notes || '');
 
   // Track unsaved modifications
   const [isDirty, setIsDirty] = useState(false);
   const isDirtyRef = useRef(false);
-  const isInitialLoadRef = useRef(true);
-  const prevSelectedDayRef = useRef<DayOfWeek>(selectedDay);
-  const hasInitializedRef = useRef(Boolean(cachedDaily?.menus && cachedDaily.menus.length > 0));
+  const isInitialLoadRef = useRef(initialDaily.length === 0);
+  const prevSelectedDayRef = useRef<DayOfWeek>(systemToday);
+  const hasInitializedRef = useRef(Boolean(initialDaily && initialDaily.length > 0));
 
   // Catalog search and category filter (Left panel)
   const [catalogSearch, setCatalogSearch] = useState('');
@@ -80,9 +129,9 @@ export const DailyMenuPage: React.FC = () => {
     | null
   >(null);
 
-  // Poster Generation UI State
-  const [posterPrice, setPosterPrice] = useState<number>(220);
+  // Poster Generation UI State: Support both Royal Maroon & Peacock Green, default price 220
   const [posterTheme, setPosterTheme] = useState<'royal_maroon' | 'peacock_green'>('royal_maroon');
+  const [posterPrice, setPosterPrice] = useState<number>(220);
   const [posterCustomDate, setPosterCustomDate] = useState<string>('');
   const [posterDataUrl, setPosterDataUrl] = useState<string | null>(null);
   const [posterLoading, setPosterLoading] = useState(false);
@@ -92,34 +141,10 @@ export const DailyMenuPage: React.FC = () => {
   const [pendingPosterDelete, setPendingPosterDelete] = useState<any | null>(null);
   const [deletingPoster, setDeletingPoster] = useState(false);
 
-  // UI status
-  const [loading, setLoading] = useState(() => !Array.isArray(cachedItems) || cachedItems.length === 0);
+  // UI status: loading is FALSE if cached items exist
+  const [loading, setLoading] = useState(() => initialItems.length === 0);
   const [saving, setSaving] = useState(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
-
-  // Helper to extract lunch and dinner IDs from a menu record
-  const parseMenuDishIds = (menu?: DailyMenu, itemsList: MenuItem[] = allMenuItems) => {
-    if (!menu) return { lunch: [], dinner: [] };
-    if (Array.isArray(menu.lunchItemIds) || Array.isArray(menu.dinnerItemIds)) {
-      return {
-        lunch: menu.lunchItemIds || [],
-        dinner: menu.dinnerItemIds || []
-      };
-    }
-    // Fallback if legacy record only had itemIds
-    const rawIds = menu.itemIds || [];
-    const lunch: string[] = [];
-    const dinner: string[] = [];
-    rawIds.forEach(id => {
-      const it = itemsList.find(m => m.id === id);
-      if (it?.mealPeriod === 'DINNER') {
-        dinner.push(id);
-      } else {
-        lunch.push(id);
-      }
-    });
-    return { lunch, dinner };
-  };
 
   const loadAllData = async (showSpinner = false, forceFresh = false) => {
     if (showSpinner || allMenuItems.length === 0) {
@@ -134,19 +159,26 @@ export const DailyMenuPage: React.FC = () => {
       ]);
 
       let freshItems: MenuItem[] = [];
-      if (catRes.success) setCategories(catRes.data);
-      if (itemRes.success) {
+      let freshCats: MenuCategory[] = [];
+      if (catRes.success && catRes.data) {
+        freshCats = catRes.data;
+        setCategories(freshCats);
+        try { localStorage.setItem(STORAGE_KEY_CATEGORIES, JSON.stringify(freshCats)); } catch {}
+      }
+      if (itemRes.success && itemRes.data) {
         freshItems = itemRes.data;
         setAllMenuItems(freshItems);
+        try { localStorage.setItem(STORAGE_KEY_ITEMS, JSON.stringify(freshItems)); } catch {}
       }
 
       if (dailyRes.success && dailyRes.data) {
         const menus: DailyMenu[] = dailyRes.data.menus || [];
         setDailyMenus(menus);
+        try { localStorage.setItem(STORAGE_KEY_DAILY_MENUS, JSON.stringify(menus)); } catch {}
 
         if (isInitialLoadRef.current) {
           isInitialLoadRef.current = false;
-          const todayKey = JS_TODAY_KEYS[new Date().getDay()];
+          const todayKey = systemToday;
           setSelectedDay(todayKey);
           const currentMenu = menus.find(m => m.dayOfWeek === todayKey);
           const { lunch, dinner } = parseMenuDishIds(currentMenu, freshItems);
@@ -250,6 +282,50 @@ export const DailyMenuPage: React.FC = () => {
       .map(id => allMenuItems.find(m => m.id === id))
       .filter(Boolean) as MenuItem[];
   }, [activeItemIds, allMenuItems]);
+
+  // Group scheduled dishes strictly by Category with sorting
+  const groupedSelectedDishes = useMemo(() => {
+    const groups: Array<{
+      category: MenuCategory | null;
+      categoryId: string;
+      categoryName: string;
+      items: MenuItem[];
+    }> = [];
+
+    const groupMap = new Map<string, MenuItem[]>();
+    selectedDishes.forEach(dish => {
+      const catId = dish.categoryId || 'other';
+      if (!groupMap.has(catId)) {
+        groupMap.set(catId, []);
+      }
+      groupMap.get(catId)!.push(dish);
+    });
+
+    // Respect categories sequence
+    categories.forEach(cat => {
+      if (groupMap.has(cat.id)) {
+        groups.push({
+          category: cat,
+          categoryId: cat.id,
+          categoryName: cat.name,
+          items: groupMap.get(cat.id)!
+        });
+        groupMap.delete(cat.id);
+      }
+    });
+
+    // Any remaining items without known category
+    groupMap.forEach((items, catId) => {
+      groups.push({
+        category: null,
+        categoryId: catId,
+        categoryName: 'અન્ય વાનગીઓ (Other)',
+        items
+      });
+    });
+
+    return groups;
+  }, [selectedDishes, categories]);
 
   // Meal timing switcher: when clicked, reset category filter
   const handleMealTimingSwitch = (timing: MealPeriod) => {
@@ -379,9 +455,9 @@ export const DailyMenuPage: React.FC = () => {
         setSaveSuccessMsg(
           `✓ ${selectedDay} Menu saved (Lunch: ${lunchItemIds.length}, Dinner: ${dinnerItemIds.length}).`
         );
-        // Update local dailyMenus state
-        setDailyMenus(prev =>
-          prev.map(m =>
+        // Update local dailyMenus state and immediately persist to localStorage
+        setDailyMenus(prev => {
+          const updated = prev.map(m =>
             m.dayOfWeek === selectedDay
               ? {
                   ...m,
@@ -394,8 +470,12 @@ export const DailyMenuPage: React.FC = () => {
                   notes
                 }
               : m
-          )
-        );
+          );
+          try {
+            localStorage.setItem(STORAGE_KEY_DAILY_MENUS, JSON.stringify(updated));
+          } catch {}
+          return updated;
+        });
         setTimeout(() => setSaveSuccessMsg(null), 4000);
       }
     } catch (err: any) {
@@ -439,13 +519,11 @@ export const DailyMenuPage: React.FC = () => {
     setPosterLoading(true);
     setPosterError(null);
     try {
-      const allSelectedIds = Array.from(new Set([...lunchItemIds, ...dinnerItemIds]));
       const res: any = await apiClient.post(`/daily-menu/${selectedDay}/poster`, {
         price: posterPrice,
         theme: posterTheme,
         format: POSTER_FORMAT,
-        date: posterCustomDate || undefined,
-        itemIds: allSelectedIds
+        date: posterCustomDate || undefined
       });
       if (res.success && res.data?.dataUrl) {
         setPosterDataUrl(res.data.dataUrl);
@@ -467,14 +545,12 @@ export const DailyMenuPage: React.FC = () => {
     setPosterLoading(true);
     setPosterError(null);
     try {
-      const allSelectedIds = Array.from(new Set([...lunchItemIds, ...dinnerItemIds]));
       const res: any = await apiClient.post(`/daily-menu/${selectedDay}/poster/save`, {
         price: posterPrice,
         theme: posterTheme,
         format: POSTER_FORMAT,
         date: posterCustomDate || undefined,
-        previewDataUrl: posterDataUrl,
-        itemIds: allSelectedIds
+        previewDataUrl: posterDataUrl
       });
       if (res.success) {
         loadSavedPosters(selectedDay);
@@ -872,9 +948,9 @@ export const DailyMenuPage: React.FC = () => {
               </div>
             </div>
 
-            {/* List of Scheduled Items */}
+            {/* List of Scheduled Items Grouped by Category */}
             <div className="card-body p-2 flex-grow-1 overflow-auto" style={{ maxHeight: '420px' }}>
-              {selectedDishes.length === 0 ? (
+              {groupedSelectedDishes.length === 0 ? (
                 <div className="text-center py-5 text-muted">
                   <AlertCircle size={32} className="text-warning opacity-50 mb-2" />
                   <div className="fw-bold">
@@ -885,41 +961,66 @@ export const DailyMenuPage: React.FC = () => {
                   </p>
                 </div>
               ) : (
-                <div className="d-flex flex-column gap-1">
-                  {selectedDishes.map((dish, idx) => {
-                    const catName = categories.find(c => c.id === dish.categoryId)?.name || 'General';
-                    return (
-                      <div
-                        key={dish.id}
-                        className="p-2 px-3 rounded-2 bg-light border d-flex align-items-center justify-content-between gap-2"
-                      >
-                        <div className="d-flex align-items-center gap-2 overflow-hidden">
-                          <span className="text-muted small fw-bold font-monospace" style={{ width: 20 }}>
-                            {idx + 1}.
+                <div className="d-flex flex-column gap-2.5">
+                  {groupedSelectedDishes.map((group) => (
+                    <div key={group.categoryId} className="border rounded-3 overflow-hidden bg-white shadow-2xs">
+                      {/* Category Header */}
+                      <div className="p-2 px-3 bg-light border-bottom d-flex align-items-center justify-content-between">
+                        <div className="d-flex align-items-center gap-2">
+                          <span className="badge bg-primary text-white px-2 py-1" style={{ fontSize: '0.78rem' }}>
+                            📁 {group.categoryName}
                           </span>
-                          <span className={`badge p-1 ${dish.isVeg ? 'bg-success' : 'bg-danger'}`} style={{ fontSize: '0.6rem' }}>
-                            {dish.isVeg ? 'VEG' : 'NON'}
+                          <span className="badge bg-white text-dark border small fw-semibold" style={{ fontSize: '0.72rem' }}>
+                            {group.items.length} વાનગી
                           </span>
-                          <div className="overflow-hidden">
-                            <div className="fw-bold text-dark text-truncate" style={{ fontSize: '0.85rem' }}>
-                              {dish.name}
-                            </div>
-                            <div className="text-muted small" style={{ fontSize: '0.7rem' }}>
-                              {catName}
-                            </div>
-                          </div>
                         </div>
-
                         <button
-                          className="btn btn-outline-danger btn-sm p-1 rounded-circle flex-shrink-0"
-                          onClick={() => requestRemoveItem(dish)}
-                          title="Remove item"
+                          type="button"
+                          className="btn btn-link text-danger p-0 text-decoration-none small"
+                          style={{ fontSize: '0.75rem' }}
+                          onClick={() => requestRemoveCategoryItems(group.categoryId)}
+                          title={`Remove all ${group.categoryName}`}
                         >
-                          <Trash2 size={12} />
+                          Clear
                         </button>
                       </div>
-                    );
-                  })}
+
+                      {/* Dishes in this Category */}
+                      <div className="p-1.5 d-flex flex-column gap-1">
+                        {group.items.map((dish) => (
+                          <div
+                            key={dish.id}
+                            className="p-2 px-2.5 rounded-2 bg-light-subtle border d-flex align-items-center justify-content-between gap-2 hover-bg-light transition-all"
+                          >
+                            <div className="d-flex align-items-center gap-2 overflow-hidden">
+                              <span className={`badge p-1 ${dish.isVeg ? 'bg-success' : 'bg-danger'}`} style={{ fontSize: '0.6rem' }}>
+                                {dish.isVeg ? 'VEG' : 'NON'}
+                              </span>
+                              <div className="overflow-hidden">
+                                <span className="fw-bold text-dark" style={{ fontSize: '0.86rem' }}>
+                                  {dish.name}
+                                </span>
+                                {dish.code && (
+                                  <span className="badge bg-light text-secondary border ms-2 font-monospace" style={{ fontSize: '0.7rem' }}>
+                                    {dish.code}
+                                  </span>
+                                )}
+                              </div>
+                            </div>
+
+                            <button
+                              type="button"
+                              className="btn btn-outline-danger btn-sm p-1 rounded-circle flex-shrink-0"
+                              onClick={() => requestRemoveItem(dish)}
+                              title={`Remove ${dish.name}`}
+                            >
+                              <Trash2 size={12} />
+                            </button>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  ))}
                 </div>
               )}
             </div>
@@ -1178,6 +1279,57 @@ export const DailyMenuPage: React.FC = () => {
                       Save the {selectedDay} menu first. Poster Preview always uses the final saved menu.
                     </div>
                   )}
+                  {/* Theme Selector */}
+                  <div>
+                    <label className="form-label small fw-bold mb-1">પોસ્ટર થીમ સિલેક્શન (Poster Theme):</label>
+                    <div className="row g-2">
+                      <div className="col-6">
+                        <button
+                          type="button"
+                          className={`btn btn-sm w-100 p-2 text-start rounded-3 border transition-all ${
+                            posterTheme === 'royal_maroon'
+                              ? 'border-2 border-danger bg-danger-subtle text-dark fw-bold shadow-xs'
+                              : 'bg-white border text-muted hover-bg-light'
+                          }`}
+                          onClick={() => {
+                            setPosterTheme('royal_maroon');
+                            setPosterDataUrl(null);
+                          }}
+                        >
+                          <div className="d-flex align-items-center gap-1">
+                            <span style={{ fontSize: '1rem' }}>👑</span>
+                            <span style={{ fontSize: '0.82rem' }}>રોયલ મરૂન</span>
+                          </div>
+                          <div className="small text-muted" style={{ fontSize: '0.68rem' }}>
+                            હાથી & ગણેશજી થીમ
+                          </div>
+                        </button>
+                      </div>
+                      <div className="col-6">
+                        <button
+                          type="button"
+                          className={`btn btn-sm w-100 p-2 text-start rounded-3 border transition-all ${
+                            posterTheme === 'peacock_green'
+                              ? 'border-2 border-success bg-success-subtle text-dark fw-bold shadow-xs'
+                              : 'bg-white border text-muted hover-bg-light'
+                          }`}
+                          onClick={() => {
+                            setPosterTheme('peacock_green');
+                            setPosterDataUrl(null);
+                          }}
+                        >
+                          <div className="d-flex align-items-center gap-1">
+                            <span style={{ fontSize: '1rem' }}>🦚</span>
+                            <span style={{ fontSize: '0.82rem' }}>મોરપીંછ લીલું</span>
+                          </div>
+                          <div className="small text-muted" style={{ fontSize: '0.68rem' }}>
+                            લાલટેન & પૈડું થીમ
+                          </div>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
                   <div className="row g-2">
                     <div className="col-6">
                       <label className="form-label small fw-bold mb-1">Price (₹/-)</label>
@@ -1185,9 +1337,9 @@ export const DailyMenuPage: React.FC = () => {
                         type="number"
                         className="form-control form-control-sm"
                         value={posterPrice}
-                        min={100}
+                        min={50}
                         max={1000}
-                        onChange={e => setPosterPrice(parseInt(e.target.value) || 250)}
+                        onChange={e => setPosterPrice(parseInt(e.target.value) || 220)}
                       />
                     </div>
                     <div className="col-6">
@@ -1201,49 +1353,14 @@ export const DailyMenuPage: React.FC = () => {
                     </div>
                   </div>
 
-                  {/* Template Picker */}
-                  <div>
-                    <label className="form-label small fw-bold mb-1">પોસ્ટર ડિઝાઇન પસંદ કરો (Select Template)</label>
-                    <div className="d-grid gap-2">
-                      <div
-                        role="button"
-                        className={`p-2 border rounded-3 d-flex align-items-center justify-content-between transition-all ${
-                          posterTheme === 'royal_maroon'
-                            ? 'border-warning bg-warning-subtle text-dark fw-bold shadow-sm'
-                            : 'bg-white text-muted border-secondary-subtle'
-                        }`}
-                        onClick={() => { setPosterTheme('royal_maroon'); setPosterDataUrl(null); }}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <div className="d-flex align-items-center gap-2">
-                          <span style={{ fontSize: '1.25rem' }}>🐘</span>
-                          <div>
-                            <div className="small fw-bold text-dark">૧. રોયલ મરૂન (Royal Maroon)</div>
-                            <div className="text-muted" style={{ fontSize: '0.72rem' }}>હાથી, ગણેશજી, ઘંટડી & અનલિમિટેડ ૨૨૦/-</div>
-                          </div>
-                        </div>
-                        {posterTheme === 'royal_maroon' && <Check size={18} className="text-warning-emphasis" />}
-                      </div>
-
-                      <div
-                        role="button"
-                        className={`p-2 border rounded-3 d-flex align-items-center justify-content-between transition-all ${
-                          posterTheme === 'peacock_green'
-                            ? 'border-success bg-success-subtle text-dark fw-bold shadow-sm'
-                            : 'bg-white text-muted border-secondary-subtle'
-                        }`}
-                        onClick={() => { setPosterTheme('peacock_green'); setPosterDataUrl(null); }}
-                        style={{ cursor: 'pointer' }}
-                      >
-                        <div className="d-flex align-items-center gap-2">
-                          <span style={{ fontSize: '1.25rem' }}>🦚</span>
-                          <div>
-                            <div className="small fw-bold text-dark">૨. મોરપીંછ લીલું (Peacock Green)</div>
-                            <div className="text-muted" style={{ fontSize: '0.72rem' }}>મોરપીંછ, ફાનસ, પૈડું & રાજકોટ એડ્રેસ</div>
-                          </div>
-                        </div>
-                        {posterTheme === 'peacock_green' && <Check size={18} className="text-success" />}
-                      </div>
+                  <div className="rounded-3 border bg-primary-subtle p-3">
+                    <div className="fw-bold small text-primary">
+                      {posterTheme === 'peacock_green' ? '🦚 મોરપીંછ લીલું થીમ (Peacock Green)' : '👑 રોયલ મરૂન થીમ (Royal Maroon)'}
+                    </div>
+                    <div className="text-muted small mt-1">
+                      {posterTheme === 'peacock_green'
+                        ? 'મોરપીંછ લીલું બેકડ્રોપ, લાલટેન અને પૈડું વાળી કાઠિયાવાડી ડિઝાઇન. કેટેગરી મુજબ વાનગીઓ અને ₹220 ભાવ આપમેળે લખાઈ જશે.'
+                        : 'રોયલ મરૂન બેકડ્રોપ, ગોલ્ડન રિબન, હાથી & ગણેશજી વાળી ડિઝાઇન. કેટેગરી મુજબ વાનગીઓ આપમેળે લખાઈ જશે.'}
                     </div>
                   </div>
 
