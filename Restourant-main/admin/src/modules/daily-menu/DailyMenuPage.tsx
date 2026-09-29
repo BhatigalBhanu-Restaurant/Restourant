@@ -651,16 +651,10 @@ export const DailyMenuPage: React.FC = () => {
         <div className="card-body p-4">
           <div className="d-flex flex-wrap justify-content-between align-items-center gap-3">
             <div>
-              <div className="d-flex align-items-center gap-2 mb-1">
+              <div className="d-flex align-items-center gap-2">
                 <Calendar className="text-primary" size={24} />
                 <h4 className="fw-bold mb-0 text-dark">Daily Menu Scheduler</h4>
-                <span className="badge bg-primary-subtle text-primary border border-primary-subtle">
-                  Day-Wise Catalog
-                </span>
               </div>
-              <p className="text-muted small mb-0">
-                Configure day-wise food availability for Lunch and Dinner.
-              </p>
             </div>
 
             {/* Refresh Button */}
@@ -764,10 +758,6 @@ export const DailyMenuPage: React.FC = () => {
               </button>
             </div>
           </div>
-
-          <div className="text-muted small">
-            હાલમાં <strong className="text-dark">{selectedDay}</strong> માટે <strong className="text-primary">{selectedMealPeriod === 'LUNCH' ? 'બપોર (Lunch)' : 'સાંજ (Dinner)'}</strong> નું મેનુ ખુલ્લું છે
-          </div>
         </div>
       </div>
 
@@ -793,9 +783,6 @@ export const DailyMenuPage: React.FC = () => {
                   <h6 className="fw-bold mb-0 text-dark">
                     {selectedMealPeriod === 'LUNCH' ? 'મેનુ કેટાલોગ - બપોર (Lunch Catalog)' : 'મેનુ કેટાલોગ - સાંજ (Dinner Catalog)'}
                   </h6>
-                  <span className="text-muted small">
-                    વાનગી પસંદ કરીને {selectedDay} ના {selectedMealPeriod === 'LUNCH' ? 'બપોરના' : 'સાંજના'} મેનુમાં ઉમેરો
-                  </span>
                 </div>
                 {/* Search Bar */}
                 <div className="input-group input-group-sm" style={{ maxWidth: 240 }}>
@@ -838,22 +825,19 @@ export const DailyMenuPage: React.FC = () => {
 
               {/* Category Quick Actions */}
               {selectedCategoryId !== 'ALL' && (
-                <div className="d-flex justify-content-between align-items-center mt-2 pt-2 border-top">
-                  <span className="text-muted small">Category Quick Action:</span>
-                  <div className="d-flex gap-2">
-                    <button
-                      className="btn btn-outline-primary btn-xs btn-sm py-0 px-2"
-                      onClick={() => handleAddCategoryItems(selectedCategoryId)}
-                    >
-                      + Add All in Category
-                    </button>
-                    <button
-                      className="btn btn-outline-danger btn-xs btn-sm py-0 px-2"
-                      onClick={() => requestRemoveCategoryItems(selectedCategoryId)}
-                    >
-                      - Remove All in Category
-                    </button>
-                  </div>
+                <div className="d-flex justify-content-end align-items-center mt-2 pt-2 border-top gap-2">
+                  <button
+                    className="btn btn-outline-primary btn-xs btn-sm py-0 px-2"
+                    onClick={() => handleAddCategoryItems(selectedCategoryId)}
+                  >
+                    + Add All
+                  </button>
+                  <button
+                    className="btn btn-outline-danger btn-xs btn-sm py-0 px-2"
+                    onClick={() => requestRemoveCategoryItems(selectedCategoryId)}
+                  >
+                    - Remove All
+                  </button>
                 </div>
               )}
             </div>
@@ -932,9 +916,6 @@ export const DailyMenuPage: React.FC = () => {
                 <h6 className="fw-bold mb-0 text-dark">
                   {selectedDay} - {selectedMealPeriod === 'LUNCH' ? 'બપોરનું મેનુ (Lunch)' : 'સાંજનું મેનુ (Dinner)'} ({activeItemIds.length})
                 </h6>
-                <span className="text-muted small">
-                  {selectedDay === systemToday ? 'Active Today' : 'Scheduled for service'}
-                </span>
               </div>
 
               <div className="d-flex gap-1">
@@ -1144,10 +1125,7 @@ export const DailyMenuPage: React.FC = () => {
                 <button type="button" className="btn-close ms-auto" onClick={() => setPendingRemoval(null)} aria-label="Close" />
               </div>
               <div className="modal-body p-3 p-sm-4">
-                <p className="mb-2">{removalDescription}</p>
-                <div className="alert alert-warning small mb-0">
-                  This change is pending. Click <strong>Save {selectedDay} Menu</strong> afterwards to permanently save.
-                </div>
+                <p className="mb-0">{removalDescription}</p>
               </div>
               <div className="modal-footer bg-light p-3">
                 <button type="button" className="btn btn-outline-secondary btn-sm" onClick={() => setPendingRemoval(null)}>Cancel</button>
@@ -1265,9 +1243,6 @@ export const DailyMenuPage: React.FC = () => {
             <div className="d-flex align-items-center gap-2">
               <ImageIcon className="text-success" size={22} />
               <h6 className="fw-bold mb-0 text-dark">Automatic Poster Generator</h6>
-              <span className="badge bg-success-subtle text-success border border-success-subtle">
-                Uses Saved Menu
-              </span>
             </div>
             <button
               className="btn btn-sm btn-outline-secondary p-1 ms-auto"
@@ -1283,11 +1258,6 @@ export const DailyMenuPage: React.FC = () => {
               {/* LEFT: Controls */}
               <div className="col-12 col-lg-5">
                 <div className="d-flex flex-column gap-3">
-                  {isDirty && (
-                    <div className="alert alert-warning py-2 px-3 small mb-0">
-                      Save the {selectedDay} menu first. Poster Preview always uses the final saved menu.
-                    </div>
-                  )}
                   {/* Poster Meal Period Selector */}
                   <div>
                     <label className="form-label small fw-bold mb-1">પોસ્ટર સમય (Meal Timing):</label>
@@ -1346,19 +1316,16 @@ export const DailyMenuPage: React.FC = () => {
                             setPosterDataUrl(null);
                           }}
                         >
-                          <div className="d-flex align-items-center gap-1">
-                            <span style={{ fontSize: '1rem' }}>👑</span>
-                            <span style={{ fontSize: '0.82rem' }}>રોયલ મરૂન</span>
-                          </div>
-                          <div className="small text-muted" style={{ fontSize: '0.68rem' }}>
-                            હાથી & ગણેશજી થીમ
+                          <div className="d-flex align-items-center justify-content-center gap-1.5 py-1">
+                            <span style={{ fontSize: '1.05rem' }}>👑</span>
+                            <span className="fw-semibold" style={{ fontSize: '0.85rem' }}>રોયલ મરૂન</span>
                           </div>
                         </button>
                       </div>
                       <div className="col-6">
                         <button
                           type="button"
-                          className={`btn btn-sm w-100 p-2 text-start rounded-3 border transition-all ${
+                          className={`btn btn-sm w-100 p-2 text-center rounded-3 border transition-all ${
                             posterTheme === 'peacock_green'
                               ? 'border-2 border-success bg-success-subtle text-dark fw-bold shadow-xs'
                               : 'bg-white border text-muted hover-bg-light'
@@ -1368,12 +1335,9 @@ export const DailyMenuPage: React.FC = () => {
                             setPosterDataUrl(null);
                           }}
                         >
-                          <div className="d-flex align-items-center gap-1">
-                            <span style={{ fontSize: '1rem' }}>🦚</span>
-                            <span style={{ fontSize: '0.82rem' }}>મોરપીંછ લીલું</span>
-                          </div>
-                          <div className="small text-muted" style={{ fontSize: '0.68rem' }}>
-                            લાલટેન & પૈડું થીમ
+                          <div className="d-flex align-items-center justify-content-center gap-1.5 py-1">
+                            <span style={{ fontSize: '1.05rem' }}>🦚</span>
+                            <span className="fw-semibold" style={{ fontSize: '0.85rem' }}>મોરપીંછ લીલું</span>
                           </div>
                         </button>
                       </div>
@@ -1400,17 +1364,6 @@ export const DailyMenuPage: React.FC = () => {
                         value={posterCustomDate}
                         onChange={e => setPosterCustomDate(e.target.value)}
                       />
-                    </div>
-                  </div>
-
-                  <div className="rounded-3 border bg-primary-subtle p-3">
-                    <div className="fw-bold small text-primary">
-                      {posterTheme === 'peacock_green' ? '🦚 મોરપીંછ લીલું થીમ (Peacock Green)' : '👑 રોયલ મરૂન થીમ (Royal Maroon)'}
-                    </div>
-                    <div className="text-muted small mt-1">
-                      {posterTheme === 'peacock_green'
-                        ? 'મોરપીંછ લીલું બેકડ્રોપ, લાલટેન અને પૈડું વાળી કાઠિયાવાડી ડિઝાઇન. કેટેગરી મુજબ વાનગીઓ અને ₹250 ભાવ આપમેળે લખાઈ જશે.'
-                        : 'રોયલ મરૂન બેકડ્રોપ, ગોલ્ડન રિબન, હાથી & ગણેશજી વાળી ડિઝાઇન. કેટેગરી મુજબ વાનગીઓ અને ₹250 ભાવ આપમેળે લખાઈ જશે.'}
                     </div>
                   </div>
 

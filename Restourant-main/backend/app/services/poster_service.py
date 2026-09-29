@@ -271,26 +271,39 @@ class PosterService:
             if col2_cats:
                 draw_category_col(col2_cats, x_col2)
 
-        # 7. Price badge (ALWAYS DRAW WITH REQUESTED PRICE, default 250)
+        # 7. Price badge (Default 250, seamless native cloud & seal design)
         if is_green:
-            font_p = PosterService.get_font(28, bold=True)
-            draw.rounded_rectangle([296, 915, 436, 965], radius=8, fill=(255, 255, 255))
-            p_txt = f"{to_gujarati_digits(price)}/-"
-            p_bbox = draw.textbbox((0, 0), p_txt, font=font_p)
-            p_tw = p_bbox[2] - p_bbox[0]
-            draw.text(((296 + 436 - p_tw) // 2, 920), p_txt, font=font_p, fill=(140, 20, 20))
-        else:
-            font_u = PosterService.get_font(21, bold=True)
-            font_p = PosterService.get_font(28, bold=True)
-            draw.rounded_rectangle([325, 845, 460, 932], radius=16, fill=(75, 5, 18))
+            # Seamlessly clear cloud interior
+            draw.rounded_rectangle([218, 862, 438, 974], radius=26, fill=(255, 255, 255))
+            draw.ellipse([212, 876, 286, 958], fill=(255, 255, 255))
+            draw.ellipse([364, 876, 442, 958], fill=(255, 255, 255))
+
+            font_u = PosterService.get_font(23, bold=True)
+            font_p = PosterService.get_font(35, bold=True)
             u_txt = "અનલિમિટેડ"
             p_txt = f"{to_gujarati_digits(price)}/-"
             u_bbox = draw.textbbox((0, 0), u_txt, font=font_u)
             p_bbox = draw.textbbox((0, 0), p_txt, font=font_p)
             u_tw = u_bbox[2] - u_bbox[0]
             p_tw = p_bbox[2] - p_bbox[0]
-            draw.text(((325 + 460 - u_tw) // 2, 852), u_txt, font=font_u, fill=(255, 255, 255))
-            draw.text(((325 + 460 - p_tw) // 2, 888), p_txt, font=font_p, fill=(255, 215, 0))
+            cloud_cx = 328
+            draw.text((cloud_cx - u_tw // 2, 874), u_txt, font=font_u, fill=(35, 45, 55))
+            draw.text((cloud_cx - p_tw // 2, 914), p_txt, font=font_p, fill=(175, 25, 25))
+        else:
+            maroon_seal_bg = (87, 17, 32)
+            draw.ellipse([392 - 64, 894 - 44, 392 + 64, 894 + 44], fill=maroon_seal_bg)
+
+            font_u = PosterService.get_font(21, bold=True)
+            font_p = PosterService.get_font(32, bold=True)
+            u_txt = "અનલિમિટેડ"
+            p_txt = f"{to_gujarati_digits(price)}/-"
+            u_bbox = draw.textbbox((0, 0), u_txt, font=font_u)
+            p_bbox = draw.textbbox((0, 0), p_txt, font=font_p)
+            u_tw = u_bbox[2] - u_bbox[0]
+            p_tw = p_bbox[2] - p_bbox[0]
+            maroon_cx = 392
+            draw.text((maroon_cx - u_tw // 2, 856), u_txt, font=font_u, fill=(255, 255, 255))
+            draw.text((maroon_cx - p_tw // 2, 894), p_txt, font=font_p, fill=(255, 215, 0))
 
         # Return BytesIO stream
         buf = BytesIO()

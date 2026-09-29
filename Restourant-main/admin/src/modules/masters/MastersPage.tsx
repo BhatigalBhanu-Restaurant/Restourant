@@ -183,11 +183,10 @@ export const MastersPage: React.FC = () => {
       {/* Header */}
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-3">
         <div>
-          <div className="d-flex align-items-center gap-2 mb-1">
+          <div className="d-flex align-items-center gap-2">
             <UtensilsCrossed size={22} className="text-primary" />
             <h4 className="fw-bold mb-0 text-dark">Menu Bar</h4>
           </div>
-          <p className="text-muted small mb-0">Create, organise and manage restaurant categories and food items.</p>
         </div>
         {can('masters.menu.create') && (
           <div className="d-flex gap-2">
@@ -236,10 +235,6 @@ export const MastersPage: React.FC = () => {
                 </span>
               </button>
             </div>
-          </div>
-
-          <div className="text-muted small">
-            હાલમાં <strong className="text-dark">{mealTimingFilter === 'LUNCH' ? 'બપોર (Lunch)' : 'સાંજ (Dinner)'}</strong> નું મેનુ દર્શાવેલ છે
           </div>
         </div>
       </div>
@@ -593,11 +588,6 @@ const ItemForm: React.FC<{
           >
             સાંજ (Dinner)
           </button>
-        </div>
-        <div className="small text-muted mt-2">
-          {currentTiming === 'LUNCH'
-            ? 'આ વાનગી બપોરના મેનુ માટે ઉમેરાશે અને ફક્ત બપોરની કેટેગરીમાં દેખાશે.'
-            : 'આ વાનગી સાંજના મેનુ માટે ઉમેરાશે અને ફક્ત સાંજની કેટેગરીમાં દેખાશે.'}
         </div>
       </div>
 
