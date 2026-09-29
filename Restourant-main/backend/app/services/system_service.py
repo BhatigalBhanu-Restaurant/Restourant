@@ -119,16 +119,30 @@ class SystemService:
         return list(db.system_settings.find({}, {"_id": 0}))
 
     @staticmethod
-    async def update_settings(settings_map: Dict[str, Any], user_id: Optional[str] = None, username: Optional[str] = None) -> Dict[str, Any]:
+    async def update_settings(settings_map: Any, user_id: Optional[str] = None, username: Optional[str] = None) -> Dict[str, Any]:
         db = get_db()
         now = datetime.now(timezone.utc)
-        for k, v in settings_map.items():
-            db.system_settings.update_one(
-                {"key": k},
-                {"$set": {"value": str(v), "updatedAt": now}},
-                upsert=True
-            )
-        return {"success": True, "message": f"Updated {len(settings_map)} configuration settings."}
+        count = 0
+        if isinstance(settings_map, list):
+            for item in settings_map:
+                if isinstance(item, dict) and "key" in item:
+                    db.system_settings.update_one(
+                        {"key": item["key"]},
+                        {"$set": {"value": str(item.get("value", "")), "updatedAt": now}},
+                        upsert=True
+                    )
+                    count += 1
+            return {"success": True, "message": f"Updated {count} configuration settings."}
+        elif isinstance(settings_map, dict):
+            for k, v in settings_map.items():
+                db.system_settings.update_one(
+                    {"key": k},
+                    {"$set": {"value": str(v), "updatedAt": now}},
+                    upsert=True
+                )
+                count += 1
+            return {"success": True, "message": f"Updated {count} configuration settings."}
+        return {"success": False, "message": "Invalid settings payload."}
 
     @staticmethod
     async def save_single_setting(data: Dict[str, Any], user_id: Optional[str] = None, username: Optional[str] = None) -> Dict[str, Any]:

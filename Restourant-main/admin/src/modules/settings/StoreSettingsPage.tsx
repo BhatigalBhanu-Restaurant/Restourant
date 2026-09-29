@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { apiClient } from '../../api/client';
 import { usePermission } from '../../context/PermissionContext';
 import {
@@ -10,7 +11,13 @@ import {
   Save,
   RotateCcw,
   CheckCircle2,
-  Volume2
+  Volume2,
+  Users,
+  UserCheck,
+  Tag,
+  Plus,
+  X,
+  Trash2
 } from 'lucide-react';
 import {
   getPrintSettings,
@@ -23,9 +30,21 @@ import { formatStoreDate, formatStoreTime } from '../../utils/storeSettings';
 
 export const StoreSettingsPage: React.FC = () => {
   const { can } = usePermission();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const tabParam = searchParams.get('tab');
 
   // Active Category Tab
-  const [activeCategory, setActiveCategory] = useState<string>('profile');
+  const [activeCategory, setActiveCategory] = useState<string>(
+    tabParam && ['profile', 'datetime', 'functions', 'printer', 'system'].includes(tabParam)
+      ? tabParam
+      : 'profile'
+  );
+
+  useEffect(() => {
+    if (tabParam && ['profile', 'datetime', 'functions', 'printer', 'system'].includes(tabParam)) {
+      setActiveCategory(tabParam);
+    }
+  }, [tabParam]);
 
   // All Settings Dictionary (key -> string value)
   const [settings, setSettings] = useState<Record<string, string>>({});
@@ -34,6 +53,11 @@ export const StoreSettingsPage: React.FC = () => {
 
   const [isSaving, setIsSaving] = useState<boolean>(false);
   const [saveSuccessMsg, setSaveSuccessMsg] = useState<string | null>(null);
+
+  // Manager & Function Type edit states
+  const [newManagerInput, setNewManagerInput] = useState<string>('');
+  const [newFunctionTypeInput, setNewFunctionTypeInput] = useState<string>('');
+  const [isImportingStaff, setIsImportingStaff] = useState<boolean>(false);
 
   // Fetch Settings from backend
   const loadSettings = async () => {
@@ -68,6 +92,95 @@ export const StoreSettingsPage: React.FC = () => {
       ...prev,
       [key]: String(value)
     }));
+  };
+
+  // Manager helper methods
+  const getManagerList = (): string[] => {
+    const raw = getVal('function_managers', 'Bhanubhai Patel, Rameshbhai Patel');
+    return raw
+      .split(/[,;\n]+/)
+      .map(s => s.trim())
+      .filter(Boolean);
+  };
+
+  const handleAddManager = () => {
+    const trimmed = newManagerInput.trim();
+    if (!trimmed) return;
+    const current = getManagerList();
+    if (!current.includes(trimmed)) {
+      const updated = [...current, trimmed];
+      handleUpdate('function_managers', updated.join(', '));
+      if (!getVal('function_default_manager')) {
+        handleUpdate('function_default_manager', trimmed);
+      }
+    }
+    setNewManagerInput('');
+  };
+
+  const handleRemoveManager = (nameToRemove: string) => {
+    const current = getManagerList();
+    const updated = current.filter(n => n !== nameToRemove);
+    handleUpdate('function_managers', updated.join(', '));
+    if (getVal('function_default_manager') === nameToRemove) {
+      handleUpdate('function_default_manager', updated[0] || '');
+    }
+  };
+
+  const handleImportStaffManagers = async () => {
+    try {
+      setIsImportingStaff(true);
+      const res: any = await apiClient.get('/hr/employees');
+      if (res?.success && Array.isArray(res.data) && res.data.length > 0) {
+        const staffNames = res.data
+          .map((emp: any) => `${emp.firstName || ''} ${emp.lastName || ''}`.trim())
+          .filter(Boolean);
+        const current = getManagerList();
+        const merged = Array.from(new Set([...current, ...staffNames])).filter(Boolean);
+        handleUpdate('function_managers', merged.join(', '));
+        alert(`${staffNames.length} સ્ટાફ સભ્યોના નામ સફળતાપૂર્વક ઉમેરાયા! હવે સેવ કરવા માટે 'Save Settings' પર ક્લિક કરો.`);
+      } else {
+        alert('કોઈ સ્ટાફ સભ્યો મળ્યા નથી.');
+      }
+    } catch {
+      alert('સ્ટાફ લિસ્ટ લાવવામાં સમસ્યા આવી.');
+    } finally {
+      setIsImportingStaff(false);
+    }
+  };
+
+  // Function Types helper methods
+  const getFunctionTypeList = (): string[] => {
+    const raw = getVal(
+      'function_types',
+      'Family Dinner & Gathering, Wedding / Reception, Ring Ceremony / Sagai, Birthday Party, Corporate Event & Dinner, Babri / Mundan Sanskar, Traditional Feast / Rasoi, Other Celebration'
+    );
+    return raw
+      .split(/[,;\n]+/)
+      .map(s => s.trim())
+      .filter(Boolean);
+  };
+
+  const handleAddFunctionType = () => {
+    const trimmed = newFunctionTypeInput.trim();
+    if (!trimmed) return;
+    const current = getFunctionTypeList();
+    if (!current.includes(trimmed)) {
+      const updated = [...current, trimmed];
+      handleUpdate('function_types', updated.join(', '));
+      if (!getVal('function_default_type')) {
+        handleUpdate('function_default_type', trimmed);
+      }
+    }
+    setNewFunctionTypeInput('');
+  };
+
+  const handleRemoveFunctionType = (typeToRemove: string) => {
+    const current = getFunctionTypeList();
+    const updated = current.filter(t => t !== typeToRemove);
+    handleUpdate('function_types', updated.join(', '));
+    if (getVal('function_default_type') === typeToRemove) {
+      handleUpdate('function_default_type', updated[0] || '');
+    }
   };
 
   // Save All Settings
@@ -142,6 +255,10 @@ export const StoreSettingsPage: React.FC = () => {
       { key: 'function_default_venue', value: 'AC Banquet Hall' },
       { key: 'function_default_timeslot', value: 'Evening Dinner (07:00 PM – 11:00 PM)' },
       { key: 'function_voucher_terms', value: '૧. એડવાન્સ ડિપોઝીટ રકમ પરત મળવાપાત્ર નથી.\n૨. ફંક્શન સમય મર્યાદાનું પાલન કરવું અનિવાર્ય છે.\n૩. બાકી રકમ ફંક્શન સમાપ્ત થતાં ચૂકવવાની રહેશે.' },
+      { key: 'function_managers', value: 'Bhanubhai Patel, Rameshbhai Patel' },
+      { key: 'function_default_manager', value: 'Bhanubhai Patel' },
+      { key: 'function_types', value: 'Family Dinner & Gathering, Wedding / Reception, Ring Ceremony / Sagai, Birthday Party, Corporate Event & Dinner, Babri / Mundan Sanskar, Traditional Feast / Rasoi, Other Celebration' },
+      { key: 'function_default_type', value: 'Family Dinner & Gathering' },
       { key: 'receipt_format', value: '80MM' },
       { key: 'receipt_copies', value: '1' },
       { key: 'print_font_scale', value: 'MEDIUM' },
@@ -500,7 +617,221 @@ export const StoreSettingsPage: React.FC = () => {
                 <div className="d-flex flex-column gap-3">
                   <div className="border-bottom pb-2">
                     <h6 className="fw-bold text-dark mb-0">Function & Banquet Booking Rules</h6>
-                    <small className="text-muted">ફંક્શન બુકિંગ, એડવાન્સ ડિપોઝીટ, હોલ કેપેસિટી અને સ્લિપના નિયમો</small>
+                    <small className="text-muted">ફંક્શન બુકિંગ, મેનેજર નામો, પ્રસંગના પ્રકારો, એડવાન્સ ડિપોઝીટ અને હોલ નિયમો</small>
+                  </div>
+
+                  {/* 1. Accepted By / Manager List Configuration */}
+                  <div className="card border-0 shadow-sm rounded-3" style={{ background: '#FAF7F2', border: '1px solid #E8DCCF' }}>
+                    <div className="card-body p-3">
+                      <div className="d-flex justify-content-between align-items-center mb-2">
+                        <div className="d-flex align-items-center gap-2">
+                          <Users size={18} className="text-primary" />
+                          <h6 className="fw-bold mb-0 text-dark">Accepted By (મેનેજર) નામો</h6>
+                        </div>
+                        <span className="badge bg-primary-subtle text-primary fw-medium px-2 py-1">
+                          બુકિંગ ફોર્મ ડ્રોપડાઉન
+                        </span>
+                      </div>
+                      <p className="text-muted small mb-3">
+                        જ્યારે નવું ફંક્શન બુકિંગ લઈએ ત્યારે <strong>Accepted By (મેનેજર)</strong> ડ્રોપડાઉનમાં જે નામો દેખાડવા હોય તે અહીંથી મેનેજ કરો. તમે કોઈપણ નવું નામ ઉમેરી શકો છો અથવા નકામા નામ (દા.ત. dev) પર ક્લિક કરીને હટાવી શકો છો.
+                      </p>
+
+                      {/* Current Manager Pills */}
+                      <div className="d-flex flex-wrap gap-2 mb-3">
+                        {getManagerList().map((mgr, idx) => (
+                          <span
+                            key={idx}
+                            className="badge bg-white text-dark border shadow-xs d-inline-flex align-items-center gap-1.5 px-2.5 py-1.5"
+                            style={{ fontSize: '0.82rem', borderColor: '#D3C2B0' }}
+                          >
+                            <UserCheck size={13} className="text-success" />
+                            <span>{mgr}</span>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-link p-0 text-danger ms-1 d-flex align-items-center"
+                              onClick={() => handleRemoveManager(mgr)}
+                              title={`${mgr} હટાવો`}
+                            >
+                              <X size={14} />
+                            </button>
+                          </span>
+                        ))}
+                        {getManagerList().length === 0 && (
+                          <span className="text-danger small fst-italic">કોઈ મેનેજર સેટ કરેલ નથી. કૃપા કરીને નીચેથી નામ ઉમેરો.</span>
+                        )}
+                      </div>
+
+                      {/* Add New Manager Input & Actions */}
+                      <div className="row g-2 align-items-center">
+                        <div className="col-12 col-sm-8 col-md-6">
+                          <div className="input-group input-group-sm">
+                            <input
+                              type="text"
+                              className="form-control"
+                              placeholder="દા.ત. શૈલેષભાઈ / રાજુભાઈ"
+                              value={newManagerInput}
+                              onChange={e => setNewManagerInput(e.target.value)}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  handleAddManager();
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-primary d-flex align-items-center gap-1"
+                              onClick={handleAddManager}
+                            >
+                              <Plus size={14} /> ઉમેરો
+                            </button>
+                          </div>
+                        </div>
+                        <div className="col-12 col-sm-4 col-md-6 d-flex align-items-center gap-2 flex-wrap">
+                          <button
+                            type="button"
+                            className="btn btn-outline-secondary btn-sm"
+                            onClick={handleImportStaffManagers}
+                            disabled={isImportingStaff}
+                            title="Staff મેનેજમેન્ટમાંથી સક્રિય કર્મચારીઓના નામ લાવો"
+                          >
+                            {isImportingStaff ? 'લાવી રહ્યા છીએ...' : 'સ્ટાફમાંથી નામ લાવો'}
+                          </button>
+                          <button
+                            type="button"
+                            className="btn btn-outline-danger btn-sm"
+                            onClick={() => handleUpdate('function_managers', 'Bhanubhai Patel, Rameshbhai Patel')}
+                            title="ડિફોલ્ટ નામો પાછા લાવો"
+                          >
+                            ડિફોલ્ટ
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Default Manager Selection */}
+                      {getManagerList().length > 0 && (
+                        <div className="mt-3 pt-2 border-top">
+                          <div className="row g-2 align-items-center">
+                            <div className="col-12 col-sm-6">
+                              <label className="form-label small fw-semibold text-secondary mb-1">
+                                ડિફોલ્ટ પસંદ થયેલ મેનેજર (Default Selected Manager)
+                              </label>
+                              <select
+                                className="form-select form-select-sm"
+                                value={getVal('function_default_manager', getManagerList()[0] || '')}
+                                onChange={e => handleUpdate('function_default_manager', e.target.value)}
+                              >
+                                {getManagerList().map((mgr, i) => (
+                                  <option key={i} value={mgr}>{mgr}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+
+                  {/* 2. Function Types List Configuration */}
+                  <div className="card border-0 shadow-sm rounded-3" style={{ background: '#FAF7F2', border: '1px solid #E8DCCF' }}>
+                    <div className="card-body p-3">
+                      <div className="d-flex justify-content-between align-items-center mb-2">
+                        <div className="d-flex align-items-center gap-2">
+                          <Tag size={18} className="text-primary" />
+                          <h6 className="fw-bold mb-0 text-dark">Function Types (પ્રસંગના પ્રકારો)</h6>
+                        </div>
+                        <span className="badge bg-primary-subtle text-primary fw-medium px-2 py-1">
+                          બુકિંગ ફોર્મ ડ્રોપડાઉન
+                        </span>
+                      </div>
+                      <p className="text-muted small mb-3">
+                        જ્યારે નવું ફંક્શન બુકિંગ લઈએ ત્યારે <strong>Function Type (પ્રસંગનો પ્રકાર)</strong> ડ્રોપડાઉનમાં જે પ્રસંગો દેખાડવા હોય તે અહીંથી મેનેજ કરો.
+                      </p>
+
+                      {/* Current Function Type Pills */}
+                      <div className="d-flex flex-wrap gap-2 mb-3">
+                        {getFunctionTypeList().map((type, idx) => (
+                          <span
+                            key={idx}
+                            className="badge bg-white text-dark border shadow-xs d-inline-flex align-items-center gap-1.5 px-2.5 py-1.5"
+                            style={{ fontSize: '0.82rem', borderColor: '#D3C2B0' }}
+                          >
+                            <span>{type}</span>
+                            <button
+                              type="button"
+                              className="btn btn-sm btn-link p-0 text-danger ms-1 d-flex align-items-center"
+                              onClick={() => handleRemoveFunctionType(type)}
+                              title={`${type} હટાવો`}
+                            >
+                              <X size={14} />
+                            </button>
+                          </span>
+                        ))}
+                        {getFunctionTypeList().length === 0 && (
+                          <span className="text-danger small fst-italic">કોઈ પ્રસંગ સેટ કરેલ નથી. કૃપા કરીને નીચેથી પ્રસંગ ઉમેરો.</span>
+                        )}
+                      </div>
+
+                      {/* Add New Function Type Input & Actions */}
+                      <div className="row g-2 align-items-center">
+                        <div className="col-12 col-sm-8 col-md-6">
+                          <div className="input-group input-group-sm">
+                            <input
+                              type="text"
+                              className="form-control"
+                              placeholder="દા.ત. શ્રીમંત / સંગીત સંધ્યા / બાબરી"
+                              value={newFunctionTypeInput}
+                              onChange={e => setNewFunctionTypeInput(e.target.value)}
+                              onKeyDown={e => {
+                                if (e.key === 'Enter') {
+                                  e.preventDefault();
+                                  handleAddFunctionType();
+                                }
+                              }}
+                            />
+                            <button
+                              type="button"
+                              className="btn btn-primary d-flex align-items-center gap-1"
+                              onClick={handleAddFunctionType}
+                            >
+                              <Plus size={14} /> ઉમેરો
+                            </button>
+                          </div>
+                        </div>
+                        <div className="col-12 col-sm-4 col-md-6 d-flex align-items-center gap-2">
+                          <button
+                            type="button"
+                            className="btn btn-outline-danger btn-sm"
+                            onClick={() => handleUpdate('function_types', 'Family Dinner & Gathering, Wedding / Reception, Ring Ceremony / Sagai, Birthday Party, Corporate Event & Dinner, Babri / Mundan Sanskar, Traditional Feast / Rasoi, Other Celebration')}
+                            title="ડિફોલ્ટ પ્રસંગો પાછા લાવો"
+                          >
+                            ડિફોલ્ટ પ્રસંગો
+                          </button>
+                        </div>
+                      </div>
+
+                      {/* Default Function Type Selection */}
+                      {getFunctionTypeList().length > 0 && (
+                        <div className="mt-3 pt-2 border-top">
+                          <div className="row g-2 align-items-center">
+                            <div className="col-12 col-sm-6">
+                              <label className="form-label small fw-semibold text-secondary mb-1">
+                                ડિફોલ્ટ પસંદ થયેલ પ્રસંગ (Default Selected Function Type)
+                              </label>
+                              <select
+                                className="form-select form-select-sm"
+                                value={getVal('function_default_type', getFunctionTypeList()[0] || '')}
+                                onChange={e => handleUpdate('function_default_type', e.target.value)}
+                              >
+                                {getFunctionTypeList().map((type, i) => (
+                                  <option key={i} value={type}>{type}</option>
+                                ))}
+                              </select>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </div>
                   </div>
 
                   <div className="row g-3">

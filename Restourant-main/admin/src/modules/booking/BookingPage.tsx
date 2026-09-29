@@ -1,4 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
+import { Link } from 'react-router-dom';
 import { apiClient } from '../../api/client';
 import { useSocket } from '../../context/SocketContext';
 import { useAuth } from '../../context/AuthContext';
@@ -34,7 +35,8 @@ import {
   LogIn,
   LogOut,
   Receipt,
-  MessageCircle
+  MessageCircle,
+  Settings
 } from 'lucide-react';
 import { useAutoRefresh } from '../../hooks/useAutoRefresh';
 
@@ -121,8 +123,20 @@ export const BookingPage: React.FC = () => {
 
   // Staff / Employees list for Manager assignment
   const [staffList, setStaffList] = useState<string[]>([
-    'Sanskar Bhai',
-    
+    'Bhanubhai Patel',
+    'Rameshbhai Patel'
+  ]);
+
+  // Function Types list for Event Type selection
+  const [functionTypesList, setFunctionTypesList] = useState<string[]>([
+    'Family Dinner & Gathering',
+    'Wedding / Reception',
+    'Ring Ceremony / Sagai',
+    'Birthday Party',
+    'Corporate Event & Dinner',
+    'Babri / Mundan Sanskar',
+    'Traditional Feast / Rasoi',
+    'Other Celebration'
   ]);
 
   // Form Data for Lock Function Date
@@ -140,7 +154,7 @@ export const BookingPage: React.FC = () => {
     paymentMode: '',
     referenceId: '',
     functionType: 'Family Dinner & Gathering',
-    acceptedBy: user?.username || 'Bhanubhai Patel',
+    acceptedBy: 'Bhanubhai Patel',
     notes: ''
   });
 
@@ -219,22 +233,79 @@ export const BookingPage: React.FC = () => {
     return () => clearInterval(interval);
   }, []);
 
-  // Fetch active staff for the Manager dropdown
+  // Fetch dynamic manager names and function types from Store Settings
   useEffect(() => {
-    const fetchStaff = async () => {
+    const fetchSettingsAndStaff = async () => {
       try {
-        const res: any = await apiClient.get('/hr/employees');
-        if (res.success && Array.isArray(res.data) && res.data.length > 0) {
-          const names = res.data.map((emp: any) => `${emp.firstName || ''} ${emp.lastName || ''}`.trim()).filter(Boolean);
-          if (names.length > 0) {
-            setStaffList(Array.from(new Set([...names, 'Bhanubhai Patel', 'Rameshbhai Patel'])));
+        const [settingsRes, staffRes]: any = await Promise.allSettled([
+          apiClient.get('/system/settings'),
+          apiClient.get('/hr/employees')
+        ]);
+
+        let customManagers: string[] = [];
+        let customTypes: string[] = [];
+        let defaultMgr = '';
+        let defaultType = '';
+
+        if (settingsRes.status === 'fulfilled' && settingsRes.value?.success && settingsRes.value?.data) {
+          const s = settingsRes.value.data;
+          if (s.function_managers && s.function_managers.trim().length > 0) {
+            customManagers = s.function_managers
+              .split(/[,;\n]+/)
+              .map((x: string) => x.trim())
+              .filter(Boolean);
+          }
+          if (s.function_types && s.function_types.trim().length > 0) {
+            customTypes = s.function_types
+              .split(/[,;\n]+/)
+              .map((x: string) => x.trim())
+              .filter(Boolean);
+          }
+          if (s.function_default_manager) {
+            defaultMgr = s.function_default_manager.trim();
+          }
+          if (s.function_default_type) {
+            defaultType = s.function_default_type.trim();
           }
         }
-      } catch {
-        // Fallback to defaults
+
+        // Managers: If configured in settings, use them!
+        if (customManagers.length > 0) {
+          setStaffList(customManagers);
+          const chosenMgr = (defaultMgr && customManagers.includes(defaultMgr)) ? defaultMgr : customManagers[0];
+          setFormData(prev => ({
+            ...prev,
+            acceptedBy: prev.acceptedBy && customManagers.includes(prev.acceptedBy) ? prev.acceptedBy : chosenMgr
+          }));
+        } else {
+          // Fallback to active HR staff if settings are empty
+          let staffNames: string[] = [];
+          if (staffRes.status === 'fulfilled' && staffRes.value?.success && Array.isArray(staffRes.value?.data)) {
+            staffNames = staffRes.value.data
+              .map((emp: any) => `${emp.firstName || ''} ${emp.lastName || ''}`.trim())
+              .filter(Boolean);
+          }
+          const merged = Array.from(new Set([...staffNames, 'Bhanubhai Patel', 'Rameshbhai Patel'])).filter(Boolean);
+          if (merged.length > 0) {
+            setStaffList(merged);
+            setFormData(prev => ({ ...prev, acceptedBy: prev.acceptedBy || merged[0] }));
+          }
+        }
+
+        // Function Types: If configured in settings, use them!
+        if (customTypes.length > 0) {
+          setFunctionTypesList(customTypes);
+          const chosenType = (defaultType && customTypes.includes(defaultType)) ? defaultType : customTypes[0];
+          setFormData(prev => ({
+            ...prev,
+            functionType: prev.functionType && customTypes.includes(prev.functionType) ? prev.functionType : chosenType
+          }));
+        }
+      } catch (err) {
+        console.error('Failed to load settings in booking:', err);
       }
     };
-    fetchStaff();
+    fetchSettingsAndStaff();
   }, []);
 
   // Fetch Master Menu Items, Categories and Daily Menu configuration
@@ -1178,7 +1249,7 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
           </div>
           <button 
             type="button" 
-            className="btn-close ms-auto p-2 flex-shrink-0" 
+            className="btn-close p-2" 
             onClick={() => setAlertMessage(null)}
             aria-label="Close"
           />
@@ -1598,29 +1669,46 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                 {/* 8. Function Type & Manager */}
                 <div className="row g-2">
                   <div className="col-12 col-sm-6">
-                    <label className="form-label small fw-semibold text-secondary mb-1">
-                      Function Type (પ્રસંગનો પ્રકાર)
-                    </label>
+                    <div className="d-flex justify-content-between align-items-center mb-1">
+                      <label className="form-label small fw-semibold text-secondary mb-0">
+                        Function Type (પ્રસંગનો પ્રકાર)
+                      </label>
+                      <Link
+                        to="/settings?tab=functions"
+                        className="text-primary text-decoration-none small d-inline-flex align-items-center gap-1"
+                        style={{ fontSize: '0.73rem' }}
+                        title="સેટિંગ્સમાંથી નવા પ્રસંગ ઉમેરો અથવા બદલો"
+                      >
+                        <Settings size={11} />
+                        <span>Settings માં બદલો</span>
+                      </Link>
+                    </div>
                     <select
                       className="form-select form-select-sm border rounded-3 p-2"
                       value={formData.functionType}
                       onChange={e => setFormData({ ...formData, functionType: e.target.value })}
                       style={{ borderColor: '#E8DCCF', fontSize: '0.85rem' }}
                     >
-                      <option value="Family Dinner & Gathering">Family Dinner & Gathering</option>
-                      <option value="Wedding / Reception">Wedding / Reception</option>
-                      <option value="Ring Ceremony / Sagai">Ring Ceremony / Sagai</option>
-                      <option value="Birthday Party">Birthday Party</option>
-                      <option value="Corporate Event & Dinner">Corporate Event & Dinner</option>
-                      <option value="Babri / Mundan Sanskar">Babri / Mundan Sanskar</option>
-                      <option value="Traditional Feast / Rasoi">Traditional Feast / Rasoi</option>
-                      <option value="Other Celebration">Other Celebration</option>
+                      {functionTypesList.map((type, i) => (
+                        <option key={i} value={type}>{type}</option>
+                      ))}
                     </select>
                   </div>
                   <div className="col-12 col-sm-6">
-                    <label className="form-label small fw-semibold text-secondary mb-1">
-                      Accepted By (મેનેજર)
-                    </label>
+                    <div className="d-flex justify-content-between align-items-center mb-1">
+                      <label className="form-label small fw-semibold text-secondary mb-0">
+                        Accepted By (મેનેજર)
+                      </label>
+                      <Link
+                        to="/settings?tab=functions"
+                        className="text-primary text-decoration-none small d-inline-flex align-items-center gap-1"
+                        style={{ fontSize: '0.73rem' }}
+                        title="સેટિંગ્સમાંથી મેનેજરના નામ બદલો કે ઉમેરો"
+                      >
+                        <Settings size={11} />
+                        <span>Settings માં બદલો</span>
+                      </Link>
+                    </div>
                     <select
                       className="form-select form-select-sm border rounded-3 p-2"
                       value={formData.acceptedBy}
@@ -2380,7 +2468,7 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
             <div className="col-6"><label className="small fw-bold">Host name</label><input className="form-control" value={formData.customerName} onChange={e => setFormData({ ...formData, customerName: e.target.value })} /></div>
             <div className="col-6"><label className="small fw-bold">Mobile</label><input className="form-control" value={formData.customerPhone} onChange={e => setFormData({ ...formData, customerPhone: e.target.value })} /></div>
             <div className="col-6"><label className="small fw-bold">Guests</label><input type="number" className="form-control" value={formData.guestCount} onChange={e => setFormData({ ...formData, guestCount: Number(e.target.value) })} /></div>
-            <div className="col-6"><label className="small fw-bold">Event type</label><input className="form-control" value={formData.functionType} onChange={e => setFormData({ ...formData, functionType: e.target.value })} /></div>
+            <div className="col-6"><label className="small fw-bold">Event type</label><select className="form-select form-select-sm" value={formData.functionType} onChange={e => setFormData({ ...formData, functionType: e.target.value })}>{functionTypesList.map((t, i) => <option key={i} value={t}>{t}</option>)}</select></div>
             <div className="col-12"><label className="small fw-bold">Instructions</label><textarea className="form-control" rows={2} value={formData.notes} onChange={e => setFormData({ ...formData, notes: e.target.value })} /></div>
           </div>
           <div className="mt-3 rounded-3 border p-2" style={{ background: '#fffaf2' }}>

@@ -1778,6 +1778,30 @@ SYSTEM_SETTINGS = [
     "value": "ONLINE",
     "category": "SYSTEM",
     "description": "System operational status (ONLINE/MAINTENANCE/LOCKDOWN)"
+  },
+  {
+    "key": "function_managers",
+    "value": "Bhanubhai Patel, Rameshbhai Patel",
+    "category": "BANQUET",
+    "description": "Allowed booking manager names list (comma-separated)"
+  },
+  {
+    "key": "function_default_manager",
+    "value": "Bhanubhai Patel",
+    "category": "BANQUET",
+    "description": "Default selected manager in booking form"
+  },
+  {
+    "key": "function_types",
+    "value": "Family Dinner & Gathering, Wedding / Reception, Ring Ceremony / Sagai, Birthday Party, Corporate Event & Dinner, Babri / Mundan Sanskar, Traditional Feast / Rasoi, Other Celebration",
+    "category": "BANQUET",
+    "description": "Allowed booking event/function types list (comma-separated)"
+  },
+  {
+    "key": "function_default_type",
+    "value": "Family Dinner & Gathering",
+    "category": "BANQUET",
+    "description": "Default selected function type in booking form"
   }
 ]
 
