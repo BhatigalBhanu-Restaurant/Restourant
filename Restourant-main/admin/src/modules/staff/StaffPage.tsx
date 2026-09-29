@@ -33,7 +33,8 @@ import {
   IndianRupee,
   ShieldCheck,
   Building2,
-  AlertTriangle
+  AlertTriangle,
+  Camera
 } from 'lucide-react';
 
 const COMMON_ROLES = [
@@ -79,6 +80,9 @@ export const StaffPage: React.FC = () => {
   const [showAadharModal, setShowAadharModal] = useState(false);
   const [selectedAadharUrl, setSelectedAadharUrl] = useState<{ name: string; code: string; url: string } | null>(null);
 
+  const [showPhotoModal, setShowPhotoModal] = useState(false);
+  const [selectedPhotoUrl, setSelectedPhotoUrl] = useState<{ name: string; code: string; url: string } | null>(null);
+
   // Form States - Employee Add/Edit
   const [formData, setFormData] = useState({
     employeeCode: '',
@@ -88,6 +92,7 @@ export const StaffPage: React.FC = () => {
     wageType: 'MONTHLY' as 'MONTHLY' | 'DAILY',
     baseSalary: 12000,
     dailyRate: 400,
+    photoUrl: '',
     aadharCardUrl: '',
     joiningDate: new Date().toISOString().split('T')[0],
     status: 'ACTIVE' as 'ACTIVE' | 'INACTIVE',
@@ -120,8 +125,9 @@ export const StaffPage: React.FC = () => {
   });
   const [submittingSalary, setSubmittingSalary] = useState(false);
 
-  // Aadhar file upload ref
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
+  // Photo & Aadhar file upload refs
+  const photoFileInputRef = useRef<HTMLInputElement | null>(null);
+  const aadharFileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Fetch all staff members
   const fetchEmployees = async () => {
@@ -196,6 +202,25 @@ export const StaffPage: React.FC = () => {
     });
   }, [employees, filterType, searchQuery]);
 
+  // Handle Passport Photo file conversion to base64
+  const handlePhotoFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    if (file.size > 5 * 1024 * 1024) {
+      addToast('મોટી ફાઇલ', 'પાસપોર્ટ સાઇઝ ફોટો 5MB થી નાનો હોવો જોઈએ.', 'warning');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (event) => {
+      if (event.target?.result) {
+        setFormData(prev => ({ ...prev, photoUrl: event.target!.result as string }));
+      }
+    };
+    reader.readAsDataURL(file);
+  };
+
   // Handle Aadhar file conversion to base64
   const handleAadharFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
@@ -237,6 +262,7 @@ export const StaffPage: React.FC = () => {
       wageType: 'MONTHLY',
       baseSalary: 12000,
       dailyRate: 400,
+      photoUrl: '',
       aadharCardUrl: '',
       joiningDate: new Date().toISOString().split('T')[0],
       status: 'ACTIVE',
@@ -256,6 +282,7 @@ export const StaffPage: React.FC = () => {
       wageType: emp.wageType || 'MONTHLY',
       baseSalary: emp.baseSalary || 0,
       dailyRate: emp.dailyRate || 0,
+      photoUrl: emp.photoUrl || '',
       aadharCardUrl: emp.aadharCardUrl || '',
       joiningDate: emp.joiningDate || new Date().toISOString().split('T')[0],
       status: (emp.status === 'INACTIVE' ? 'INACTIVE' : 'ACTIVE') as 'ACTIVE' | 'INACTIVE',
@@ -742,6 +769,7 @@ export const StaffPage: React.FC = () => {
         /* GRID VIEW */
         <div className="row g-3">
           {filteredEmployees.map(emp => {
+            const hasPhoto = Boolean(emp.photoUrl && emp.photoUrl.trim().length > 10);
             const hasAadhar = Boolean(emp.aadharCardUrl && emp.aadharCardUrl.trim().length > 10);
             const outstanding = emp.outstandingUpad || 0;
             const isPendingUpad = outstanding > 0;
@@ -754,20 +782,20 @@ export const StaffPage: React.FC = () => {
                     <div>
                       <div className="d-flex align-items-start justify-content-between gap-2 mb-3">
                         <div className="d-flex align-items-center gap-3">
-                          {/* Avatar or Aadhar Thumbnail */}
-                          {hasAadhar ? (
+                          {/* Passport Photo or Letter Avatar */}
+                          {hasPhoto ? (
                             <div
                               className="position-relative rounded-circle overflow-hidden shadow-sm border border-2 border-primary flex-shrink-0 cursor-pointer"
                               style={{ width: '48px', height: '48px' }}
                               onClick={() => {
-                                setSelectedAadharUrl({ name: emp.name, code: emp.employeeCode, url: emp.aadharCardUrl! });
-                                setShowAadharModal(true);
+                                setSelectedPhotoUrl({ name: emp.name, code: emp.employeeCode, url: emp.photoUrl! });
+                                setShowPhotoModal(true);
                               }}
-                              title="આધાર કાર્ડ મોટો જુઓ"
+                              title="પાસપોર્ટ સાઇઝ ફોટો મોટો જુઓ"
                             >
                               <img
-                                src={emp.aadharCardUrl}
-                                alt="Aadhar"
+                                src={emp.photoUrl}
+                                alt={emp.name}
                                 className="w-100 h-100"
                                 style={{ objectFit: 'cover' }}
                               />
@@ -1000,6 +1028,7 @@ export const StaffPage: React.FC = () => {
               </thead>
               <tbody>
                 {filteredEmployees.map(emp => {
+                  const hasPhoto = Boolean(emp.photoUrl && emp.photoUrl.trim().length > 10);
                   const hasAadhar = Boolean(emp.aadharCardUrl && emp.aadharCardUrl.trim().length > 10);
                   const outstanding = emp.outstandingUpad || 0;
                   const isPendingUpad = outstanding > 0;
@@ -1007,13 +1036,35 @@ export const StaffPage: React.FC = () => {
                   return (
                     <tr key={emp.id}>
                       <td className="ps-3 py-3">
-                        <div className="d-flex align-items-center gap-2">
-                          <span className="badge bg-light text-primary border border-primary border-opacity-25 fw-bold">
-                            {emp.employeeCode}
-                          </span>
+                        <div className="d-flex align-items-center gap-2.5">
+                          {hasPhoto ? (
+                            <div
+                              className="rounded-circle overflow-hidden border border-primary flex-shrink-0 cursor-pointer shadow-xs"
+                              style={{ width: '36px', height: '36px' }}
+                              onClick={() => {
+                                setSelectedPhotoUrl({ name: emp.name, code: emp.employeeCode, url: emp.photoUrl! });
+                                setShowPhotoModal(true);
+                              }}
+                              title="પાસપોર્ટ સાઇઝ ફોટો મોટો જુઓ"
+                            >
+                              <img src={emp.photoUrl} alt={emp.name} className="w-100 h-100" style={{ objectFit: 'cover' }} />
+                            </div>
+                          ) : (
+                            <div
+                              className="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
+                              style={{ width: '36px', height: '36px', fontSize: '0.85rem' }}
+                            >
+                              {emp.name.charAt(0)}
+                            </div>
+                          )}
                           <div>
-                            <span className="fw-bold text-dark d-block">{emp.name}</span>
-                            <span className="text-muted small">જોડાવાની તારીખ: {emp.joiningDate || '-'}</span>
+                            <div className="d-flex align-items-center gap-1.5">
+                              <span className="badge bg-light text-primary border border-primary border-opacity-25 fw-bold font-monospace" style={{ fontSize: '0.72rem' }}>
+                                {emp.employeeCode}
+                              </span>
+                              <span className="fw-bold text-dark">{emp.name}</span>
+                            </div>
+                            <span className="text-muted small" style={{ fontSize: '0.72rem' }}>જોડાવાની તારીખ: {emp.joiningDate || '-'}</span>
                           </div>
                         </div>
                       </td>
@@ -1326,12 +1377,68 @@ export const StaffPage: React.FC = () => {
               />
             </div>
 
-            {/* Aadhar Card Photo Upload */}
-            <div className="col-12">
-              <label className="form-label small fw-bold text-dark mb-1">
-                આધાર કાર્ડ ફોટો અપલોડ (Aadhar Card Photo)
+            {/* Passport Size Photo Upload */}
+            <div className="col-12 col-md-6">
+              <label className="form-label small fw-bold text-dark mb-1 d-flex align-items-center gap-1">
+                <Camera size={15} className="text-primary" /> પાસપોર્ટ સાઇઝ ફોટો (Staff Passport Photo)
               </label>
-              <div className="card p-3 border-dashed bg-light text-center rounded-3">
+              <div className="card p-3 border-dashed bg-light text-center rounded-3 h-100 d-flex flex-column justify-content-center">
+                {formData.photoUrl ? (
+                  <div className="d-flex flex-column align-items-center">
+                    <div className="position-relative mb-2">
+                      <img
+                        src={formData.photoUrl}
+                        alt="Passport Preview"
+                        className="rounded-circle shadow-sm border border-2 border-primary"
+                        style={{ width: '90px', height: '90px', objectFit: 'cover' }}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-danger btn-sm position-absolute top-0 end-0 rounded-circle p-1"
+                        onClick={() => setFormData({ ...formData, photoUrl: '' })}
+                        title="ફોટો હટાવો"
+                      >
+                        <X size={14} />
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      className="btn btn-sm btn-outline-secondary"
+                      onClick={() => photoFileInputRef.current?.click()}
+                    >
+                      બીજો ફોટો પસંદ કરો
+                    </button>
+                  </div>
+                ) : (
+                  <div>
+                    <input
+                      type="file"
+                      ref={photoFileInputRef}
+                      className="d-none"
+                      accept="image/*"
+                      onChange={handlePhotoFileChange}
+                    />
+                    <div
+                      className="cursor-pointer py-2"
+                      onClick={() => photoFileInputRef.current?.click()}
+                    >
+                      <div className="p-2 rounded-circle bg-primary bg-opacity-10 text-primary d-inline-flex mb-2">
+                        <Camera size={26} />
+                      </div>
+                      <div className="fw-semibold text-dark small">પાસપોર્ટ સાઇઝ ફોટો અપલોડ કરો</div>
+                      <div className="text-muted" style={{ fontSize: '0.72rem' }}>JPG, PNG (કાર્ડ પર દેખાશે)</div>
+                    </div>
+                  </div>
+                )}
+              </div>
+            </div>
+
+            {/* Aadhar Card Photo Upload */}
+            <div className="col-12 col-md-6">
+              <label className="form-label small fw-bold text-dark mb-1 d-flex align-items-center gap-1">
+                <ShieldCheck size={15} className="text-success" /> આધાર કાર્ડ ફોટો (Aadhar Card Photo)
+              </label>
+              <div className="card p-3 border-dashed bg-light text-center rounded-3 h-100 d-flex flex-column justify-content-center">
                 {formData.aadharCardUrl ? (
                   <div className="d-flex flex-column align-items-center">
                     <div className="position-relative mb-2">
@@ -1339,7 +1446,7 @@ export const StaffPage: React.FC = () => {
                         src={formData.aadharCardUrl}
                         alt="Aadhar Card Preview"
                         className="rounded-2 shadow-sm border"
-                        style={{ maxHeight: '140px', maxWidth: '240px', objectFit: 'contain' }}
+                        style={{ maxHeight: '90px', maxWidth: '160px', objectFit: 'contain' }}
                       />
                       <button
                         type="button"
@@ -1353,7 +1460,7 @@ export const StaffPage: React.FC = () => {
                     <button
                       type="button"
                       className="btn btn-sm btn-outline-secondary"
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={() => aadharFileInputRef.current?.click()}
                     >
                       બીજો ફોટો પસંદ કરો
                     </button>
@@ -1362,18 +1469,20 @@ export const StaffPage: React.FC = () => {
                   <div>
                     <input
                       type="file"
-                      ref={fileInputRef}
+                      ref={aadharFileInputRef}
                       className="d-none"
                       accept="image/*"
                       onChange={handleAadharFileChange}
                     />
                     <div
                       className="cursor-pointer py-2"
-                      onClick={() => fileInputRef.current?.click()}
+                      onClick={() => aadharFileInputRef.current?.click()}
                     >
-                      <Upload size={32} className="text-muted mb-2" />
-                      <div className="fw-semibold text-dark">આધાર કાર્ડનો ફોટો પસંદ કરવા ક્લિક કરો</div>
-                      <div className="small text-muted">JPG, PNG અથવા WebP (મહત્તમ 5MB)</div>
+                      <div className="p-2 rounded-circle bg-success bg-opacity-10 text-success d-inline-flex mb-2">
+                        <Upload size={26} />
+                      </div>
+                      <div className="fw-semibold text-dark small">આધાર કાર્ડનો ફોટો અપલોડ કરો</div>
+                      <div className="text-muted" style={{ fontSize: '0.72rem' }}>JPG, PNG અથવા WebP</div>
                     </div>
                   </div>
                 )}
@@ -2033,6 +2142,46 @@ export const StaffPage: React.FC = () => {
                 type="button"
                 className="btn btn-secondary btn-sm"
                 onClick={() => setShowAadharModal(false)}
+              >
+                બંધ કરો
+              </button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      {/* ========================================================
+          MODAL 6: PASSPORT PHOTO PREVIEW
+         ======================================================== */}
+      <Modal
+        isOpen={showPhotoModal}
+        onClose={() => setShowPhotoModal(false)}
+        title={selectedPhotoUrl ? `પાસપોર્ટ સાઇઝ ફોટો: ${selectedPhotoUrl.name} (${selectedPhotoUrl.code})` : 'પાસપોર્ટ સાઇઝ ફોટો'}
+        size="md"
+      >
+        {selectedPhotoUrl && (
+          <div className="text-center p-3">
+            <div className="d-inline-block rounded-3 overflow-hidden shadow-sm border border-2 border-primary mb-3">
+              <img
+                src={selectedPhotoUrl.url}
+                alt="Passport Photo"
+                className="img-fluid"
+                style={{ maxHeight: '380px', objectFit: 'contain' }}
+              />
+            </div>
+            <div className="d-flex justify-content-center gap-2">
+              <a
+                href={selectedPhotoUrl.url}
+                download={`${selectedPhotoUrl.code}_photo.jpg`}
+                className="btn btn-outline-primary btn-sm d-flex align-items-center gap-1.5"
+              >
+                <Upload size={14} style={{ transform: 'rotate(180deg)' }} />
+                <span>ફોટો ડાઉનલોડ કરો</span>
+              </a>
+              <button
+                type="button"
+                className="btn btn-secondary btn-sm"
+                onClick={() => setShowPhotoModal(false)}
               >
                 બંધ કરો
               </button>

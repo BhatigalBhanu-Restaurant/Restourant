@@ -482,6 +482,7 @@ export interface Employee {
   wageType?: 'MONTHLY' | 'DAILY';
   baseSalary: number;
   dailyRate?: number;
+  photoUrl?: string;
   aadharCardUrl?: string;
   joiningDate?: string;
   status: string;
