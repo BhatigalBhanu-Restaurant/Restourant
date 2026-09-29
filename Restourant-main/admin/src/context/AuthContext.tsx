@@ -20,7 +20,14 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [user, setUser] = useState<User | null>(null);
   const [effectivePermissions, setEffectivePermissions] = useState<PermissionDetail[]>([]);
-  const [token, setToken] = useState<string | null>(localStorage.getItem('access_token'));
+  // Use sessionStorage so exiting browser/tab automatically logs out
+  const [token, setToken] = useState<string | null>(() => {
+    try {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+    } catch {}
+    return sessionStorage.getItem('access_token');
+  });
   const [isLoading, setIsLoading] = useState<boolean>(true);
 
   const fetchProfile = async () => {
@@ -36,8 +43,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       console.error('Failed to load profile:', err);
       setUser(null);
       setEffectivePermissions([]);
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
+      sessionStorage.removeItem('access_token');
+      sessionStorage.removeItem('refresh_token');
+      try {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+      } catch {}
       appCache.invalidateAll();
     } finally {
       setIsLoading(false);
@@ -57,8 +68,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     try {
       const res: any = await apiClient.post('/auth/login', { username, password: pass });
       if (res.success && res.data) {
-        localStorage.setItem('access_token', res.data.accessToken);
-        localStorage.setItem('refresh_token', res.data.refreshToken);
+        sessionStorage.setItem('access_token', res.data.accessToken);
+        sessionStorage.setItem('refresh_token', res.data.refreshToken);
+        try {
+          localStorage.removeItem('access_token');
+          localStorage.removeItem('refresh_token');
+        } catch {}
         setToken(res.data.accessToken);
         setUser(res.data.user);
         setEffectivePermissions(res.data.effectivePermissions || []);
@@ -71,8 +86,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   };
 
   const logout = () => {
-    localStorage.removeItem('access_token');
-    localStorage.removeItem('refresh_token');
+    sessionStorage.removeItem('access_token');
+    sessionStorage.removeItem('refresh_token');
+    try {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+    } catch {}
     appCache.invalidateAll();
     setToken(null);
     setUser(null);

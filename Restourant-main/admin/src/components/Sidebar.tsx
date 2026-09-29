@@ -105,7 +105,7 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose?: () => void; onCloseM
           </div>
         </Link>
         <button
-          className="btn btn-sm btn-link text-white p-1 rounded-circle hover-bg-dark d-lg-none"
+          className="btn btn-sm btn-link text-white p-1 rounded-circle hover-bg-dark d-lg-none ms-auto"
           onClick={handleClose}
           type="button"
           aria-label="Close navigation"

@@ -126,14 +126,14 @@ export const NotificationProvider: React.FC<{ children: React.ReactNode }> = ({ 
             className={`toast show align-items-center text-white bg-${toast.type} border-0 mb-2 shadow`}
             role="alert"
           >
-            <div className="d-flex">
+            <div className="d-flex align-items-center justify-content-between w-100">
               <div className="toast-body">
                 <div className="fw-bold">{toast.title}</div>
                 <div className="small">{toast.message}</div>
               </div>
               <button
                 type="button"
-                className="btn-close btn-close-white me-2 m-auto"
+                className="btn-close btn-close-white ms-auto me-2 my-auto flex-shrink-0"
                 onClick={() => removeToast(toast.id)}
               />
             </div>

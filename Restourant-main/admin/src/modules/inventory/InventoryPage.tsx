@@ -555,7 +555,7 @@ export const InventoryPage: React.FC = () => {
         <div className={`alert alert-${message.type} alert-dismissible fade show py-2.5 mb-3 shadow-xs d-flex align-items-center gap-2`}>
           {message.type === 'success' ? <CheckCircle2 size={18} /> : <Info size={18} />}
           <div className="fw-semibold small flex-grow-1">{message.text}</div>
-          <button type="button" className="btn-close" onClick={() => setMessage(null)} />
+          <button type="button" className="btn-close ms-auto" onClick={() => setMessage(null)} />
         </div>
       )}
 

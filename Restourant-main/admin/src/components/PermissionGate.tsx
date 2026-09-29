@@ -246,9 +246,9 @@ export const Modal: React.FC<{
         }}
       >
         <div className="modal-content shadow-lg border-0" style={{ borderRadius: '14px', overflow: 'hidden' }}>
-          <div className="modal-header bg-light border-bottom p-3">
-            <h5 className="modal-title fw-bold text-dark fs-6 fs-sm-5 text-truncate" title={title}>{title}</h5>
-            <button type="button" className="btn-close ms-2" onClick={onClose} aria-label="Close" />
+          <div className="modal-header bg-light border-bottom p-3 d-flex align-items-center justify-content-between w-100">
+            <h5 className="modal-title fw-bold text-dark fs-6 fs-sm-5 text-truncate mb-0" title={title}>{title}</h5>
+            <button type="button" className="btn-close ms-auto flex-shrink-0" onClick={onClose} aria-label="Close" />
           </div>
           <div className="modal-body p-3 p-sm-4" style={{ maxHeight: 'calc(85vh - 120px)', overflowY: 'auto', overflowX: 'hidden' }}>
             {children}

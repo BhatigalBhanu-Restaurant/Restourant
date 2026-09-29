@@ -1178,7 +1178,7 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
           </div>
           <button 
             type="button" 
-            className="btn-close p-2" 
+            className="btn-close ms-auto p-2 flex-shrink-0" 
             onClick={() => setAlertMessage(null)}
             aria-label="Close"
           />
