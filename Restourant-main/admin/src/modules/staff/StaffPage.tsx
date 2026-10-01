@@ -808,8 +808,8 @@ export const StaffPage: React.FC = () => {
                             </div>
                           ) : (
                             <div
-                              className="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center fw-bold shadow-sm flex-shrink-0"
-                              style={{ width: '48px', height: '48px', fontSize: '1.1rem' }}
+                              className="rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm flex-shrink-0"
+                              style={{ width: '48px', height: '48px', fontSize: '1.1rem', backgroundColor: '#FBECEE', color: '#7A1B28' }}
                             >
                               {emp.name.charAt(0)}
                             </div>
@@ -876,11 +876,17 @@ export const StaffPage: React.FC = () => {
                           </span>
                           <span className="fw-semibold">
                             {emp.wageType === 'DAILY' ? (
-                              <span className="badge bg-warning bg-opacity-25 text-dark">
+                              <span
+                                className="badge border"
+                                style={{ backgroundColor: '#fffbeb', color: '#92400e', borderColor: '#fde68a' }}
+                              >
                                 રોજદાર: ₹{(emp.dailyRate || 0).toLocaleString('en-IN')} / દિવસ
                               </span>
                             ) : (
-                              <span className="badge bg-primary bg-opacity-15 text-primary">
+                              <span
+                                className="badge border"
+                                style={{ backgroundColor: '#ecfdf5', color: '#065f46', borderColor: '#a7f3d0' }}
+                              >
                                 માસિક: ₹{(emp.baseSalary || 0).toLocaleString('en-IN')} / મહિનો
                               </span>
                             )}
@@ -1051,8 +1057,8 @@ export const StaffPage: React.FC = () => {
                             </div>
                           ) : (
                             <div
-                              className="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
-                              style={{ width: '36px', height: '36px', fontSize: '0.85rem' }}
+                              className="rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
+                              style={{ width: '36px', height: '36px', fontSize: '0.85rem', backgroundColor: '#FBECEE', color: '#7A1B28' }}
                             >
                               {emp.name.charAt(0)}
                             </div>
@@ -1093,11 +1099,17 @@ export const StaffPage: React.FC = () => {
                       </td>
                       <td className="py-3">
                         {emp.wageType === 'DAILY' ? (
-                          <span className="badge bg-warning bg-opacity-25 text-dark">
+                          <span
+                            className="badge border"
+                            style={{ backgroundColor: '#fffbeb', color: '#92400e', borderColor: '#fde68a' }}
+                          >
                             રોજદાર: ₹{emp.dailyRate}/દિ
                           </span>
                         ) : (
-                          <span className="badge bg-primary bg-opacity-15 text-primary">
+                          <span
+                            className="badge border"
+                            style={{ backgroundColor: '#ecfdf5', color: '#065f46', borderColor: '#a7f3d0' }}
+                          >
                             માસિક: ₹{(emp.baseSalary || 0).toLocaleString('en-IN')}/મહિનો
                           </span>
                         )}
@@ -1275,12 +1287,11 @@ export const StaffPage: React.FC = () => {
               <div className="row g-2">
                 <div className="col-6">
                   <div
-                    className="card p-3 rounded-3 cursor-pointer shadow-xs transition-all"
+                    className="card p-3 rounded-3 cursor-pointer border"
                     style={{
-                      backgroundColor: formData.wageType === 'MONTHLY' ? '#f0fdf4' : '#f8fafc',
-                      borderColor: formData.wageType === 'MONTHLY' ? '#16a34a' : '#e2e8f0',
-                      borderWidth: '2px',
-                      borderStyle: 'solid'
+                      backgroundColor: formData.wageType === 'MONTHLY' ? '#ecfdf5' : '#f8f9fa',
+                      borderColor: formData.wageType === 'MONTHLY' ? '#10b981' : '#e5e7eb',
+                      borderWidth: formData.wageType === 'MONTHLY' ? '2px' : '1px'
                     }}
                     onClick={() => setFormData({ ...formData, wageType: 'MONTHLY' })}
                   >
@@ -1291,12 +1302,9 @@ export const StaffPage: React.FC = () => {
                         checked={formData.wageType === 'MONTHLY'}
                         onChange={() => setFormData({ ...formData, wageType: 'MONTHLY' })}
                         className="form-check-input mt-0"
-                        style={{ cursor: 'pointer' }}
                       />
                       <div>
-                        <div className="fw-bold" style={{ color: formData.wageType === 'MONTHLY' ? '#15803d' : '#1e293b' }}>
-                          માસિક પગાર (Monthly)
-                        </div>
+                        <div className="text-dark fw-bold">માસિક પગાર (Monthly)</div>
                         <div className="small text-muted fw-normal">દર મહિને નક્કી કરેલ પગાર</div>
                       </div>
                     </div>
@@ -1305,12 +1313,11 @@ export const StaffPage: React.FC = () => {
 
                 <div className="col-6">
                   <div
-                    className="card p-3 rounded-3 cursor-pointer shadow-xs transition-all"
+                    className="card p-3 rounded-3 cursor-pointer border"
                     style={{
-                      backgroundColor: formData.wageType === 'DAILY' ? '#fffbeb' : '#f8fafc',
-                      borderColor: formData.wageType === 'DAILY' ? '#d97706' : '#e2e8f0',
-                      borderWidth: '2px',
-                      borderStyle: 'solid'
+                      backgroundColor: formData.wageType === 'DAILY' ? '#fffbeb' : '#f8f9fa',
+                      borderColor: formData.wageType === 'DAILY' ? '#f59e0b' : '#e5e7eb',
+                      borderWidth: formData.wageType === 'DAILY' ? '2px' : '1px'
                     }}
                     onClick={() => setFormData({ ...formData, wageType: 'DAILY' })}
                   >
@@ -1321,12 +1328,9 @@ export const StaffPage: React.FC = () => {
                         checked={formData.wageType === 'DAILY'}
                         onChange={() => setFormData({ ...formData, wageType: 'DAILY' })}
                         className="form-check-input mt-0"
-                        style={{ cursor: 'pointer' }}
                       />
                       <div>
-                        <div className="fw-bold" style={{ color: formData.wageType === 'DAILY' ? '#b45309' : '#1e293b' }}>
-                          રોજદાર / દૈનિક (Daily)
-                        </div>
+                        <div className="text-dark fw-bold">રોજદાર / દૈનિક (Daily)</div>
                         <div className="small text-muted fw-normal">દર દિવસના હિસાબે ચુકવણી</div>
                       </div>
                     </div>
@@ -1348,8 +1352,8 @@ export const StaffPage: React.FC = () => {
                     className="form-control"
                     placeholder="માસિક પગાર દાખલ કરો"
                     min={0}
-                    value={formData.baseSalary || ''}
-                    onChange={(e) => setFormData({ ...formData, baseSalary: e.target.value === '' ? '' as any : parseFloat(e.target.value) })}
+                    value={formData.baseSalary}
+                    onChange={(e) => setFormData({ ...formData, baseSalary: parseFloat(e.target.value) || 0 })}
                     required
                   />
                 </div>
@@ -1366,8 +1370,8 @@ export const StaffPage: React.FC = () => {
                     className="form-control"
                     placeholder="દિવસનો દર દાખલ કરો"
                     min={0}
-                    value={formData.dailyRate || ''}
-                    onChange={(e) => setFormData({ ...formData, dailyRate: e.target.value === '' ? '' as any : parseFloat(e.target.value) })}
+                    value={formData.dailyRate}
+                    onChange={(e) => setFormData({ ...formData, dailyRate: parseFloat(e.target.value) || 0 })}
                     required
                   />
                 </div>
@@ -1616,8 +1620,8 @@ export const StaffPage: React.FC = () => {
                   className="form-control form-control-lg fw-bold text-danger"
                   placeholder="ઉપાડ રકમ દાખલ કરો"
                   min={1}
-                  value={upadForm.amount || ''}
-                  onChange={(e) => setUpadForm({ ...upadForm, amount: e.target.value === '' ? '' as any : parseFloat(e.target.value) })}
+                  value={upadForm.amount}
+                  onChange={(e) => setUpadForm({ ...upadForm, amount: parseFloat(e.target.value) || 0 })}
                   required
                 />
               </div>
@@ -1806,8 +1810,8 @@ export const StaffPage: React.FC = () => {
                     type="number"
                     className="form-control fw-bold"
                     min={0}
-                    value={salaryForm.grossSalary || ''}
-                    onChange={(e) => handleGrossChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                    value={salaryForm.grossSalary}
+                    onChange={(e) => handleGrossChange(parseFloat(e.target.value) || 0)}
                     required
                   />
                 </div>
@@ -1837,8 +1841,8 @@ export const StaffPage: React.FC = () => {
                     className="form-control text-danger fw-bold"
                     min={0}
                     max={salaryForm.grossSalary}
-                    value={salaryForm.advanceDeducted || ''}
-                    onChange={(e) => handleDeductionChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
+                    value={salaryForm.advanceDeducted}
+                    onChange={(e) => handleDeductionChange(parseFloat(e.target.value) || 0)}
                   />
                 </div>
                 <span className="text-muted" style={{ fontSize: '0.72rem' }}>

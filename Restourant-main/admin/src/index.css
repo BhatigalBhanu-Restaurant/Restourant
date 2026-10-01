@@ -37,7 +37,7 @@ body {
 
 /* Primary Theme Overrides */
 .bg-primary {
-  background-color: var(--brand-maroon) !important;
+  background-color: rgba(var(--bs-primary-rgb), var(--bs-bg-opacity, 1)) !important;
 }
 
 .text-primary {
