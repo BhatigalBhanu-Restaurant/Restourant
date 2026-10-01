@@ -175,7 +175,9 @@ export interface Booking {
     billNumber?: string;
     billedAt?: string;
     billedBy?: string;
-    dishes?: Array<{ name: string; qty: number; price: number; total: number }>;
+    dishCount?: number;
+    dishRate?: number;
+    dishes?: Array<any>;
     subtotal?: number;
     totalAmount?: number;
     discount?: number;

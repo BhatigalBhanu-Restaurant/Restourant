@@ -104,7 +104,7 @@ export function useAutoRefresh(
         if (document.visibilityState === 'visible') {
           triggerRefresh();
         }
-      }, Math.max(intervalMs, 15000));
+      }, Math.max(intervalMs, 8000));
     }
 
     return () => {

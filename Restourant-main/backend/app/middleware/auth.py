@@ -1,29 +1,11 @@
-import time
 from fastapi import Request, HTTPException, Security, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-from typing import Optional, List, Union, Dict, Any, Set, Tuple
+from typing import Optional, List, Union, Dict, Any, Set
 from ..database import get_db
 from ..utils.security import verify_access_token
 from ..constants.permissions import ALL_PERMISSIONS
 
 security = HTTPBearer(auto_error=False)
-
-_user_auth_cache: Dict[str, Tuple[Dict[str, Any], float]] = {}
-USER_CACHE_TTL = 45.0  # Cache effective permissions for 45s to make every API call instant
-
-def get_cached_user(token: str) -> Optional[Dict[str, Any]]:
-    entry = _user_auth_cache.get(token)
-    if entry:
-        user_info, ts = entry
-        if time.time() - ts < USER_CACHE_TTL:
-            return user_info
-        del _user_auth_cache[token]
-    return None
-
-def set_cached_user(token: str, user_info: Dict[str, Any]):
-    if len(_user_auth_cache) > 500:
-        _user_auth_cache.clear()
-    _user_auth_cache[token] = (user_info, time.time())
 
 async def calculate_effective_permissions(user_id: str, role_id: str, username: Optional[str] = None) -> Dict[str, Dict[str, Any]]:
     db = get_db()
@@ -71,10 +53,6 @@ async def get_current_user(
         )
 
     token = credentials.credentials
-    cached_user = get_cached_user(token)
-    if cached_user:
-        return cached_user
-
     try:
         payload = verify_access_token(token)
     except Exception:
@@ -105,7 +83,7 @@ async def get_current_user(
     
     granted_perms = {k for k, v in perm_map.items() if v.get("granted") is True}
 
-    user_data = {
+    return {
         "userId": user["id"],
         "username": user["username"],
         "email": user.get("email", ""),
@@ -115,8 +93,6 @@ async def get_current_user(
         "permissionMap": perm_map,
         "userDoc": user
     }
-    set_cached_user(token, user_data)
-    return user_data
 
 async def get_optional_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Security(security)

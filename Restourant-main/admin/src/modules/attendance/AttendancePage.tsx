@@ -109,8 +109,8 @@ export const AttendancePage: React.FC = () => {
   const [bulkLoading, setBulkLoading] = useState<boolean>(false);
 
   // Fetch monthly attendance from API
-  const fetchMonthlyData = useCallback(async (monthToFetch: string, showSpinner = false) => {
-    if (showSpinner) setLoading(true);
+  const fetchMonthlyData = useCallback(async (monthToFetch: string) => {
+    setLoading(true);
     try {
       const res: any = await apiClient.get(`/hr/attendance/monthly?month=${monthToFetch}`);
       const payload = res?.data || res;
@@ -254,6 +254,7 @@ export const AttendancePage: React.FC = () => {
     if (!window.confirm(`શું તમે આજના દિવસે (${todayStr}) બધા સ્ટાફને 'હાજર (Present)' કરવા માંગો છો?`)) {
       return;
     }
+    setLoading(true);
     try {
       await apiClient.post('/hr/attendance/bulk-mark', {
         date: todayStr,

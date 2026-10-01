@@ -148,9 +148,10 @@ export const BookingPage: React.FC = () => {
     customerPhone: '',
     alternatePhone: '',
     guestCount: 50,
-    advanceAmount: '' as any,
-    estimatedTotal: '' as any,
-    paymentMode: 'Cash',
+    // Retained only for legacy records; no new payment data is sent to the API.
+    advanceAmount: 0,
+    estimatedTotal: 0,
+    paymentMode: '',
     referenceId: '',
     functionType: 'Family Dinner & Gathering',
     acceptedBy: 'Bhanubhai Patel',
@@ -168,7 +169,9 @@ export const BookingPage: React.FC = () => {
   // Check-Out and Bill Generation Workflow State
   const [checkoutState, setCheckoutState] = useState<{
     booking: Booking | null;
-    dishes: Array<{ name: string; qty: number; price: number; total: number }>;
+    dishes: Array<{ name: string; qty?: number; price?: number; total?: number }>;
+    dishCount: number;
+    dishRate: number;
     totalBillPrice: number;
     discount: number;
     advanceAmount: number;
@@ -176,12 +179,12 @@ export const BookingPage: React.FC = () => {
     paymentReference: string;
     notes: string;
     newDishName: string;
-    newDishQty: number;
-    newDishPrice: number;
     isCheckingOut: boolean;
   }>({
     booking: null,
     dishes: [],
+    dishCount: 50,
+    dishRate: 250,
     totalBillPrice: 0,
     discount: 0,
     advanceAmount: 0,
@@ -189,8 +192,6 @@ export const BookingPage: React.FC = () => {
     paymentReference: '',
     notes: '',
     newDishName: '',
-    newDishQty: 1,
-    newDishPrice: 0,
     isCheckingOut: false
   });
 
@@ -579,10 +580,6 @@ export const BookingPage: React.FC = () => {
         notes: formData.notes.trim(),
         selectedMenu: dishNames,
         selectedMenuIds: activeItemIds,
-        advanceAmount: Number(formData.advanceAmount || 0),
-        estimatedTotal: Number(formData.estimatedTotal || 0),
-        paymentMode: formData.paymentMode || 'Cash',
-        referenceId: formData.referenceId || '',
         allowOverbook,
         isLocked: true
       };
@@ -776,28 +773,22 @@ export const BookingPage: React.FC = () => {
 
   // 2. Open Check-Out & Bill Generation Modal
   const openCheckOutModal = (b: Booking) => {
-    const existingDishes: Array<{ name: string; qty: number; price: number; total: number }> =
+    const existingDishes: Array<{ name: string; qty?: number; price?: number; total?: number }> =
       b.billing?.dishes && b.billing.dishes.length > 0
-        ? b.billing.dishes.map((d: any) => ({
-            name: d.name,
-            qty: Number(d.qty) || 1,
-            price: Number(d.price) || 0,
-            total: Number(d.total) || (Number(d.qty) || 1) * (Number(d.price) || 0)
-          }))
-        : (b.selectedMenu || []).map(dishName => ({
-            name: dishName,
-            qty: b.guestCount || 1,
-            price: 0,
-            total: 0
-          }));
+        ? b.billing.dishes.map((d: any) => ({ name: typeof d === 'string' ? d : (d.name || '') }))
+        : (b.selectedMenu || []).map(dishName => ({ name: dishName }));
 
-    const initialAdvance = Number(b.advanceAmount) || 0;
-    const initialTotal = Number(b.billing?.totalAmount) || Number(b.estimatedTotal) || 0;
+    const initialAdvance = Number(b.billing?.advanceAmount !== undefined ? b.billing.advanceAmount : b.advanceAmount) || 0;
+    const initialDishCount = Number(b.billing?.dishCount) || Number(b.guestCount) || 50;
+    const initialDishRate = Number(b.billing?.dishRate) || 250;
+    const initialTotal = Number(b.billing?.totalAmount) || (initialDishCount * initialDishRate);
     const initialDiscount = Number(b.billing?.discount) || 0;
 
     setCheckoutState({
       booking: b,
       dishes: existingDishes,
+      dishCount: initialDishCount,
+      dishRate: initialDishRate,
       totalBillPrice: initialTotal,
       discount: initialDiscount,
       advanceAmount: initialAdvance,
@@ -805,8 +796,6 @@ export const BookingPage: React.FC = () => {
       paymentReference: b.billing?.paymentReference || b.referenceId || '',
       notes: b.billing?.notes || b.notes || '',
       newDishName: '',
-      newDishQty: b.guestCount || 1,
-      newDishPrice: 0,
       isCheckingOut: false
     });
     setIsCheckOutModalOpen(true);
@@ -818,54 +807,29 @@ export const BookingPage: React.FC = () => {
       alert('કૃપા કરીને વાનગી અથવા આઇટમનું નામ દાખલ કરો.');
       return;
     }
-    const q = Math.max(1, Number(checkoutState.newDishQty) || 1);
-    const p = Math.max(0, Number(checkoutState.newDishPrice) || 0);
-    const lineTotal = q * p;
-    const newDish = {
-      name: checkoutState.newDishName.trim(),
-      qty: q,
-      price: p,
-      total: lineTotal
-    };
-    const updated = [...checkoutState.dishes, newDish];
-    const sum = updated.reduce((acc, d) => acc + (d.total || 0), 0);
-
+    const newDish = { name: checkoutState.newDishName.trim() };
     setCheckoutState(prev => ({
       ...prev,
-      dishes: updated,
-      totalBillPrice: prev.totalBillPrice === 0 ? sum : prev.totalBillPrice + lineTotal,
-      newDishName: '',
-      newDishQty: prev.booking?.guestCount || 1,
-      newDishPrice: 0
+      dishes: [...prev.dishes, newDish],
+      newDishName: ''
     }));
   };
 
-  // 4. Update dish qty or price
-  const handleUpdateDish = (idx: number, field: 'name' | 'qty' | 'price', value: any) => {
+  // 4. Update dish name
+  const handleUpdateDish = (idx: number, field: string, value: any) => {
     const updated = [...checkoutState.dishes];
     updated[idx] = { ...updated[idx], [field]: value };
-    const q = Number(updated[idx].qty) || 0;
-    const p = Number(updated[idx].price) || 0;
-    updated[idx].total = q * p;
-
-    setCheckoutState(prev => {
-      const sum = updated.reduce((acc, d) => acc + (d.total || 0), 0);
-      return {
-        ...prev,
-        dishes: updated,
-        totalBillPrice: sum > 0 ? sum : prev.totalBillPrice
-      };
-    });
+    setCheckoutState(prev => ({
+      ...prev,
+      dishes: updated
+    }));
   };
 
   // 5. Remove dish
   const handleRemoveDish = (idx: number) => {
-    const updated = checkoutState.dishes.filter((_, i) => i !== idx);
-    const sum = updated.reduce((acc, d) => acc + (d.total || 0), 0);
     setCheckoutState(prev => ({
       ...prev,
-      dishes: updated,
-      totalBillPrice: sum > 0 ? sum : prev.totalBillPrice
+      dishes: prev.dishes.filter((_, i) => i !== idx)
     }));
   };
 
@@ -873,8 +837,9 @@ export const BookingPage: React.FC = () => {
   const handleConfirmCheckOut = async () => {
     if (!checkoutState.booking) return;
     const b = checkoutState.booking;
-    const itemsSum = checkoutState.dishes.reduce((sum, d) => sum + (d.total || 0), 0);
-    const total = Math.max(0, Number(checkoutState.totalBillPrice) || itemsSum);
+    const dishCount = Math.max(0, Number(checkoutState.dishCount) || 0);
+    const dishRate = Math.max(0, Number(checkoutState.dishRate) || 0);
+    const total = Math.max(0, Number(checkoutState.totalBillPrice) || (dishCount * dishRate));
     const discount = Math.max(0, Number(checkoutState.discount) || 0);
     const advance = Math.max(0, Number(checkoutState.advanceAmount) || 0);
     const net = Math.max(0, total - discount - advance);
@@ -884,8 +849,10 @@ export const BookingPage: React.FC = () => {
     const billPayload = {
       billNumber,
       dishes: checkoutState.dishes,
-      guestCount: b.guestCount,
-      subtotal: itemsSum || total,
+      guestCount: dishCount || b.guestCount,
+      dishCount,
+      dishRate,
+      subtotal: total,
       discount,
       totalAmount: total,
       advanceAmount: advance,
@@ -1036,10 +1003,13 @@ ${dishesList}
     // Dishes list
     let dishesText = '';
     if (b.billing?.dishes && b.billing.dishes.length > 0) {
-      dishesText = b.billing.dishes.map((d: any, i: number) => `  ${i + 1}. ${d.name} (${d.qty || 1} qty)`).join('\n');
+      dishesText = b.billing.dishes.map((d: any, i: number) => `  ${i + 1}. ${typeof d === 'string' ? d : (d.name || d)}`).join('\n');
     } else if (b.selectedMenu && b.selectedMenu.length > 0) {
       dishesText = b.selectedMenu.map((m: string, i: number) => `  ${i + 1}. ${m}`).join('\n');
     }
+
+    const dishCountStr = b.billing?.dishCount || b.guestCount;
+    const dishRateStr = b.billing?.dishRate ? `\n• ડિશનો ભાવ (Rate per Dish): *₹${b.billing.dishRate}*` : '';
 
     return `*🧾 ભતીગળ ભાનુ - રેસ્ટોરન્ટ અને બેન્ક્વેટ*
 *Bhatigal Bhanu Traditional Dining & Banquet*
@@ -1052,6 +1022,7 @@ ${dishesList}
 • બુકિંગ નંબર: *${b.bookingNumber}*
 • તારીખ: *${b.bookingDate}* ${dayName ? `(${dayName})` : ''}
 • સમય ગાળો: *${b.timeSlot || 'સાંજે (Dinner)'}* (${b.bookingTime || ''})
+• કુલ ડિશ / પ્લેટ: *${dishCountStr}*${dishRateStr}
 • મહેમાનોની સંખ્યા: *${b.guestCount} વ્યક્તિ*
 ${dishesText ? `\n🍲 *પીરસાયેલ ભોજન મેનુ:*\n${dishesText}\n` : ''}
 💰 *ચુકવણીની વિગતો (Payment Summary):*
@@ -1552,8 +1523,8 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                     className="form-control form-control-sm border rounded-3 p-2 fw-semibold"
                     placeholder="દા.ત. 50"
                     required
-                    value={formData.guestCount || ''}
-                    onChange={e => setFormData({ ...formData, guestCount: e.target.value === '' ? '' as any : Number(e.target.value) })}
+                    value={formData.guestCount}
+                    onChange={e => setFormData({ ...formData, guestCount: Number(e.target.value) })}
                     style={{ borderColor: '#E8DCCF', fontSize: '0.9rem' }}
                   />
                 </div>
@@ -1599,20 +1570,22 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                   </div>
                 </div>
 
-                {/* 6. Advance Deposit & Estimated Total */}
+                {/* Payment collection is handled outside this booking module. */}
+                <div className="d-none">
                 <div className="row g-2">
                   <div className="col-6">
                     <label className="form-label small fw-semibold text-secondary mb-1">
-                      Advance Paid (એડવાન્સ ડિપોઝીટ ₹)
+                      Advance Paid (એડવાન્સ ડિપોઝીટ ₹) <span className="text-danger">*</span>
                     </label>
                     <input
                       type="number"
                       min="0"
                       step="500"
                       className="form-control form-control-sm border rounded-3 p-2"
-                      placeholder="દા.ત. 5000"
-                      value={formData.advanceAmount || ''}
-                      onChange={e => setFormData({ ...formData, advanceAmount: e.target.value === '' ? '' : Number(e.target.value) })}
+                      placeholder="5000"
+                      required
+                      value={formData.advanceAmount}
+                      onChange={e => setFormData({ ...formData, advanceAmount: Number(e.target.value) })}
                       style={{ borderColor: '#E8DCCF', fontSize: '0.9rem', fontWeight: 600, color: '#198754' }}
                     />
                   </div>
@@ -1625,9 +1598,9 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                       min="0"
                       step="1000"
                       className="form-control form-control-sm border rounded-3 p-2"
-                      placeholder="દા.ત. 25000"
-                      value={formData.estimatedTotal || ''}
-                      onChange={e => setFormData({ ...formData, estimatedTotal: e.target.value === '' ? '' : Number(e.target.value) })}
+                      placeholder="25000"
+                      value={formData.estimatedTotal}
+                      onChange={e => setFormData({ ...formData, estimatedTotal: Number(e.target.value) })}
                       style={{ borderColor: '#E8DCCF', fontSize: '0.9rem' }}
                     />
                   </div>
@@ -1664,6 +1637,8 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                       style={{ borderColor: '#E8DCCF', fontSize: '0.85rem' }}
                     />
                   </div>
+                </div>
+
                 </div>
                 {/* 8. Function Type & Manager */}
                 <div className="row g-2">
@@ -3243,12 +3218,9 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                         <table className="table table-sm table-bordered align-middle mb-0" style={{ fontSize: '0.82rem' }}>
                           <thead className="table-light">
                             <tr>
-                              <th style={{ width: '4%' }}>#</th>
-                              <th style={{ width: '40%' }}>વાનગી / આઇટમ નામ</th>
-                              <th style={{ width: '18%' }} className="text-center">સંખ્યા (Qty)</th>
-                              <th style={{ width: '20%' }} className="text-center">ભાવ (Rate ₹)</th>
-                              <th style={{ width: '18%' }} className="text-end">રકમ (Total ₹)</th>
-                              <th style={{ width: '5%' }}></th>
+                              <th style={{ width: '8%' }} className="text-center">#</th>
+                              <th style={{ width: '82%' }}>વાનગી / આઇટમ નામ (Dish Name)</th>
+                              <th style={{ width: '10%' }} className="text-center">ક્રિયા</th>
                             </tr>
                           </thead>
                           <tbody>
@@ -3260,40 +3232,18 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                                     type="text"
                                     className="form-control form-control-sm border-0 bg-transparent px-1 py-0 fw-semibold"
                                     value={dish.name}
+                                    placeholder="વાનગીનું નામ"
                                     onChange={(e) => handleUpdateDish(idx, 'name', e.target.value)}
                                   />
-                                </td>
-                                <td>
-                                  <input
-                                    type="number"
-                                    min="1"
-                                    className="form-control form-control-sm text-center py-0"
-                                    value={dish.qty}
-                                    onChange={(e) => handleUpdateDish(idx, 'qty', Math.max(1, Number(e.target.value) || 1))}
-                                  />
-                                </td>
-                                <td>
-                                  <input
-                                    type="number"
-                                    min="0"
-                                    step="1"
-                                    className="form-control form-control-sm text-center py-0"
-                                    value={dish.price}
-                                    placeholder="0"
-                                    onChange={(e) => handleUpdateDish(idx, 'price', Math.max(0, Number(e.target.value) || 0))}
-                                  />
-                                </td>
-                                <td className="text-end fw-bold">
-                                  ₹{(dish.total || (dish.qty * dish.price)).toLocaleString('en-IN')}
                                 </td>
                                 <td className="text-center">
                                   <button
                                     type="button"
-                                    className="btn btn-outline-danger btn-sm p-0 border-0"
+                                    className="btn btn-outline-danger btn-sm p-1 border-0"
                                     onClick={() => handleRemoveDish(idx)}
-                                    title="આઇટમ હટાવો"
+                                    title="વાનગી હટાવો"
                                   >
-                                    <Trash2 size={13} />
+                                    <Trash2 size={14} />
                                   </button>
                                 </td>
                               </tr>
@@ -3310,51 +3260,22 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                       <Plus size={13} className="text-primary" />
                       <span>વધારાની વાનગી / આઇટમ ઉમેરો (Add Extra Dish/Item):</span>
                     </div>
-                    <div className="row g-1.5 align-items-center">
-                      <div className="col-12 col-sm-5">
-                        <input
-                          type="text"
-                          className="form-control form-control-sm"
-                          placeholder="વાનગીનું નામ (દા.ત. કાજુ કરી)"
-                          value={checkoutState.newDishName}
-                          onChange={(e) => setCheckoutState(prev => ({ ...prev, newDishName: e.target.value }))}
-                          onKeyDown={(e) => { if (e.key === 'Enter') handleAddDishToCheckout(); }}
-                        />
-                      </div>
-                      <div className="col-4 col-sm-2">
-                        <input
-                          type="number"
-                          min="1"
-                          className="form-control form-control-sm text-center"
-                          placeholder="Qty"
-                          title="સંખ્યા"
-                          value={checkoutState.newDishQty}
-                          onChange={(e) => setCheckoutState(prev => ({ ...prev, newDishQty: Math.max(1, Number(e.target.value) || 1) }))}
-                        />
-                      </div>
-                      <div className="col-4 col-sm-3">
-                        <div className="input-group input-group-sm">
-                          <span className="input-group-text px-1.5">₹</span>
-                          <input
-                            type="number"
-                            min="0"
-                            className="form-control form-control-sm"
-                            placeholder="ભાવ"
-                            title="ભાવ પ્રતિ આઇટમ"
-                            value={checkoutState.newDishPrice || ''}
-                            onChange={(e) => setCheckoutState(prev => ({ ...prev, newDishPrice: Math.max(0, Number(e.target.value) || 0) }))}
-                          />
-                        </div>
-                      </div>
-                      <div className="col-4 col-sm-2">
-                        <button
-                          type="button"
-                          className="btn btn-primary btn-sm w-100 fw-bold d-flex align-items-center justify-content-center gap-1"
-                          onClick={handleAddDishToCheckout}
-                        >
-                          <Plus size={13} /> <span>ઉમેરો</span>
-                        </button>
-                      </div>
+                    <div className="d-flex gap-2 align-items-center">
+                      <input
+                        type="text"
+                        className="form-control form-control-sm"
+                        placeholder="વાનગીનું નામ લખો (દા.ત. કાજુ કરી, રસગુલ્લા)"
+                        value={checkoutState.newDishName}
+                        onChange={(e) => setCheckoutState(prev => ({ ...prev, newDishName: e.target.value }))}
+                        onKeyDown={(e) => { if (e.key === 'Enter') handleAddDishToCheckout(); }}
+                      />
+                      <button
+                        type="button"
+                        className="btn btn-primary btn-sm fw-bold d-flex align-items-center gap-1 text-nowrap px-3"
+                        onClick={handleAddDishToCheckout}
+                      >
+                        <Plus size={13} /> <span>ઉમેરો</span>
+                      </button>
                     </div>
                   </div>
                 </div>
@@ -3371,40 +3292,75 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                   </div>
 
                   <div className="card-body p-3 d-flex flex-column gap-2.5">
-                    {/* Items Subtotal info */}
                     {(() => {
-                      const itemsSum = checkoutState.dishes.reduce((acc, d) => acc + (d.total || 0), 0);
-                      const totalBill = Number(checkoutState.totalBillPrice) || 0;
+                      const count = Number(checkoutState.dishCount) || 0;
+                      const rate = Number(checkoutState.dishRate) || 0;
+                      const calculatedTotal = count * rate;
+                      const totalBill = checkoutState.totalBillPrice !== undefined ? Number(checkoutState.totalBillPrice) : calculatedTotal;
                       const discount = Number(checkoutState.discount) || 0;
                       const advance = Number(checkoutState.advanceAmount) || 0;
                       const balanceToPay = Math.max(0, totalBill - discount - advance);
 
                       return (
                         <>
-                          {/* Calculated Dishes Total */}
-                          <div className="d-flex justify-content-between align-items-center small pb-1.5 border-bottom">
-                            <span className="text-muted">વાનગીઓનો સરવાળો (Dishes Sum):</span>
-                            <div className="d-flex align-items-center gap-2">
-                              <span className="fw-bold text-dark">₹{itemsSum.toLocaleString('en-IN')}</span>
-                              {itemsSum > 0 && itemsSum !== totalBill && (
-                                <button
-                                  type="button"
-                                  className="btn btn-outline-secondary btn-sm py-0 px-1.5"
-                                  style={{ fontSize: '0.68rem' }}
-                                  onClick={() => setCheckoutState(prev => ({ ...prev, totalBillPrice: itemsSum }))}
-                                  title="બિલ રકમ વાનગીઓના સરવાળા જેટલી કરો"
-                                >
-                                  આ રકમ રાખો
-                                </button>
-                              )}
+                          {/* Dish Count & Rate per Dish Section */}
+                          <div className="p-2.5 rounded-3 border bg-light">
+                            <div className="row g-2">
+                              <div className="col-6">
+                                <label className="form-label small fw-bold text-dark mb-1">
+                                  ડિશ કેટલી થઈ (Dishes) <span className="text-danger">*</span>
+                                </label>
+                                <input
+                                  type="number"
+                                  min="1"
+                                  className="form-control form-control-sm fw-bold text-dark"
+                                  placeholder="દા.ત. 200"
+                                  value={checkoutState.dishCount || ''}
+                                  onChange={(e) => {
+                                    const newCount = Math.max(0, Number(e.target.value) || 0);
+                                    setCheckoutState(prev => ({
+                                      ...prev,
+                                      dishCount: newCount,
+                                      totalBillPrice: newCount * (prev.dishRate || 0)
+                                    }));
+                                  }}
+                                />
+                              </div>
+                              <div className="col-6">
+                                <label className="form-label small fw-bold text-dark mb-1">
+                                  ડિશનો ભાવ (Rate ₹) <span className="text-danger">*</span>
+                                </label>
+                                <div className="input-group input-group-sm">
+                                  <span className="input-group-text fw-bold">₹</span>
+                                  <input
+                                    type="number"
+                                    min="0"
+                                    className="form-control form-control-sm fw-bold text-dark"
+                                    placeholder="દા.ત. 250"
+                                    value={checkoutState.dishRate || ''}
+                                    onChange={(e) => {
+                                      const newRate = Math.max(0, Number(e.target.value) || 0);
+                                      setCheckoutState(prev => ({
+                                        ...prev,
+                                        dishRate: newRate,
+                                        totalBillPrice: (prev.dishCount || 0) * newRate
+                                      }));
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                            <div className="small text-muted mt-1.5 d-flex justify-content-between align-items-center" style={{ fontSize: '0.74rem' }}>
+                              <span>ગણતરી: <strong>{count} ડિશ × ₹{rate}</strong></span>
+                              <span className="text-primary fw-bold">₹{calculatedTotal.toLocaleString('en-IN')}</span>
                             </div>
                           </div>
 
-                          {/* Manual Total Bill Price Input */}
+                          {/* Total Bill Price Input */}
                           <div>
                             <label className="form-label small fw-bold text-dark mb-1 d-flex justify-content-between">
                               <span>કુલ બિલ રકમ (Total Bill Price ₹) <span className="text-danger">*</span>:</span>
-                              <span className="badge bg-light text-muted border" style={{ fontSize: '0.7rem' }}>મેન્યુઅલ / ડાયરેક્ટ લખી શકો છો</span>
+                              <span className="badge bg-light text-muted border" style={{ fontSize: '0.7rem' }}>ઓટો-કેલ્ક્યુલેટ / એડિટેબલ</span>
                             </label>
                             <div className="input-group input-group-lg">
                               <span className="input-group-text fw-bold text-dark bg-light">₹</span>
@@ -3416,9 +3372,6 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                                 value={checkoutState.totalBillPrice === 0 ? '' : checkoutState.totalBillPrice}
                                 onChange={(e) => setCheckoutState(prev => ({ ...prev, totalBillPrice: Math.max(0, Number(e.target.value) || 0) }))}
                               />
-                            </div>
-                            <div className="small text-muted mt-1" style={{ fontSize: '0.72rem' }}>
-                              વાનગીઓના રેટ વગર પણ તમે ડાયરેક્ટ કુલ બિલ રકમ (દા.ત. 25000) દાખલ કરી શકો છો.
                             </div>
                           </div>
 
@@ -3618,16 +3571,30 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                 </div>
               </div>
 
+              {/* Package Details Banner */}
+              <div className="p-2.5 mb-3 rounded-3 bg-light border d-flex justify-content-between align-items-center">
+                <div>
+                  <span className="text-muted small d-block">કેટરિંગ પેકેજ (Catering Package):</span>
+                  <strong className="text-dark fs-6">
+                    {viewingBillBooking.billing?.dishCount || viewingBillBooking.guestCount} ડિશ / પ્લેટ
+                    {viewingBillBooking.billing?.dishRate ? ` × ₹${viewingBillBooking.billing.dishRate} ભાવ પ્રતિ ડિશ` : ''}
+                  </strong>
+                </div>
+                <div className="text-end">
+                  <span className="text-muted small d-block">કુલ ભોજન રકમ:</span>
+                  <span className="fw-bolder text-success fs-5">
+                    ₹{(viewingBillBooking.billing?.subtotal || viewingBillBooking.billing?.totalAmount || viewingBillBooking.estimatedTotal || 0).toLocaleString('en-IN')}
+                  </span>
+                </div>
+              </div>
+
               {/* Dishes Itemized Table */}
               <div className="table-responsive mb-3">
                 <table className="table table-sm table-bordered align-middle mb-0" style={{ fontSize: '0.82rem' }}>
                   <thead className="table-light">
                     <tr>
-                      <th style={{ width: '5%' }} className="text-center">#</th>
-                      <th style={{ width: '45%' }}>Item / Dish Description (વાનગી / વિગત)</th>
-                      <th style={{ width: '15%' }} className="text-center">Qty</th>
-                      <th style={{ width: '15%' }} className="text-end">Rate (₹)</th>
-                      <th style={{ width: '20%' }} className="text-end">Amount (₹)</th>
+                      <th style={{ width: '8%' }} className="text-center">#</th>
+                      <th style={{ width: '92%' }}>મેનુ વાનગીઓની યાદી (Menu Items Included in Package)</th>
                     </tr>
                   </thead>
                   <tbody>
@@ -3635,27 +3602,19 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                       viewingBillBooking.billing.dishes.map((item: any, idx: number) => (
                         <tr key={idx}>
                           <td className="text-center text-muted">{idx + 1}</td>
-                          <td className="fw-medium">{item.name}</td>
-                          <td className="text-center">{item.qty}</td>
-                          <td className="text-end">{item.price ? `₹${Number(item.price).toLocaleString('en-IN')}` : '—'}</td>
-                          <td className="text-end fw-semibold">
-                            {item.total ? `₹${Number(item.total).toLocaleString('en-IN')}` : '—'}
-                          </td>
+                          <td className="fw-semibold text-dark">{typeof item === 'string' ? item : (item.name || item)}</td>
                         </tr>
                       ))
                     ) : viewingBillBooking.selectedMenu && viewingBillBooking.selectedMenu.length > 0 ? (
                       viewingBillBooking.selectedMenu.map((m: string, idx: number) => (
                         <tr key={idx}>
                           <td className="text-center text-muted">{idx + 1}</td>
-                          <td className="fw-medium">{m}</td>
-                          <td className="text-center">{viewingBillBooking.guestCount}</td>
-                          <td className="text-end">—</td>
-                          <td className="text-end">—</td>
+                          <td className="fw-semibold text-dark">{m}</td>
                         </tr>
                       ))
                     ) : (
                       <tr>
-                        <td colSpan={5} className="text-center text-muted py-2">
+                        <td colSpan={2} className="text-center text-muted py-2">
                           Special Banquet Catering Package
                         </td>
                       </tr>
@@ -3683,7 +3642,10 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                 <div className="col-12 col-sm-6">
                   <div className="p-2.5 rounded-3 border bg-light small">
                     <div className="d-flex justify-content-between mb-1">
-                      <span className="text-muted">Total Food & Services:</span>
+                      <span className="text-muted">
+                        Total Food ({viewingBillBooking.billing?.dishCount || viewingBillBooking.guestCount} Dishes
+                        {viewingBillBooking.billing?.dishRate ? ` @ ₹${viewingBillBooking.billing.dishRate}` : ''}):
+                      </span>
                       <strong className="text-dark">
                         ₹{(viewingBillBooking.billing?.subtotal || viewingBillBooking.billing?.totalAmount || viewingBillBooking.estimatedTotal || 0).toLocaleString('en-IN')}
                       </strong>
