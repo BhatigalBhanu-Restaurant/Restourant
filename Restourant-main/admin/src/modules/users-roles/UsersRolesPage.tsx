@@ -221,9 +221,17 @@ export const UsersRolesPage: React.FC = () => {
     <div className="d-flex flex-column gap-4">
       {/* Header */}
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
-        <div>
-          <h4 className="fw-bold mb-1 text-dark">Access Control: Users, Roles & Granular Permissions</h4>
-          <p className="text-muted small mb-0">Role-Based Access Control (RBAC) and Tree-view permission matrix editor</p>
+        <div className="d-flex align-items-center gap-2.5">
+          <div
+            className="d-flex align-items-center justify-content-center rounded-3 bg-primary-subtle text-primary flex-shrink-0"
+            style={{ width: 42, height: 42 }}
+          >
+            <Shield size={20} />
+          </div>
+          <div>
+            <h5 className="fw-bold mb-0 text-dark">Users & Roles Matrix</h5>
+            <span className="text-secondary small">વપરાશકર્તા અને પરવાનગી સંચાલન</span>
+          </div>
         </div>
         <div className="d-flex align-items-center gap-2">
           {activeTab === 'users' && can('users.create') && (

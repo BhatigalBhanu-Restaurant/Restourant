@@ -295,25 +295,22 @@ export const StoreSettingsPage: React.FC = () => {
   return (
     <div className="d-flex flex-column gap-3" style={{ fontSize: '0.85rem' }}>
       {/* Top Header */}
-      <div className="card shadow-sm border-0" style={{ borderLeft: '4px solid #7A1B28' }}>
+      <div className="card shadow-sm border bg-white" style={{ borderRadius: '12px', borderColor: '#e2e8f0' }}>
         <div className="card-body p-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
-          <div className="d-flex align-items-center gap-3">
+          <div className="d-flex align-items-center gap-2.5">
             <div
-              className="d-flex align-items-center justify-content-center rounded-3 shadow-sm text-white flex-shrink-0"
-              style={{ width: 44, height: 44, background: 'linear-gradient(135deg, #7A1B28 0%, #4A0E17 100%)' }}
+              className="d-flex align-items-center justify-content-center rounded-3 bg-primary-subtle text-primary flex-shrink-0"
+              style={{ width: 44, height: 44 }}
             >
               <Building2 size={22} />
             </div>
             <div>
               <div className="d-flex align-items-center gap-2">
                 <h5 className="fw-bold mb-0 text-dark">Store Settings & Configuration</h5>
-                <span className="badge px-2 py-0.5" style={{ background: '#FDF2E9', color: '#7A1B28', border: '1px solid #F5C6CB', fontSize: '0.72rem' }}>
-                  Bhatigal Bhanu Operations
-                </span>
               </div>
-              <p className="text-muted small mb-0 mt-0.5">
-                રેસ્ટોરન્ટ બ્રાન્ડિંગ, તારીખ-સમય ફોર્મેટ, ફંક્શન નિયમો અને થર્મલ પ્રિન્ટર સેટિંગ્સ
-              </p>
+              <span className="text-secondary small">
+                રેસ્ટોરન્ટ સેટિંગ્સ અને કન્ફિગરેશન (Store Settings)
+              </span>
             </div>
           </div>
 

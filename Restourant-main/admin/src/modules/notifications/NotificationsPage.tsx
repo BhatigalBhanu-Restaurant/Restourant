@@ -4,7 +4,7 @@ import { useNotification } from '../../context/NotificationContext';
 import { usePermission } from '../../context/PermissionContext';
 import { DataTable, Modal } from '../../components/PermissionGate';
 import { SystemNotification } from '../../types';
-import { Plus, CheckCheck } from 'lucide-react';
+import { Plus, CheckCheck, Bell } from 'lucide-react';
 
 export const NotificationsPage: React.FC = () => {
   const { can } = usePermission();
@@ -34,9 +34,17 @@ export const NotificationsPage: React.FC = () => {
     <div className="d-flex flex-column gap-4">
       {/* Header */}
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
-        <div>
-          <h4 className="fw-bold mb-1 text-dark">Notification Center & Broadcasts</h4>
-          <p className="text-muted small mb-0">System alerts, operational notifications, and staff broadcast messages</p>
+        <div className="d-flex align-items-center gap-2.5">
+          <div
+            className="d-flex align-items-center justify-content-center rounded-3 bg-primary-subtle text-primary flex-shrink-0"
+            style={{ width: 42, height: 42 }}
+          >
+            <Bell size={20} />
+          </div>
+          <div>
+            <h5 className="fw-bold mb-0 text-dark">Notification Center</h5>
+            <span className="text-secondary small">સિસ્ટમ સૂચનાઓ અને સંદેશાઓ</span>
+          </div>
         </div>
         <div className="d-flex align-items-center gap-2">
           <button className="btn btn-outline-primary btn-sm d-flex align-items-center gap-1 shadow-sm" onClick={markAllAsRead}>

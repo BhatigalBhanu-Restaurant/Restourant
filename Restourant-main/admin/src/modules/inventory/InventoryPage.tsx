@@ -501,22 +501,11 @@ export const InventoryPage: React.FC = () => {
       {/* ------------------------------------------------------------- */}
       {/* 1. TOP HEADER & NAVIGATION SWITCHER                          */}
       {/* ------------------------------------------------------------- */}
-      <div className="card border-0 shadow-sm mb-3" style={{ borderRadius: 16 }}>
+      <div className="card shadow-xs border mb-3 bg-white" style={{ borderRadius: 12, borderColor: '#e2e8f0' }}>
         <div className="card-body p-3 p-md-4">
           <div className="d-flex flex-wrap align-items-center justify-content-between gap-3">
             <div className="d-flex align-items-center gap-3">
-              <div
-                className="rounded-3 p-2.5 text-white d-flex align-items-center justify-content-center shadow-sm"
-                style={{ background: 'var(--brand-maroon, #7A1B28)', width: 48, height: 48 }}
-              >
-                <ClipboardList size={26} />
-              </div>
-              <div>
-                <h4 className="fw-bold mb-0 text-dark">ઈન્વેન્ટરી અને દૈનિક/માસિક હિસાબ</h4>
-                <div className="text-muted small mt-0.5">
-                  Bhatigal Bhanu Inventory & Daily / Monthly Profit & Loss Ledger
-                </div>
-              </div>
+              <h4 className="fw-bold mb-0 text-dark">ઈન્વેન્ટરી અને હિસાબ (Daily Ledger & Inventory)</h4>
             </div>
 
             {/* TAB SWITCHER PILL */}
@@ -762,66 +751,70 @@ export const InventoryPage: React.FC = () => {
           {/* 3 SUMMARY KPI CARDS */}
           <div className="row g-3 mb-3">
             <div className="col-12 col-md-4">
-              <div className="card border-0 shadow-sm h-100" style={{ borderRadius: 16 }}>
-                <div className="card-body p-3.5 d-flex align-items-center justify-content-between">
-                  <div>
-                    <div className="small text-muted fw-bold mb-1">કુલ દૈનિક આવક (Total Income)</div>
-                    <div className="fs-3 fw-bolder text-success">{money(totals.incomeTotal)}</div>
-                    <div className="text-muted small mt-1">રોકડ, ઓનલાઇન અને ફંક્શન્સ</div>
-                  </div>
+              <div className="card shadow-xs border h-100 bg-white" style={{ borderRadius: 12, borderColor: '#e2e8f0' }}>
+                <div className="card-body p-3 d-flex align-items-center gap-3">
                   <div
-                    className="rounded-circle p-3 bg-success-subtle text-success d-flex align-items-center justify-content-center"
-                    style={{ width: 56, height: 56 }}
+                    className="d-flex align-items-center justify-content-center flex-shrink-0"
+                    style={{ width: '46px', height: '46px', borderRadius: '10px', backgroundColor: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0' }}
                   >
-                    <TrendingUp size={28} />
+                    <TrendingUp size={22} />
                   </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="col-12 col-md-4">
-              <div className="card border-0 shadow-sm h-100" style={{ borderRadius: 16 }}>
-                <div className="card-body p-3.5 d-flex align-items-center justify-content-between">
-                  <div>
-                    <div className="small text-muted fw-bold mb-1">કુલ દૈનિક ખર્ચ (Total Expenses)</div>
-                    <div className="fs-3 fw-bolder text-danger">{money(totals.expenseTotal)}</div>
-                    <div className="text-muted small mt-1">શાકભાજી, દૂધ, ગેસ અને સામગ્રી</div>
-                  </div>
-                  <div
-                    className="rounded-circle p-3 bg-danger-subtle text-danger d-flex align-items-center justify-content-center"
-                    style={{ width: 56, height: 56 }}
-                  >
-                    <TrendingDown size={28} />
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            <div className="col-12 col-md-4">
-              <div className="card border-0 shadow-sm h-100" style={{ borderRadius: 16 }}>
-                <div className="card-body p-3.5 d-flex align-items-center justify-content-between">
-                  <div>
-                    <div className="small text-muted fw-bold mb-1">
-                      {totals.profit >= 0 ? 'ચોખ્ખો નફો / બચત (Net Profit)' : 'ખોટ / અછત (Net Deficit)'}
+                  <div className="min-w-0 flex-grow-1">
+                    <h3 className="fw-bolder mb-0 text-success" style={{ fontSize: '1.45rem', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+                      {money(totals.incomeTotal)}
+                    </h3>
+                    <div className="text-muted text-truncate mt-0.5" style={{ fontSize: '0.8rem', fontWeight: 500 }}>
+                      કુલ દૈનિક આવક (Total Income)
                     </div>
-                    <div
-                      className={`fs-3 fw-bolder ${
-                        totals.profit >= 0 ? 'text-primary' : 'text-danger'
-                      }`}
-                    >
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="col-12 col-md-4">
+              <div className="card shadow-xs border h-100 bg-white" style={{ borderRadius: 12, borderColor: '#e2e8f0' }}>
+                <div className="card-body p-3 d-flex align-items-center gap-3">
+                  <div
+                    className="d-flex align-items-center justify-content-center flex-shrink-0"
+                    style={{ width: '46px', height: '46px', borderRadius: '10px', backgroundColor: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}
+                  >
+                    <TrendingDown size={22} />
+                  </div>
+                  <div className="min-w-0 flex-grow-1">
+                    <h3 className="fw-bolder mb-0 text-danger" style={{ fontSize: '1.45rem', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+                      {money(totals.expenseTotal)}
+                    </h3>
+                    <div className="text-muted text-truncate mt-0.5" style={{ fontSize: '0.8rem', fontWeight: 500 }}>
+                      કુલ દૈનિક ખર્ચ (Total Expenses)
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div className="col-12 col-md-4">
+              <div className="card shadow-xs border h-100 bg-white" style={{ borderRadius: 12, borderColor: '#e2e8f0' }}>
+                <div className="card-body p-3 d-flex align-items-center gap-3">
+                  <div
+                    className="d-flex align-items-center justify-content-center flex-shrink-0"
+                    style={{
+                      width: '46px',
+                      height: '46px',
+                      borderRadius: '10px',
+                      backgroundColor: totals.profit >= 0 ? '#eff6ff' : '#fef2f2',
+                      color: totals.profit >= 0 ? '#2563eb' : '#dc2626',
+                      border: `1px solid ${totals.profit >= 0 ? '#dbeafe' : '#fecaca'}`
+                    }}
+                  >
+                    <WalletCards size={22} />
+                  </div>
+                  <div className="min-w-0 flex-grow-1">
+                    <h3 className={`fw-bolder mb-0 ${totals.profit >= 0 ? 'text-primary' : 'text-danger'}`} style={{ fontSize: '1.45rem', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
                       {money(totals.profit)}
+                    </h3>
+                    <div className="text-muted text-truncate mt-0.5" style={{ fontSize: '0.8rem', fontWeight: 500 }}>
+                      {totals.profit >= 0 ? 'ચોખ્ખો નફો (Net Profit)' : 'ખોટ (Deficit)'}
                     </div>
-                    <div className="text-muted small mt-1">
-                      {totals.profit >= 0 ? 'આવકમાંથી ખર્ચ બાદ ચોખ્ખો નફો' : 'ખર્ચ આવક કરતાં વધુ છે'}
-                    </div>
-                  </div>
-                  <div
-                    className={`rounded-circle p-3 ${
-                      totals.profit >= 0 ? 'bg-primary-subtle text-primary' : 'bg-danger-subtle text-danger'
-                    } d-flex align-items-center justify-content-center`}
-                    style={{ width: 56, height: 56 }}
-                  >
-                    <WalletCards size={28} />
                   </div>
                 </div>
               </div>

@@ -306,19 +306,38 @@ export const StatWidget: React.FC<{
   subtitle?: string;
   icon: React.ReactNode;
   variant?: 'primary' | 'success' | 'warning' | 'info' | 'danger';
-}> = ({ title, value, subtitle, icon, variant = 'primary' }) => {
+}> = ({ title, value, icon, variant = 'primary' }) => {
+  const variantStyles = {
+    primary: { bg: '#eff6ff', text: '#2563eb', border: '#dbeafe' },
+    success: { bg: '#ecfdf5', text: '#059669', border: '#a7f3d0' },
+    warning: { bg: '#fffbeb', text: '#d97706', border: '#fde68a' },
+    info: { bg: '#f0fdf4', text: '#16a34a', border: '#bbf7d0' },
+    danger: { bg: '#fef2f2', text: '#dc2626', border: '#fecaca' }
+  }[variant] || { bg: '#f1f5f9', text: '#475569', border: '#e2e8f0' };
+
   return (
-    <div className="card shadow-sm border-0 h-100">
-      <div className="card-body p-3 d-flex align-items-center justify-content-between">
-        <div>
-          <span className="small text-uppercase text-muted fw-bold" style={{ letterSpacing: '0.04em' }}>
-            {title}
-          </span>
-          <h3 className="fw-bold mb-0 mt-1 text-dark">{value}</h3>
-          {subtitle && <small className="text-muted">{subtitle}</small>}
-        </div>
-        <div className={`p-3 rounded-circle bg-${variant}-subtle text-${variant} d-flex align-items-center justify-content-center`}>
+    <div className="card shadow-xs border bg-white h-100" style={{ borderRadius: '12px', borderColor: '#e2e8f0' }}>
+      <div className="card-body p-3 d-flex align-items-center gap-3">
+        <div
+          className="d-flex align-items-center justify-content-center flex-shrink-0"
+          style={{
+            width: '46px',
+            height: '46px',
+            borderRadius: '10px',
+            backgroundColor: variantStyles.bg,
+            color: variantStyles.text,
+            border: `1px solid ${variantStyles.border}`
+          }}
+        >
           {icon}
+        </div>
+        <div className="min-w-0 flex-grow-1">
+          <h3 className="fw-bolder mb-0 text-dark" style={{ fontSize: '1.45rem', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+            {value}
+          </h3>
+          <div className="text-muted text-truncate mt-0.5" style={{ fontSize: '0.8rem', fontWeight: 500 }}>
+            {title}
+          </div>
         </div>
       </div>
     </div>

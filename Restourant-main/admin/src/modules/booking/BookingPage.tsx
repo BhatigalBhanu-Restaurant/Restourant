@@ -1170,42 +1170,45 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
   return (
     <div className="d-flex flex-column gap-3 pb-5">
       {/* 1. TOP HEADER BAR WITH LIVE REAL-TIME CLOCK & CALENDAR EXPORT */}
-      <div className="d-flex flex-wrap justify-content-between align-items-center py-2 px-3 border-bottom bg-white rounded-3 shadow-sm gap-2">
-        {/* Breadcrumb & Subtitle */}
-        <div className="d-flex align-items-center gap-2">
-          <span className="text-secondary fw-semibold" style={{ fontSize: '0.9rem' }}>
-            Bhatigal Bhanu
-          </span>
-          <span className="text-muted">/</span>
-          <span className="fw-bold text-dark" style={{ fontSize: '0.95rem' }}>
-            Functions & Banquet Calendar
-          </span>
-        </div>
-
-        {/* Real-time Digital Clock & Live Sync */}
-        <div className="d-flex align-items-center gap-2 flex-wrap">
-          {/* Real IST Clock Banner */}
-          <div
-            className="d-flex align-items-center gap-2 px-3 py-1 rounded-pill bg-light border shadow-xs"
-            title="Real-time Indian Standard Time (IST)"
-          >
-            <CalendarIcon size={14} className="text-danger" />
-            <span className="fw-semibold text-dark small">{currentDateFormatted || 'Loading Date...'}</span>
-            <span className="text-muted">|</span>
-            <Clock size={14} className="text-danger" />
-            <span className="fw-bold text-danger font-monospace small">{currentTime || '00:00:00'}</span>
+      <div className="card border bg-white shadow-sm" style={{ borderRadius: '12px', borderColor: '#e2e8f0' }}>
+        <div className="card-body p-3 d-flex flex-wrap justify-content-between align-items-center gap-2">
+          {/* Title & Subtitle */}
+          <div className="d-flex align-items-center gap-2.5">
+            <div
+              className="d-flex align-items-center justify-content-center rounded-3 bg-primary-subtle text-primary flex-shrink-0"
+              style={{ width: 42, height: 42 }}
+            >
+              <CalendarIcon size={20} />
+            </div>
+            <div>
+              <h5 className="fw-bold text-dark mb-0">Function Booking & Calendar</h5>
+              <span className="text-secondary small">ફંક્શન બુકિંગ અને કેલેન્ડર વ્યવસ્થાપન</span>
+            </div>
           </div>
 
-          {/* Export Full iCal (.ics) */}
-          <a
-            href="/api/calendar/export.ics"
-            download="bhatigal_bhanu_functions.ics"
-            className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 shadow-sm"
-            title="Export all restaurant functions to your mobile or desktop calendar"
-          >
-            <Download size={13} />
-            <span className="d-none d-sm-inline">Export Full iCal (.ics)</span>
-          </a>
+          {/* Real-time Digital Clock & Export */}
+          <div className="d-flex align-items-center gap-2 flex-wrap">
+            <div
+              className="d-flex align-items-center gap-2 px-3 py-1.5 rounded-pill bg-light border shadow-xs"
+              title="Real-time Indian Standard Time (IST)"
+            >
+              <CalendarIcon size={14} className="text-primary" />
+              <span className="fw-semibold text-dark small">{currentDateFormatted || 'Loading Date...'}</span>
+              <span className="text-muted">|</span>
+              <Clock size={14} className="text-primary" />
+              <span className="fw-bold text-primary font-monospace small">{currentTime || '00:00:00'}</span>
+            </div>
+
+            <a
+              href="/api/calendar/export.ics"
+              download="bhatigal_bhanu_functions.ics"
+              className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1.5 shadow-xs px-3 py-1.5"
+              title="Export all restaurant functions to your mobile or desktop calendar"
+            >
+              <Download size={14} />
+              <span className="d-none d-sm-inline">Export iCal (.ics)</span>
+            </a>
+          </div>
         </div>
       </div>
 
@@ -1235,29 +1238,26 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
         {/* LEFT CARD: FUNCTION BOOKING FORM */}
         <div className="col-12 col-lg-5">
           <div 
-            className="card h-100 shadow-sm border-0" 
+            className="card h-100 shadow-sm border bg-white" 
             style={{ 
-              borderRadius: '16px',
-              backgroundColor: '#FFFFFF',
-              border: '1px solid #F0E6E6'
+              borderRadius: '12px',
+              borderColor: '#e2e8f0'
             }}
           >
-            {/* Header: Bhatigal Bhanu Styled Brand Box */}
+            {/* Header: Clean Card Header */}
             <div 
-              className="card-header py-3 px-3 px-sm-4 border-0 text-white d-flex justify-content-between align-items-center"
+              className="card-header py-3 px-3 px-sm-4 bg-white border-bottom d-flex justify-content-between align-items-center"
               style={{
-                backgroundColor: 'var(--brand-maroon, #7A1B28)',
-                borderTopLeftRadius: '16px',
-                borderTopRightRadius: '16px'
+                borderTopLeftRadius: '12px',
+                borderTopRightRadius: '12px',
+                borderColor: '#e2e8f0'
               }}
             >
               <div className="d-flex align-items-center gap-2">
-                <CalendarPlus size={20} className="text-gold" />
-                <div>
-                  <h6 className="fw-bold mb-0 text-white">Book Function (ફંક્શન બુકિંગ)</h6>
-                </div>
+                <CalendarPlus size={18} className="text-primary" />
+                <h6 className="fw-bold mb-0 text-dark">Book Function (ફંક્શન બુકિંગ)</h6>
               </div>
-              <span className="badge bg-gold text-dark fw-bold" style={{ fontSize: '0.7rem' }}>
+              <span className="badge bg-primary-subtle text-primary fw-bold" style={{ fontSize: '0.75rem' }}>
                 {DAY_NAME_GUJARATI[bookingDayName]?.split(' ')[0] || 'તારીખ'}
               </span>
             </div>
@@ -1340,17 +1340,17 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                       setFormData({ ...formData, bookingDate: e.target.value });
                       setSelectedDate(e.target.value);
                     }}
-                    style={{ borderColor: '#E8DCCF', fontSize: '0.9rem' }}
+                    style={{ fontSize: '0.9rem' }}
                   />
                   <small className="text-muted">
-                    તારીખનો વાર: <strong className="text-primary">{DAY_NAME_GUJARATI[bookingDayName] || bookingDayName}</strong>
+                    વાર: <strong className="text-primary">{DAY_NAME_GUJARATI[bookingDayName]?.split(' ')[0] || bookingDayName}</strong>
                   </small>
                 </div>
 
                 {/* 2. TIME SLOT: STRICTLY 2 OPTIONS (બપોરે / સાંજે) + MANUAL TIME SELECT */}
                 <div className="p-2.5 rounded-3 bg-light border">
                   <label className="form-label small fw-bold text-dark mb-1 d-flex align-items-center gap-1">
-                    <Clock size={13} className="text-danger" /> Time Slot (સમય ગાળો) & Manual Time <span className="text-danger">*</span>
+                    <Clock size={13} className="text-primary" /> Time Slot (સમય ગાળો) <span className="text-danger">*</span>
                   </label>
                   
                   {/* Exactly 2 Time Slot Buttons: બપોરે (Lunch) / સાંજે (Dinner) */}
@@ -1391,7 +1391,7 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                   <div className="row g-2 align-items-center">
                     <div className="col-7">
                       <label className="small text-secondary mb-0 fw-semibold" style={{ fontSize: '0.75rem' }}>
-                        Manual Exact Time (ચોક્કસ સમય):
+                        ચોક્કસ સમય (Exact Time):
                       </label>
                       <input
                         type="text"
@@ -1405,7 +1405,7 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                     </div>
                     <div className="col-5">
                       <label className="small text-secondary mb-0" style={{ fontSize: '0.75rem' }}>
-                        Quick Presets:
+                        Presets:
                       </label>
                       <select
                         className="form-select form-select-sm"
@@ -1439,7 +1439,7 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                 </div>
 
                 {/* 3. FUNCTION CATERING MENU */}
-                <div className="p-3 rounded-3 border" style={{ backgroundColor: '#FDFCF9', borderColor: '#E8DCCF' }}>
+                <div className="p-3 rounded-3 border bg-light">
                   <div className="d-flex justify-content-between align-items-center mb-2">
                     <div className="d-flex align-items-center gap-1.5">
                       <Utensils size={16} className="text-warning" />
@@ -1468,12 +1468,12 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                   {selectedDishes.length > 0 && (
                     <div className="d-flex gap-2 mt-2">
                       <button type="button" className="btn btn-outline-primary btn-sm flex-grow-1" onClick={generateFunctionMenuPoster} disabled={menuPosterLoading}>
-                        <Eye size={14} className="me-1" /> {menuPosterLoading ? 'Creating menu card…' : 'Open Menu Card Preview'}
+                        <Eye size={14} className="me-1" /> {menuPosterLoading ? 'Creating card…' : 'Preview Menu Card'}
                       </button>
                       {menuPosterUrl && <button type="button" className="btn btn-outline-success btn-sm" onClick={downloadFunctionMenuPoster}><Download size={14} className="me-1" />Download</button>}
                     </div>
                   )}
-                  {menuPosterUrl && <div className="mt-2 text-center border rounded-3 p-2 bg-light"><img src={menuPosterUrl} alt="Function menu card" className="img-fluid rounded" style={{ maxHeight: 360 }} /></div>}
+                  {menuPosterUrl && <div className="mt-2 text-center border rounded-3 p-2 bg-white"><img src={menuPosterUrl} alt="Function menu card" className="img-fluid rounded" style={{ maxHeight: 360 }} /></div>}
 
                   {/* Selected Dishes Summary Preview */}
                   {selectedDishes.length > 0 && (
@@ -1515,17 +1515,17 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                 {/* 4. Guests Expected */}
                 <div>
                   <label className="form-label small fw-semibold text-secondary mb-1 d-flex align-items-center gap-1">
-                    <Users size={12} className="text-danger" /> Guests Expected (મહેમાનોની સંખ્યા) <span className="text-danger">*</span>
+                    <Users size={12} className="text-primary" /> મહેમાનો (Guests Count) <span className="text-danger">*</span>
                   </label>
                   <input
                     type="number"
                     min="1"
                     className="form-control form-control-sm border rounded-3 p-2 fw-semibold"
-                    placeholder="દા.ત. 50"
+                    placeholder="50"
                     required
                     value={formData.guestCount}
                     onChange={e => setFormData({ ...formData, guestCount: Number(e.target.value) })}
-                    style={{ borderColor: '#E8DCCF', fontSize: '0.9rem' }}
+                    style={{ fontSize: '0.9rem' }}
                   />
                 </div>
 
@@ -1533,21 +1533,21 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                 <div className="row g-2">
                   <div className="col-12 col-sm-6">
                     <label className="form-label small fw-semibold text-secondary mb-1">
-                      Host Name (યજમાનનું નામ) <span className="text-danger">*</span>
+                      યજમાન નામ (Host Name) <span className="text-danger">*</span>
                     </label>
                     <input
                       type="text"
                       className="form-control form-control-sm border rounded-3 p-2"
-                      placeholder="દા.ત. રાજેશભાઈ પટેલ"
+                      placeholder="Enter Host Name"
                       required
                       value={formData.customerName}
                       onChange={e => setFormData({ ...formData, customerName: e.target.value })}
-                      style={{ borderColor: '#E8DCCF', fontSize: '0.9rem' }}
+                      style={{ fontSize: '0.9rem' }}
                     />
                   </div>
                   <div className="col-12 col-sm-6">
                     <label className="form-label small fw-semibold text-secondary mb-1">
-                      Mobile Phone (મોબાઈલ નંબર) <span className="text-danger">*</span>
+                      મોબાઈલ નંબર (Mobile) <span className="text-danger">*</span>
                     </label>
                     <div className="input-group input-group-sm">
                       <span className="input-group-text bg-light text-muted border-end-0" style={{ fontSize: '0.8rem' }}>
@@ -1564,93 +1564,23 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                           const val = e.target.value.replace(/\D/g, '').slice(0, 10);
                           setFormData({ ...formData, customerPhone: val });
                         }}
-                        style={{ borderColor: '#E8DCCF', fontSize: '0.9rem' }}
+                        style={{ fontSize: '0.9rem' }}
                       />
                     </div>
                   </div>
                 </div>
 
-                {/* Payment collection is handled outside this booking module. */}
-                <div className="d-none">
-                <div className="row g-2">
-                  <div className="col-6">
-                    <label className="form-label small fw-semibold text-secondary mb-1">
-                      Advance Paid (એડવાન્સ ડિપોઝીટ ₹) <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="500"
-                      className="form-control form-control-sm border rounded-3 p-2"
-                      placeholder="5000"
-                      required
-                      value={formData.advanceAmount}
-                      onChange={e => setFormData({ ...formData, advanceAmount: Number(e.target.value) })}
-                      style={{ borderColor: '#E8DCCF', fontSize: '0.9rem', fontWeight: 600, color: '#198754' }}
-                    />
-                  </div>
-                  <div className="col-6">
-                    <label className="form-label small fw-semibold text-secondary mb-1">
-                      Estimated Budget (અંદાજિત રકમ ₹)
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="1000"
-                      className="form-control form-control-sm border rounded-3 p-2"
-                      placeholder="25000"
-                      value={formData.estimatedTotal}
-                      onChange={e => setFormData({ ...formData, estimatedTotal: Number(e.target.value) })}
-                      style={{ borderColor: '#E8DCCF', fontSize: '0.9rem' }}
-                    />
-                  </div>
-                </div>
-
-                {/* 7. Payment Mode & Reference ID */}
-                <div className="row g-2">
-                  <div className="col-12 col-sm-6">
-                    <label className="form-label small fw-semibold text-secondary mb-1 d-flex align-items-center gap-1">
-                      <CreditCard size={12} /> Advance Mode
-                    </label>
-                    <select
-                      className="form-select form-select-sm border rounded-3 p-2"
-                      value={formData.paymentMode}
-                      onChange={e => setFormData({ ...formData, paymentMode: e.target.value })}
-                      style={{ borderColor: '#E8DCCF', fontSize: '0.85rem' }}
-                    >
-                      <option value="Cash">Cash (રોકડ)</option>
-                      <option value="UPI (GPay / PhonePe / Paytm / QR)">UPI (GPay / PhonePe / Paytm)</option>
-                      <option value="Card (Debit / Credit)">Card (કાર્ડ)</option>
-                      <option value="Bank Transfer / RTGS / NEFT">Bank Transfer / NEFT</option>
-                    </select>
-                  </div>
-                  <div className="col-12 col-sm-6">
-                    <label className="form-label small fw-semibold text-secondary mb-1">
-                      UPI / Txn Ref ID
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control form-control-sm border rounded-3 p-2"
-                      placeholder="e.g. UPI-123456"
-                      value={formData.referenceId}
-                      onChange={e => setFormData({ ...formData, referenceId: e.target.value })}
-                      style={{ borderColor: '#E8DCCF', fontSize: '0.85rem' }}
-                    />
-                  </div>
-                </div>
-
-                </div>
                 {/* 8. Function Type & Manager */}
                 <div className="row g-2">
                   <div className="col-12 col-sm-6">
                     <label className="form-label small fw-semibold text-secondary mb-1">
-                      Function Type (પ્રસંગનો પ્રકાર)
+                      પ્રસંગ પ્રકાર (Function Type)
                     </label>
                     <select
                       className="form-select form-select-sm border rounded-3 p-2"
                       value={formData.functionType}
                       onChange={e => setFormData({ ...formData, functionType: e.target.value })}
-                      style={{ borderColor: '#E8DCCF', fontSize: '0.85rem' }}
+                      style={{ fontSize: '0.85rem' }}
                     >
                       {functionTypesList.map((type, i) => (
                         <option key={i} value={type}>{type}</option>
@@ -1659,13 +1589,13 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                   </div>
                   <div className="col-12 col-sm-6">
                     <label className="form-label small fw-semibold text-secondary mb-1">
-                      Accepted By (મેનેજર)
+                      મેનેજર (Manager)
                     </label>
                     <select
                       className="form-select form-select-sm border rounded-3 p-2"
                       value={formData.acceptedBy}
                       onChange={e => setFormData({ ...formData, acceptedBy: e.target.value })}
-                      style={{ borderColor: '#E8DCCF', fontSize: '0.85rem' }}
+                      style={{ fontSize: '0.85rem' }}
                     >
                       {staffList.map((name, i) => (
                         <option key={i} value={name}>{name}</option>
@@ -1677,15 +1607,15 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                 {/* 9. Notes / Instructions */}
                 <div>
                   <label className="form-label small fw-semibold text-secondary mb-1">
-                    Special Instructions (વિશેષ નોંધ)
+                    વિશેષ નોંધ (Special Instructions)
                   </label>
                   <textarea
                     rows={2}
                     className="form-control form-control-sm border rounded-3 p-2"
-                    placeholder="દા.ત. એસી ચાલુ રાખવું, બેઠક વ્યવસ્થા, વધારાની છાસ..."
+                    placeholder="Special instructions or notes..."
                     value={formData.notes}
                     onChange={e => setFormData({ ...formData, notes: e.target.value })}
-                    style={{ borderColor: '#E8DCCF', fontSize: '0.85rem' }}
+                    style={{ fontSize: '0.85rem' }}
                   />
                 </div>
 
@@ -1694,13 +1624,8 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                   <button
                     type="submit"
                     disabled={submitting}
-                    className="btn w-100 py-2.5 text-white fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2"
-                    style={{
-                      backgroundColor: 'var(--brand-maroon, #7A1B28)',
-                      borderColor: 'var(--brand-maroon-dark, #56101B)',
-                      borderRadius: '10px',
-                      fontSize: '0.95rem'
-                    }}
+                    className="btn btn-primary w-100 py-2.5 text-white fw-bold shadow-sm d-flex align-items-center justify-content-center gap-2 rounded-3"
+                    style={{ fontSize: '0.95rem' }}
                   >
                     {submitting ? (
                       <>
@@ -1723,11 +1648,10 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
         {/* RIGHT CARD: INTERACTIVE CALENDAR VIEW */}
         <div className="col-12 col-lg-7">
           <div 
-            className="card h-100 shadow-sm border-0" 
+            className="card h-100 shadow-sm border bg-white" 
             style={{ 
-              borderRadius: '16px',
-              backgroundColor: '#FFFFFF',
-              border: '1px solid #F0E6E6'
+              borderRadius: '12px',
+              borderColor: '#e2e8f0'
             }}
           >
             <div className="card-body p-4 d-flex flex-column">
@@ -1744,8 +1668,8 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                     <ChevronLeft size={20} />
                   </button>
                   <h5 
-                    className="fw-bold mb-0 text-capitalize"
-                    style={{ color: 'var(--brand-maroon, #7A1B28)', fontSize: '1.25rem', minWidth: '160px' }}
+                    className="fw-bold mb-0 text-capitalize text-dark"
+                    style={{ fontSize: '1.2rem', minWidth: '160px' }}
                   >
                     {monthNames[month]} {year}
                   </h5>
@@ -1791,7 +1715,7 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                   <div 
                     key={d} 
                     className="fw-bold small py-1"
-                    style={{ color: 'var(--brand-maroon, #7A1B28)', fontSize: '0.75rem', letterSpacing: '0.05em' }}
+                    style={{ color: '#64748b', fontSize: '0.75rem', letterSpacing: '0.05em' }}
                   >
                     {d}
                   </div>
@@ -1859,20 +1783,20 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                             ? '#F2F9F5'
                             : item.isPast 
                               ? '#F8F9FA' 
-                              : isSelected 
-                                ? '#FDF8F2' 
+                                : isSelected 
+                                ? '#eff6ff' 
                                 : '#FAFAFA',
                         opacity: item.isPast && allOnDate.length === 0 ? 0.45 : 1,
                         border: item.isToday 
-                          ? '2px solid var(--brand-maroon, #7A1B28)' 
+                          ? '2px solid #2563eb' 
                           : isLocked
-                            ? '1px solid #F5C2C7'
+                            ? '1px solid #fecaca'
                             : hasCompleted
-                              ? '1px solid #B8E2CB'
+                              ? '1px solid #bbf7d0'
                               : isSelected 
-                                ? '2px solid var(--brand-gold, #D48B28)' 
-                                : '1px solid #ECECEC',
-                        boxShadow: isSelected ? '0 2px 6px rgba(122, 27, 40, 0.12)' : 'none'
+                                ? '2px solid #2563eb' 
+                                : '1px solid #e2e8f0',
+                        boxShadow: isSelected ? '0 2px 6px rgba(37, 99, 235, 0.15)' : 'none'
                       }}
                       title={
                         allOnDate.length > 0
@@ -1891,19 +1815,18 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                           style={{ 
                             fontSize: '0.8rem',
                             color: item.isToday 
-                              ? 'var(--brand-maroon, #7A1B28)' 
+                              ? '#2563eb' 
                               : item.isPast 
-                                ? '#999999' 
-                                : '#333333'
+                                ? '#94a3b8' 
+                                : '#1e293b'
                           }}
                         >
                           {item.dayNumber}
                         </span>
                         {item.isToday && (
                           <span 
-                            className="badge text-white px-1 py-0 rounded"
+                            className="badge text-white px-1 py-0 rounded bg-primary"
                             style={{ 
-                              backgroundColor: 'var(--brand-maroon, #7A1B28)', 
                               fontSize: '0.55rem', 
                               letterSpacing: '0.04em' 
                             }}
@@ -1983,7 +1906,7 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
               </div>
 
               {/* Selected Date Summary & Bookings Panel (Below the Calendar Grid) */}
-              <div className="mt-3 p-3 rounded-3 border" style={{ backgroundColor: '#FAF7F2', borderColor: '#EADBC8' }}>
+              <div className="mt-3 p-3 rounded-3 border bg-light" style={{ borderColor: '#e2e8f0' }}>
                 <div className="d-flex justify-content-between align-items-center">
                   <div>
                     <span className="small text-muted d-block" style={{ fontSize: '0.75rem' }}>Selected Calendar Date (પસંદ કરેલ તારીખ)</span>
@@ -2114,7 +2037,7 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
       </div>
 
       {/* 3. FUNCTION REGISTRY TABLE (SHOWS ALL UPCOMING & PAST FUNCTIONS) */}
-      <div className="card shadow-sm border-0" style={{ borderRadius: '16px' }}>
+      <div className="card shadow-sm border bg-white" style={{ borderRadius: '12px', borderColor: '#e2e8f0' }}>
         <div className="card-header bg-white p-3 border-bottom d-flex flex-wrap justify-content-between align-items-center gap-2">
           <div className="d-flex align-items-center gap-2">
             <FileText size={18} className="text-primary" />

@@ -519,12 +519,17 @@ export const MastersPage: React.FC = () => {
 
 const Metric: React.FC<{ icon: React.ReactNode; tone: string; label: string; value: number }> = ({ icon, tone, label, value }) => (
   <div className="col-12 col-sm-4">
-    <div className="card border-0 shadow-sm h-100">
-      <div className="card-body py-3 d-flex align-items-center gap-3">
-        <div className={`rounded-circle bg-${tone}-subtle text-${tone} p-2`}>{icon}</div>
+    <div className="card border bg-white shadow-sm h-100" style={{ borderRadius: '12px', borderColor: '#e2e8f0' }}>
+      <div className="card-body p-3 d-flex align-items-center gap-3">
+        <div 
+          className={`d-flex align-items-center justify-content-center flex-shrink-0 rounded-3 bg-${tone}-subtle text-${tone}`}
+          style={{ width: '46px', height: '46px' }}
+        >
+          {icon}
+        </div>
         <div>
-          <div className="text-muted small">{label}</div>
-          <div className="fw-bold fs-5">{value}</div>
+          <div className="text-secondary small fw-medium" style={{ fontSize: '0.8rem' }}>{label}</div>
+          <div className="fw-bold text-dark" style={{ fontSize: '1.4rem', lineHeight: 1.2 }}>{value}</div>
         </div>
       </div>
     </div>

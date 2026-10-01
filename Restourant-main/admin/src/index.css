@@ -13,11 +13,11 @@
   --brand-gold-light: #F7D591;
   --brand-gold-subtle: #FDF5E6;
   
-  --brand-cream: #FAF5EE;
+  --brand-cream: #f4f6fa;
   --brand-surface: #FFFFFF;
-  --brand-text-dark: #2B181C;
-  --brand-text-muted: #6E5A5E;
-  --brand-border: #E8DCCF;
+  --brand-text-dark: #0f172a;
+  --brand-text-muted: #64748b;
+  --brand-border: #e2e8f0;
 
   --sidebar-width: 260px;
   
@@ -37,7 +37,7 @@ body {
 
 /* Primary Theme Overrides */
 .bg-primary {
-  background-color: rgba(var(--bs-primary-rgb), var(--bs-bg-opacity, 1)) !important;
+  background-color: var(--brand-maroon) !important;
 }
 
 .text-primary {
@@ -345,29 +345,31 @@ body {
 }
 
 ::-webkit-scrollbar-track {
-  background: #F4ECE1;
+  background: #f1f5f9;
 }
 
 ::-webkit-scrollbar-thumb {
-  background: #CBB9A7;
-  border-radius: 3px;
+  background: #cbd5e1;
+  border-radius: 4px;
 }
 
 ::-webkit-scrollbar-thumb:hover {
-  background: var(--brand-maroon-light);
+  background: #94a3b8;
 }
 
 /* Cards & Containers */
 .card {
-  border-color: var(--brand-border) !important;
-  box-shadow: 0 2px 8px rgba(122, 27, 40, 0.04) !important;
+  border-color: #e2e8f0 !important;
+  border-radius: 12px !important;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04) !important;
   background-color: #FFFFFF;
 }
 
 /* POS Item Cards */
 .pos-item-card {
   transition: transform 0.15s ease, box-shadow 0.15s ease;
-  border-color: var(--brand-border) !important;
+  border-color: #e2e8f0 !important;
+  border-radius: 12px !important;
 }
 
 .pos-item-card:hover {

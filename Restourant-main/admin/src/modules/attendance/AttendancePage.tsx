@@ -315,17 +315,9 @@ export const AttendancePage: React.FC = () => {
       <div className="d-flex flex-column flex-md-row align-items-md-center justify-content-between gap-3 mb-3 pb-2 border-bottom">
         <div>
           <div className="d-flex align-items-center gap-2">
-            <div className="p-2 rounded-3 bg-primary bg-opacity-10 text-primary">
-              <CalendarDays size={24} className="text-primary" />
-            </div>
-            <div>
-              <h4 className="fw-bold mb-0 text-dark" style={{ letterSpacing: '-0.02em' }}>
-                કર્મચારી હાજરી પત્રક (Monthly Staff Attendance)
-              </h4>
-              <p className="text-muted small mb-0">
-                દરેક સ્ટાફની આખા મહિનાની દિવસવાર હાજરી, રજા અને કામના દિવસોનું રજિસ્ટર
-              </p>
-            </div>
+            <h4 className="fw-bold mb-0 text-dark">
+              કર્મચારી હાજરી પત્રક (Monthly Attendance)
+            </h4>
           </div>
         </div>
 
@@ -333,30 +325,28 @@ export const AttendancePage: React.FC = () => {
         <div className="d-flex flex-wrap align-items-center gap-2">
           <button
             onClick={handleMarkAllPresentToday}
-            className="btn btn-success d-flex align-items-center gap-1.5 shadow-sm px-3 fw-medium"
-            style={{ fontSize: '0.88rem' }}
+            className="btn btn-success btn-sm d-flex align-items-center gap-1.5 shadow-xs px-3 fw-medium"
             title="આજના દિવસ માટે બધા કર્મચારીઓને હાજર માર્ક કરો"
           >
-            <Sparkles size={16} />
-            <span>આજના બધા હાજર (Mark All Present)</span>
+            <Sparkles size={15} />
+            <span>આજના બધા હાજર</span>
           </button>
 
           <button
             onClick={() => setShowBulkModal(true)}
-            className="btn btn-outline-primary d-flex align-items-center gap-1.5 px-3"
-            style={{ fontSize: '0.88rem' }}
+            className="btn btn-outline-primary btn-sm d-flex align-items-center gap-1.5 px-3"
           >
-            <Clock size={16} />
-            <span>તારીખ મુજબ હાજરી પૂરો</span>
+            <Clock size={15} />
+            <span>તારીખ મુજબ હાજરી</span>
           </button>
 
           <button
             onClick={() => fetchMonthlyData(selectedMonth)}
             disabled={loading}
-            className="btn btn-outline-secondary d-flex align-items-center gap-1 px-2.5"
+            className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1 px-2.5"
             title="રિફ્રેશ કરો"
           >
-            <RefreshCw size={16} className={loading ? 'spin' : ''} />
+            <RefreshCw size={15} className={loading ? 'spin' : ''} />
           </button>
         </div>
       </div>
@@ -365,13 +355,13 @@ export const AttendancePage: React.FC = () => {
       <div className="row g-3 mb-3">
         {/* Month Navigator */}
         <div className="col-12 col-xl-5">
-          <div className="card border-0 shadow-sm rounded-3 p-3 bg-white h-100 d-flex flex-column justify-content-center">
+          <div className="card shadow-xs border rounded-3 p-3 bg-white h-100 d-flex flex-column justify-content-center" style={{ borderRadius: '12px', borderColor: '#e2e8f0' }}>
             <div className="d-flex align-items-center justify-content-between gap-2">
               <button
                 onClick={handlePrevMonth}
                 className="btn btn-light btn-sm rounded-circle d-flex align-items-center justify-content-center border"
                 style={{ width: '36px', height: '36px' }}
-                title="પાછલો મહિનો (Previous Month)"
+                title="પાછલો મહિનો"
               >
                 <ChevronLeft size={18} />
               </button>
@@ -414,7 +404,7 @@ export const AttendancePage: React.FC = () => {
                 onClick={handleNextMonth}
                 className="btn btn-light btn-sm rounded-circle d-flex align-items-center justify-content-center border"
                 style={{ width: '36px', height: '36px' }}
-                title="આગલો મહિનો (Next Month)"
+                title="આગલો મહિનો"
               >
                 <ChevronRight size={18} />
               </button>
@@ -432,65 +422,81 @@ export const AttendancePage: React.FC = () => {
           </div>
         </div>
 
-        {/* 4 Summary Cards */}
+        {/* 4 Clean Summary Cards */}
         <div className="col-12 col-xl-7">
           <div className="row g-2">
             <div className="col-6 col-md-3">
-              <div className="card border-0 shadow-sm rounded-3 p-2.5 bg-white h-100">
-                <div className="d-flex align-items-center gap-2 mb-1">
-                  <div className="p-1.5 rounded-2 bg-light text-primary">
-                    <Users size={16} />
+              <div className="card shadow-xs border bg-white h-100 p-2.5" style={{ borderRadius: '12px', borderColor: '#e2e8f0' }}>
+                <div className="d-flex align-items-center gap-2.5">
+                  <div
+                    className="d-flex align-items-center justify-content-center flex-shrink-0"
+                    style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: '#eff6ff', color: '#2563eb', border: '1px solid #dbeafe' }}
+                  >
+                    <Users size={18} />
                   </div>
-                  <span className="text-muted small fw-medium">કુલ સ્ટાફ</span>
-                </div>
-                <div className="fs-5 fw-bold text-dark ps-1">
-                  {data?.stats?.totalStaff ?? 0}
-                  <span className="fs-7 text-muted fw-normal ms-1">કર્મચારી</span>
+                  <div className="min-w-0">
+                    <h4 className="fw-bolder mb-0 text-dark" style={{ fontSize: '1.25rem', lineHeight: 1.2 }}>
+                      {data?.stats?.totalStaff ?? 0}
+                    </h4>
+                    <div className="text-muted small text-truncate" style={{ fontSize: '0.75rem' }}>કુલ સ્ટાફ</div>
+                  </div>
                 </div>
               </div>
             </div>
 
             <div className="col-6 col-md-3">
-              <div className="card border-0 shadow-sm rounded-3 p-2.5 bg-white h-100">
-                <div className="d-flex align-items-center gap-2 mb-1">
-                  <div className="p-1.5 rounded-2 bg-success bg-opacity-10 text-success">
-                    <UserCheck size={16} />
+              <div className="card shadow-xs border bg-white h-100 p-2.5" style={{ borderRadius: '12px', borderColor: '#e2e8f0' }}>
+                <div className="d-flex align-items-center gap-2.5">
+                  <div
+                    className="d-flex align-items-center justify-content-center flex-shrink-0"
+                    style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0' }}
+                  >
+                    <UserCheck size={18} />
                   </div>
-                  <span className="text-muted small fw-medium">આજની હાજરી</span>
-                </div>
-                <div className="fs-5 fw-bold text-success ps-1">
-                  {data?.stats?.todayPresent ?? 0}
-                  <span className="fs-7 text-muted fw-normal ms-1">હાજર</span>
+                  <div className="min-w-0">
+                    <h4 className="fw-bolder mb-0 text-success" style={{ fontSize: '1.25rem', lineHeight: 1.2 }}>
+                      {data?.stats?.todayPresent ?? 0}
+                    </h4>
+                    <div className="text-muted small text-truncate" style={{ fontSize: '0.75rem' }}>આજે હાજર</div>
+                  </div>
                 </div>
               </div>
             </div>
 
             <div className="col-6 col-md-3">
-              <div className="card border-0 shadow-sm rounded-3 p-2.5 bg-white h-100">
-                <div className="d-flex align-items-center gap-2 mb-1">
-                  <div className="p-1.5 rounded-2 bg-danger bg-opacity-10 text-danger">
-                    <UserX size={16} />
+              <div className="card shadow-xs border bg-white h-100 p-2.5" style={{ borderRadius: '12px', borderColor: '#e2e8f0' }}>
+                <div className="d-flex align-items-center gap-2.5">
+                  <div
+                    className="d-flex align-items-center justify-content-center flex-shrink-0"
+                    style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: '#fef2f2', color: '#dc2626', border: '1px solid #fecaca' }}
+                  >
+                    <UserX size={18} />
                   </div>
-                  <span className="text-muted small fw-medium">ગેરહાજર</span>
-                </div>
-                <div className="fs-5 fw-bold text-danger ps-1">
-                  {data?.stats?.todayAbsent ?? 0}
-                  <span className="fs-7 text-muted fw-normal ms-1">આજે</span>
+                  <div className="min-w-0">
+                    <h4 className="fw-bolder mb-0 text-danger" style={{ fontSize: '1.25rem', lineHeight: 1.2 }}>
+                      {data?.stats?.todayAbsent ?? 0}
+                    </h4>
+                    <div className="text-muted small text-truncate" style={{ fontSize: '0.75rem' }}>આજે ગેરહાજર</div>
+                  </div>
                 </div>
               </div>
             </div>
 
             <div className="col-6 col-md-3">
-              <div className="card border-0 shadow-sm rounded-3 p-2.5 bg-white h-100">
-                <div className="d-flex align-items-center gap-2 mb-1">
-                  <div className="p-1.5 rounded-2 bg-warning bg-opacity-10 text-warning">
-                    <Calendar size={16} />
+              <div className="card shadow-xs border bg-white h-100 p-2.5" style={{ borderRadius: '12px', borderColor: '#e2e8f0' }}>
+                <div className="d-flex align-items-center gap-2.5">
+                  <div
+                    className="d-flex align-items-center justify-content-center flex-shrink-0"
+                    style={{ width: '40px', height: '40px', borderRadius: '10px', backgroundColor: '#fffbeb', color: '#d97706', border: '1px solid #fde68a' }}
+                  >
+                    <Calendar size={18} />
                   </div>
-                  <span className="text-muted small fw-medium">સરેરાશ હાજરી</span>
-                </div>
-                <div className="fs-5 fw-bold text-dark ps-1">
-                  {data?.stats?.avgAttendancePct ?? 0}%
-                  <span className="fs-7 text-muted fw-normal ms-1">માસિક</span>
+                  <div className="min-w-0">
+                    <h4 className="fw-bolder mb-0 text-dark" style={{ fontSize: '1.25rem', lineHeight: 1.2 }}>
+                      {data?.stats?.avgAttendancePct ?? 0}%
+                    </h4>
+                    <div className="text-muted small text-truncate" style={{ fontSize: '0.75rem' }}>સરેરાશ હાજરી</div>
+                  </div>
                 </div>
               </div>
             </div>

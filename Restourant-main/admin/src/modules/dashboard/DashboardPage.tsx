@@ -57,20 +57,17 @@ export const DashboardPage: React.FC = () => {
 
   return (
     <div className="d-flex flex-column gap-4">
-      {/* Top Heritage Welcome Banner */}
-      <div className="card border-0 shadow-sm overflow-hidden" style={{ background: 'linear-gradient(135deg, #7A1B28 0%, #56101B 100%)' }}>
-        <div className="card-body p-3 p-sm-4 text-white d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3">
-          <div className="d-flex align-items-center gap-2 gap-sm-3">
+      {/* Top Header - Clean Modern Style */}
+      <div className="card border shadow-xs bg-white" style={{ borderRadius: '12px' }}>
+        <div className="card-body p-3 p-md-4 d-flex flex-column flex-md-row align-items-start align-items-md-center justify-content-between gap-3">
+          <div className="d-flex align-items-center gap-3">
             <div
-              className="rounded-circle d-flex align-items-center justify-content-center bg-white shadow-sm flex-shrink-0"
+              className="rounded-circle d-flex align-items-center justify-content-center bg-white shadow-xs flex-shrink-0"
               style={{
-                width: '56px',
-                height: '56px',
-                minWidth: '56px',
-                minHeight: '56px',
-                border: '2.5px solid var(--brand-gold, #D48B28)',
+                width: '48px',
+                height: '48px',
+                border: '2px solid #e2e8f0',
                 padding: '2px',
-                boxShadow: '0 3px 10px rgba(0, 0, 0, 0.25)',
                 aspectRatio: '1 / 1',
                 overflow: 'hidden'
               }}
@@ -79,33 +76,28 @@ export const DashboardPage: React.FC = () => {
                 src="/logo.jpg"
                 alt="ભાતીગળ ભાણું"
                 className="w-100 h-100 rounded-circle flex-shrink-0"
-                style={{
-                  objectFit: 'cover',
-                  aspectRatio: '1 / 1',
-                  borderRadius: '50%',
-                  display: 'block'
-                }}
+                style={{ objectFit: 'cover' }}
               />
             </div>
             <div>
               <div className="d-flex align-items-center gap-2">
-                <h3 className="fw-bold mb-0 text-white fs-4 fs-sm-3">Bhatigal Bhanu</h3>
-                <span className="badge bg-gold text-dark fw-bold">Live ERP</span>
+                <h4 className="fw-bold mb-0 text-dark">Bhatigal Bhanu ERP</h4>
+                <span className="badge bg-success-subtle text-success border border-success-subtle fw-semibold">Live</span>
               </div>
-              <p className="mb-0 text-white-50 small" style={{ fontSize: '0.82rem' }}>
-                Traditional Kathiyawadi & Gujarati Dining • Real-Time Operations Console
-              </p>
+              <div className="text-muted small mt-0.5">
+                {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+              </div>
             </div>
           </div>
-          <div className="d-flex gap-2 w-100 w-md-auto justify-content-start justify-content-md-end">
+          <div className="d-flex gap-2 w-100 w-md-auto">
             {can('booking.view') && (
-              <Link to="/bookings" className="btn btn-gold btn-sm d-flex align-items-center gap-1 shadow fw-bold px-3">
-                <CalendarCheck size={16} /> Function Locker
+              <Link to="/bookings" className="btn btn-primary btn-sm d-flex align-items-center gap-1.5 fw-semibold px-3">
+                <CalendarCheck size={15} /> Function Locker
               </Link>
             )}
             {can('daily_menu.view') && (
-              <Link to="/daily-menu" className="btn btn-outline-light btn-sm d-flex align-items-center gap-1 shadow px-3">
-                <Calendar size={16} /> Daily Menu
+              <Link to="/daily-menu" className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1.5 px-3">
+                <Calendar size={15} /> Daily Menu
               </Link>
             )}
           </div>

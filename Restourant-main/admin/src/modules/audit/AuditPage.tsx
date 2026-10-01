@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { apiClient } from '../../api/client';
 import { DataTable, Modal } from '../../components/PermissionGate';
 import { AuditLog } from '../../types';
-import { Eye, RefreshCw } from 'lucide-react';
+import { Eye, RefreshCw, ShieldCheck } from 'lucide-react';
 
 export const AuditPage: React.FC = () => {
   const [logs, setLogs] = useState<AuditLog[]>([]);
@@ -27,9 +27,17 @@ export const AuditPage: React.FC = () => {
     <div className="d-flex flex-column gap-4">
       {/* Header */}
       <div className="d-flex flex-wrap justify-content-between align-items-center gap-2">
-        <div>
-          <h4 className="fw-bold mb-1 text-dark">Immutable System Audit Trails</h4>
-          <p className="text-muted small mb-0">Track all operational mutations, user actions, IP addresses, and state before/after diffs</p>
+        <div className="d-flex align-items-center gap-2.5">
+          <div
+            className="d-flex align-items-center justify-content-center rounded-3 bg-primary-subtle text-primary flex-shrink-0"
+            style={{ width: 42, height: 42 }}
+          >
+            <ShieldCheck size={20} />
+          </div>
+          <div>
+            <h5 className="fw-bold mb-0 text-dark">System Audit Trails</h5>
+            <span className="text-secondary small">સિસ્ટમ ઓડિટ લોગ્સ</span>
+          </div>
         </div>
         <div className="d-flex align-items-center gap-2">
           <select

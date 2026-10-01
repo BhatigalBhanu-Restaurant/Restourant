@@ -512,83 +512,76 @@ export const StaffPage: React.FC = () => {
   return (
     <div className="container-fluid p-3 p-md-4">
       {/* Top Header */}
-      <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-4">
+      <div className="d-flex flex-column flex-md-row justify-content-between align-items-start align-items-md-center gap-3 mb-3 pb-2 border-bottom">
         <div>
-          <div className="d-flex align-items-center gap-2 mb-1">
-            <div className="p-2 bg-primary bg-opacity-10 rounded-3 text-primary d-flex align-items-center justify-content-center">
-              <Users size={24} />
-            </div>
-            <h1 className="h4 fw-bold text-dark mb-0">સ્ટાફ અને પગાર વ્યવસ્થાપન (Staff & Salary)</h1>
+          <div className="d-flex align-items-center gap-2">
+            <h4 className="fw-bold text-dark mb-0">સ્ટાફ વ્યવસ્થાપન (Staff Management)</h4>
+            <span className="badge bg-light text-muted border">{stats.totalStaff} Members</span>
           </div>
-          <p className="text-muted small mb-0">
-            કર્મચારીઓની પ્રોફાઇલ, આધાર કાર્ડ, દૈનિક/માસિક પગાર, ઉપાડ (ઉધાર) અને ડિજિટલ ખાતાવહી પાસબુક
-          </p>
         </div>
 
         <div className="d-flex align-items-center gap-2 flex-wrap">
           {/* Refresh Button */}
           <button
-            className="btn btn-outline-secondary d-flex align-items-center gap-1 shadow-sm"
+            className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1"
             onClick={fetchEmployees}
             disabled={loading}
-            title="ડેટા રીફ્રેશ કરો"
+            title="રીફ્રેશ"
           >
-            <RefreshCw size={16} className={loading ? 'spin' : ''} />
-            <span className="d-none d-sm-inline">રીફ્રેશ</span>
+            <RefreshCw size={14} className={loading ? 'spin' : ''} />
+            <span>રીફ્રેશ</span>
           </button>
 
           {/* View Switch */}
-          <div className="btn-group shadow-sm" role="group">
+          <div className="btn-group btn-group-sm" role="group">
             <button
               type="button"
-              className={`btn btn-sm ${viewMode === 'GRID' ? 'btn-primary' : 'btn-outline-secondary'}`}
+              className={`btn ${viewMode === 'GRID' ? 'btn-primary' : 'btn-outline-secondary'}`}
               onClick={() => setViewMode('GRID')}
               title="કાર્ડ વ્યુ"
             >
-              <LayoutGrid size={16} />
+              <LayoutGrid size={15} />
             </button>
             <button
               type="button"
-              className={`btn btn-sm ${viewMode === 'TABLE' ? 'btn-primary' : 'btn-outline-secondary'}`}
+              className={`btn ${viewMode === 'TABLE' ? 'btn-primary' : 'btn-outline-secondary'}`}
               onClick={() => setViewMode('TABLE')}
               title="ટેબલ લિસ્ટ વ્યુ"
             >
-              <List size={16} />
+              <List size={15} />
             </button>
           </div>
 
           {/* Add Staff Button */}
           <button
-            className="btn btn-primary d-flex align-items-center gap-2 shadow-sm fw-semibold px-3"
+            className="btn btn-primary btn-sm d-flex align-items-center gap-1.5 fw-semibold px-3"
             onClick={handleOpenAddModal}
           >
-            <UserPlus size={18} />
-            <span>+ નવો સ્ટાફ ઉમેરો</span>
+            <UserPlus size={16} />
+            <span>+ નવો સ્ટાફ</span>
           </button>
         </div>
       </div>
 
-      {/* KPI Stats Cards */}
+      {/* KPI Stats Cards - Matching Clean Modern Dashboard Style */}
       <div className="row g-3 mb-4">
-        {/* Card 1: Total Staff */}
+        {/* Card 1: Active Staff */}
         <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card border-0 shadow-sm rounded-3 h-100 bg-white">
-            <div className="card-body p-3">
-              <div className="d-flex align-items-center justify-content-between mb-2">
-                <span className="text-muted small fw-semibold text-uppercase" style={{ letterSpacing: '0.04em' }}>
-                  કુલ સક્રિય સ્ટાફ
-                </span>
-                <div className="p-2 rounded-circle bg-primary bg-opacity-10 text-primary">
-                  <Users size={18} />
+          <div className="card shadow-xs border bg-white h-100" style={{ borderRadius: '12px', borderColor: '#e2e8f0' }}>
+            <div className="card-body p-3 d-flex align-items-center gap-3">
+              <div
+                className="d-flex align-items-center justify-content-center flex-shrink-0"
+                style={{ width: '46px', height: '46px', borderRadius: '10px', backgroundColor: '#eff6ff', color: '#2563eb', border: '1px solid #dbeafe' }}
+              >
+                <Users size={22} />
+              </div>
+              <div className="min-w-0 flex-grow-1">
+                <h3 className="fw-bolder mb-0 text-dark" style={{ fontSize: '1.45rem', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+                  {stats.activeStaff}
+                </h3>
+                <div className="text-muted text-truncate mt-0.5" style={{ fontSize: '0.8rem', fontWeight: 500 }}>
+                  સક્રિય સ્ટાફ (Active Staff)
                 </div>
-              </div>
-              <div className="d-flex align-items-baseline gap-2">
-                <h3 className="h3 fw-bold text-dark mb-0">{stats.activeStaff}</h3>
-                <span className="text-muted small">/ કુલ {stats.totalStaff} સ્ટાફ</span>
-              </div>
-              <div className="mt-2 pt-2 border-top d-flex justify-content-between small text-muted">
-                <span>માસિક: <strong>{stats.monthlyStaff}</strong></span>
-                <span>રોજદાર: <strong>{stats.dailyStaff}</strong></span>
               </div>
             </div>
           </div>
@@ -596,70 +589,65 @@ export const StaffPage: React.FC = () => {
 
         {/* Card 2: Monthly Budget */}
         <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card border-0 shadow-sm rounded-3 h-100 bg-white">
-            <div className="card-body p-3">
-              <div className="d-flex align-items-center justify-content-between mb-2">
-                <span className="text-muted small fw-semibold text-uppercase" style={{ letterSpacing: '0.04em' }}>
+          <div className="card shadow-xs border bg-white h-100" style={{ borderRadius: '12px', borderColor: '#e2e8f0' }}>
+            <div className="card-body p-3 d-flex align-items-center gap-3">
+              <div
+                className="d-flex align-items-center justify-content-center flex-shrink-0"
+                style={{ width: '46px', height: '46px', borderRadius: '10px', backgroundColor: '#ecfdf5', color: '#059669', border: '1px solid #a7f3d0' }}
+              >
+                <Wallet size={22} />
+              </div>
+              <div className="min-w-0 flex-grow-1">
+                <h3 className="fw-bolder mb-0 text-dark" style={{ fontSize: '1.45rem', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+                  ₹{stats.totalMonthlyBudget.toLocaleString('en-IN')}
+                </h3>
+                <div className="text-muted text-truncate mt-0.5" style={{ fontSize: '0.8rem', fontWeight: 500 }}>
                   માસિક પગાર બજેટ
-                </span>
-                <div className="p-2 rounded-circle bg-success bg-opacity-10 text-success">
-                  <Wallet size={18} />
                 </div>
-              </div>
-              <div className="d-flex align-items-baseline gap-2">
-                <h3 className="h3 fw-bold text-success mb-0">₹{stats.totalMonthlyBudget.toLocaleString('en-IN')}</h3>
-                <span className="text-muted small">/ મહિનો</span>
-              </div>
-              <div className="mt-2 pt-2 border-top small text-muted">
-                <span>માસિક પગારદાર સ્ટાફની કુલ રકમ</span>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Card 3: Total Outstanding Upad */}
+        {/* Card 3: Outstanding Upad */}
         <div className="col-12 col-sm-6 col-xl-3">
-          <div className={`card border-0 shadow-sm rounded-3 h-100 ${stats.totalOutstandingUpad > 0 ? 'bg-danger bg-opacity-10 border border-danger border-opacity-25' : 'bg-white'}`}>
-            <div className="card-body p-3">
-              <div className="d-flex align-items-center justify-content-between mb-2">
-                <span className={`small fw-semibold text-uppercase ${stats.totalOutstandingUpad > 0 ? 'text-danger' : 'text-muted'}`} style={{ letterSpacing: '0.04em' }}>
-                  કુલ બાકી ઉપાડ (ઉધાર)
-                </span>
-                <div className={`p-2 rounded-circle ${stats.totalOutstandingUpad > 0 ? 'bg-danger text-white' : 'bg-secondary bg-opacity-10 text-secondary'}`}>
-                  <AlertTriangle size={18} />
-                </div>
+          <div className="card shadow-xs border bg-white h-100" style={{ borderRadius: '12px', borderColor: '#e2e8f0' }}>
+            <div className="card-body p-3 d-flex align-items-center gap-3">
+              <div
+                className="d-flex align-items-center justify-content-center flex-shrink-0"
+                style={{ width: '46px', height: '46px', borderRadius: '10px', backgroundColor: stats.totalOutstandingUpad > 0 ? '#fef2f2' : '#f8fafc', color: stats.totalOutstandingUpad > 0 ? '#dc2626' : '#64748b', border: `1px solid ${stats.totalOutstandingUpad > 0 ? '#fecaca' : '#e2e8f0'}` }}
+              >
+                <AlertTriangle size={22} />
               </div>
-              <div className="d-flex align-items-baseline gap-2">
-                <h3 className={`h3 fw-bold mb-0 ${stats.totalOutstandingUpad > 0 ? 'text-danger' : 'text-dark'}`}>
+              <div className="min-w-0 flex-grow-1">
+                <h3 className={`fw-bolder mb-0 ${stats.totalOutstandingUpad > 0 ? 'text-danger' : 'text-dark'}`} style={{ fontSize: '1.45rem', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
                   ₹{stats.totalOutstandingUpad.toLocaleString('en-IN')}
                 </h3>
-              </div>
-              <div className="mt-2 pt-2 border-top d-flex justify-content-between small">
-                <span className={stats.totalOutstandingUpad > 0 ? 'text-danger fw-semibold' : 'text-muted'}>
-                  {stats.pendingUpadCount} સ્ટાફ પાસેથી વસૂલવાનો બાકી
-                </span>
+                <div className="text-muted text-truncate mt-0.5" style={{ fontSize: '0.8rem', fontWeight: 500 }}>
+                  બાકી ઉપાડ (Pending Upad)
+                </div>
               </div>
             </div>
           </div>
         </div>
 
-        {/* Card 4: Total Salary Disbursed */}
+        {/* Card 4: Total Salary Paid */}
         <div className="col-12 col-sm-6 col-xl-3">
-          <div className="card border-0 shadow-sm rounded-3 h-100 bg-white">
-            <div className="card-body p-3">
-              <div className="d-flex align-items-center justify-content-between mb-2">
-                <span className="text-muted small fw-semibold text-uppercase" style={{ letterSpacing: '0.04em' }}>
+          <div className="card shadow-xs border bg-white h-100" style={{ borderRadius: '12px', borderColor: '#e2e8f0' }}>
+            <div className="card-body p-3 d-flex align-items-center gap-3">
+              <div
+                className="d-flex align-items-center justify-content-center flex-shrink-0"
+                style={{ width: '46px', height: '46px', borderRadius: '10px', backgroundColor: '#fffbeb', color: '#d97706', border: '1px solid #fde68a' }}
+              >
+                <CreditCard size={22} />
+              </div>
+              <div className="min-w-0 flex-grow-1">
+                <h3 className="fw-bolder mb-0 text-dark" style={{ fontSize: '1.45rem', letterSpacing: '-0.02em', lineHeight: 1.2 }}>
+                  ₹{stats.totalSalaryPaid.toLocaleString('en-IN')}
+                </h3>
+                <div className="text-muted text-truncate mt-0.5" style={{ fontSize: '0.8rem', fontWeight: 500 }}>
                   કુલ ચૂકવેલ પગાર
-                </span>
-                <div className="p-2 rounded-circle bg-info bg-opacity-10 text-info">
-                  <CreditCard size={18} />
                 </div>
-              </div>
-              <div className="d-flex align-items-baseline gap-2">
-                <h3 className="h3 fw-bold text-dark mb-0">₹{stats.totalSalaryPaid.toLocaleString('en-IN')}</h3>
-              </div>
-              <div className="mt-2 pt-2 border-top small text-muted">
-                <span>કુલ ખાતાવહીમાં ચૂકવેલ રકમ</span>
               </div>
             </div>
           </div>
@@ -808,8 +796,8 @@ export const StaffPage: React.FC = () => {
                             </div>
                           ) : (
                             <div
-                              className="rounded-circle d-flex align-items-center justify-content-center fw-bold shadow-sm flex-shrink-0"
-                              style={{ width: '48px', height: '48px', fontSize: '1.1rem', backgroundColor: '#FBECEE', color: '#7A1B28' }}
+                              className="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center fw-bold shadow-sm flex-shrink-0"
+                              style={{ width: '48px', height: '48px', fontSize: '1.1rem' }}
                             >
                               {emp.name.charAt(0)}
                             </div>
@@ -876,17 +864,11 @@ export const StaffPage: React.FC = () => {
                           </span>
                           <span className="fw-semibold">
                             {emp.wageType === 'DAILY' ? (
-                              <span
-                                className="badge border"
-                                style={{ backgroundColor: '#fffbeb', color: '#92400e', borderColor: '#fde68a' }}
-                              >
+                              <span className="badge bg-warning bg-opacity-25 text-dark">
                                 રોજદાર: ₹{(emp.dailyRate || 0).toLocaleString('en-IN')} / દિવસ
                               </span>
                             ) : (
-                              <span
-                                className="badge border"
-                                style={{ backgroundColor: '#ecfdf5', color: '#065f46', borderColor: '#a7f3d0' }}
-                              >
+                              <span className="badge bg-primary bg-opacity-15 text-primary">
                                 માસિક: ₹{(emp.baseSalary || 0).toLocaleString('en-IN')} / મહિનો
                               </span>
                             )}
@@ -1057,8 +1039,8 @@ export const StaffPage: React.FC = () => {
                             </div>
                           ) : (
                             <div
-                              className="rounded-circle d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
-                              style={{ width: '36px', height: '36px', fontSize: '0.85rem', backgroundColor: '#FBECEE', color: '#7A1B28' }}
+                              className="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
+                              style={{ width: '36px', height: '36px', fontSize: '0.85rem' }}
                             >
                               {emp.name.charAt(0)}
                             </div>
@@ -1099,17 +1081,11 @@ export const StaffPage: React.FC = () => {
                       </td>
                       <td className="py-3">
                         {emp.wageType === 'DAILY' ? (
-                          <span
-                            className="badge border"
-                            style={{ backgroundColor: '#fffbeb', color: '#92400e', borderColor: '#fde68a' }}
-                          >
+                          <span className="badge bg-warning bg-opacity-25 text-dark">
                             રોજદાર: ₹{emp.dailyRate}/દિ
                           </span>
                         ) : (
-                          <span
-                            className="badge border"
-                            style={{ backgroundColor: '#ecfdf5', color: '#065f46', borderColor: '#a7f3d0' }}
-                          >
+                          <span className="badge bg-primary bg-opacity-15 text-primary">
                             માસિક: ₹{(emp.baseSalary || 0).toLocaleString('en-IN')}/મહિનો
                           </span>
                         )}
@@ -1287,12 +1263,11 @@ export const StaffPage: React.FC = () => {
               <div className="row g-2">
                 <div className="col-6">
                   <div
-                    className="card p-3 rounded-3 cursor-pointer border"
-                    style={{
-                      backgroundColor: formData.wageType === 'MONTHLY' ? '#ecfdf5' : '#f8f9fa',
-                      borderColor: formData.wageType === 'MONTHLY' ? '#10b981' : '#e5e7eb',
-                      borderWidth: formData.wageType === 'MONTHLY' ? '2px' : '1px'
-                    }}
+                    className={`card p-3 rounded-3 cursor-pointer border ${
+                      formData.wageType === 'MONTHLY'
+                        ? 'border-primary bg-primary bg-opacity-10 text-primary fw-bold'
+                        : 'bg-light text-muted'
+                    }`}
                     onClick={() => setFormData({ ...formData, wageType: 'MONTHLY' })}
                   >
                     <div className="d-flex align-items-center gap-2">
@@ -1313,12 +1288,11 @@ export const StaffPage: React.FC = () => {
 
                 <div className="col-6">
                   <div
-                    className="card p-3 rounded-3 cursor-pointer border"
-                    style={{
-                      backgroundColor: formData.wageType === 'DAILY' ? '#fffbeb' : '#f8f9fa',
-                      borderColor: formData.wageType === 'DAILY' ? '#f59e0b' : '#e5e7eb',
-                      borderWidth: formData.wageType === 'DAILY' ? '2px' : '1px'
-                    }}
+                    className={`card p-3 rounded-3 cursor-pointer border ${
+                      formData.wageType === 'DAILY'
+                        ? 'border-warning bg-warning bg-opacity-10 text-dark fw-bold'
+                        : 'bg-light text-muted'
+                    }`}
                     onClick={() => setFormData({ ...formData, wageType: 'DAILY' })}
                   >
                     <div className="d-flex align-items-center gap-2">
