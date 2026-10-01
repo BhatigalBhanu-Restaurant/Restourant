@@ -26,7 +26,7 @@ import {
   Info
 } from 'lucide-react';
 
-type LedgerRow = { key: string; name: string; amount: number; note?: string };
+type LedgerRow = { key: string; name: string; amount: number | string; note?: string };
 type Totals = { incomeTotal: number; expenseTotal: number; profit: number; days?: number };
 
 interface BookingItem {
@@ -171,13 +171,19 @@ export const InventoryPage: React.FC = () => {
   // -------------------------------------------------------------
   // Data Loaders
   // -------------------------------------------------------------
-  const loadDailyLedger = async (targetDate: string) => {
-    setLoading(true);
+  const sanitizeRows = (rows: any[]) =>
+    (rows || []).map(r => ({
+      ...r,
+      amount: r.amount === 0 || r.amount === '0' || !r.amount ? '' : r.amount
+    }));
+
+  const loadDailyLedger = async (targetDate: string, showSpinner = false) => {
+    if (showSpinner || expenses.length === 0) setLoading(true);
     try {
       const res: any = await apiClient.get(`/inventory/daily-ledger?date=${targetDate}`, { forceFresh: true });
       if (res.success && res.data) {
-        setExpenses(res.data.ledger.expenses || []);
-        setIncome(res.data.ledger.income || []);
+        setExpenses(sanitizeRows(res.data.ledger.expenses));
+        setIncome(sanitizeRows(res.data.ledger.income));
         setIsSavedInDb(Boolean(res.data.isSaved));
         if (res.data.bookingStats) {
           setBookingStats(res.data.bookingStats);
@@ -280,7 +286,7 @@ export const InventoryPage: React.FC = () => {
     const setRows = kind === 'expense' ? setExpenses : setIncome;
     setRows(rows =>
       rows.map((row, i) =>
-        i === index ? { ...row, [field]: field === 'amount' ? Math.max(0, Number(value || 0)) : value } : row
+        i === index ? { ...row, [field]: field === 'amount' ? (value === '' ? '' : Math.max(0, Number(value))) : value } : row
       )
     );
   };
@@ -298,7 +304,7 @@ export const InventoryPage: React.FC = () => {
       {
         key: `custom_${Date.now()}`,
         name: newItem.name.trim(),
-        amount: Math.max(0, Number(newItem.amount || 0)),
+        amount: newItem.amount === '' ? '' : Math.max(0, Number(newItem.amount)),
         note: newItem.note.trim()
       }
     ]);
@@ -354,7 +360,9 @@ export const InventoryPage: React.FC = () => {
         });
         setShowSaveConfirm(false);
         setIsSavedInDb(true);
-        await loadDailyLedger(date);
+        if (!allRecordedDates.includes(date)) {
+          setAllRecordedDates(prev => [date, ...prev]);
+        }
       }
     } catch (error: any) {
       setMessage({ text: error.message || 'દૈનિક હિસાબ સેવ કરતી વખતે ભૂલ આવી.', type: 'danger' });
@@ -456,8 +464,8 @@ export const InventoryPage: React.FC = () => {
                       type="number"
                       min="0"
                       className="form-control form-control-sm text-end fw-bold"
-                      value={row.amount || ''}
-                      placeholder="0"
+                      value={Number(row.amount) === 0 || !row.amount ? '' : row.amount}
+                      placeholder="-"
                       onChange={e => updateRow(kind, index, 'amount', e.target.value)}
                     />
                   </div>
@@ -1369,7 +1377,7 @@ export const InventoryPage: React.FC = () => {
                 type="number"
                 min="0"
                 className="form-control"
-                placeholder="0"
+                placeholder="દા.ત. 1500"
                 value={newItem.amount}
                 onChange={e => setNewItem({ ...newItem, amount: e.target.value })}
               />

@@ -130,9 +130,11 @@ export const StaffPage: React.FC = () => {
   const aadharFileInputRef = useRef<HTMLInputElement | null>(null);
 
   // Fetch all staff members
-  const fetchEmployees = async () => {
+  const fetchEmployees = async (showSpinner = false) => {
     try {
-      setLoading(true);
+      if (showSpinner || employees.length === 0) {
+        setLoading(true);
+      }
       const res: any = await apiClient.get('/hr/employees');
       if (res && res.data) {
         setEmployees(res.data);
@@ -529,7 +531,7 @@ export const StaffPage: React.FC = () => {
           {/* Refresh Button */}
           <button
             className="btn btn-outline-secondary d-flex align-items-center gap-1 shadow-sm"
-            onClick={fetchEmployees}
+            onClick={() => fetchEmployees(true)}
             disabled={loading}
             title="ડેટા રીફ્રેશ કરો"
           >
@@ -1338,8 +1340,8 @@ export const StaffPage: React.FC = () => {
                     className="form-control"
                     placeholder="માસિક પગાર દાખલ કરો"
                     min={0}
-                    value={formData.baseSalary}
-                    onChange={(e) => setFormData({ ...formData, baseSalary: parseFloat(e.target.value) || 0 })}
+                    value={formData.baseSalary || ''}
+                    onChange={(e) => setFormData({ ...formData, baseSalary: e.target.value === '' ? '' as any : parseFloat(e.target.value) })}
                     required
                   />
                 </div>
@@ -1356,8 +1358,8 @@ export const StaffPage: React.FC = () => {
                     className="form-control"
                     placeholder="દિવસનો દર દાખલ કરો"
                     min={0}
-                    value={formData.dailyRate}
-                    onChange={(e) => setFormData({ ...formData, dailyRate: parseFloat(e.target.value) || 0 })}
+                    value={formData.dailyRate || ''}
+                    onChange={(e) => setFormData({ ...formData, dailyRate: e.target.value === '' ? '' as any : parseFloat(e.target.value) })}
                     required
                   />
                 </div>
@@ -1606,8 +1608,8 @@ export const StaffPage: React.FC = () => {
                   className="form-control form-control-lg fw-bold text-danger"
                   placeholder="ઉપાડ રકમ દાખલ કરો"
                   min={1}
-                  value={upadForm.amount}
-                  onChange={(e) => setUpadForm({ ...upadForm, amount: parseFloat(e.target.value) || 0 })}
+                  value={upadForm.amount || ''}
+                  onChange={(e) => setUpadForm({ ...upadForm, amount: e.target.value === '' ? '' as any : parseFloat(e.target.value) })}
                   required
                 />
               </div>
@@ -1796,8 +1798,8 @@ export const StaffPage: React.FC = () => {
                     type="number"
                     className="form-control fw-bold"
                     min={0}
-                    value={salaryForm.grossSalary}
-                    onChange={(e) => handleGrossChange(parseFloat(e.target.value) || 0)}
+                    value={salaryForm.grossSalary || ''}
+                    onChange={(e) => handleGrossChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                     required
                   />
                 </div>
@@ -1827,8 +1829,8 @@ export const StaffPage: React.FC = () => {
                     className="form-control text-danger fw-bold"
                     min={0}
                     max={salaryForm.grossSalary}
-                    value={salaryForm.advanceDeducted}
-                    onChange={(e) => handleDeductionChange(parseFloat(e.target.value) || 0)}
+                    value={salaryForm.advanceDeducted || ''}
+                    onChange={(e) => handleDeductionChange(e.target.value === '' ? 0 : parseFloat(e.target.value))}
                   />
                 </div>
                 <span className="text-muted" style={{ fontSize: '0.72rem' }}>

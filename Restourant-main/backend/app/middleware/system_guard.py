@@ -1,8 +1,25 @@
+import time
 from starlette.middleware.base import BaseHTTPMiddleware
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from ..database import get_db
 from ..utils.security import verify_access_token
+
+_cached_system_status = "ONLINE"
+_system_status_timestamp = 0
+
+def get_cached_system_status(db):
+    global _cached_system_status, _system_status_timestamp
+    now = time.time()
+    if now - _system_status_timestamp < 30:
+        return _cached_system_status
+    try:
+        setting = db.system_settings.find_one({"key": "system_status"})
+        _cached_system_status = setting.get("value") if setting else "ONLINE"
+        _system_status_timestamp = now
+    except Exception:
+        pass
+    return _cached_system_status
 
 class SystemStatusGuardMiddleware(BaseHTTPMiddleware):
     async def dispatch(self, request: Request, call_next):
@@ -23,8 +40,7 @@ class SystemStatusGuardMiddleware(BaseHTTPMiddleware):
 
         try:
             db = get_db()
-            setting = db.system_settings.find_one({"key": "system_status"})
-            status = setting.get("value") if setting else "ONLINE"
+            status = get_cached_system_status(db)
 
             if status == "ONLINE":
                 return await call_next(request)

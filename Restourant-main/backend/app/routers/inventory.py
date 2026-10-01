@@ -24,7 +24,7 @@ DEFAULT_DAILY_INCOME = [
 ]
 
 def _empty_ledger(date: str) -> Dict[str, Any]:
-    return {"date": date, "expenses": [{**item, "amount": 0, "note": ""} for item in DEFAULT_DAILY_EXPENSES], "income": [{**item, "amount": 0, "note": ""} for item in DEFAULT_DAILY_INCOME]}
+    return {"date": date, "expenses": [{**item, "amount": "", "note": ""} for item in DEFAULT_DAILY_EXPENSES], "income": [{**item, "amount": "", "note": ""} for item in DEFAULT_DAILY_INCOME]}
 
 def _totals(ledger: Dict[str, Any]) -> Dict[str, float]:
     expense = sum(float(row.get("amount") or 0) for row in ledger.get("expenses", []))

@@ -10,8 +10,8 @@ interface CacheEntry {
   ttl: number;
 }
 
-// 3 seconds max in-memory TTL to prevent identical burst requests on render
-const DEFAULT_TTL_MS = 3000;
+// 30 seconds in-memory TTL for instant 0ms screen transitions, auto-invalidated on any mutation
+const DEFAULT_TTL_MS = 30000;
 
 class AppCacheService {
   private memoryCache = new Map<string, CacheEntry>();
