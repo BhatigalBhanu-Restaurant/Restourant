@@ -12,6 +12,7 @@ import {
   Server,
   ClipboardList,
   Users,
+  UserCheck,
   X
 } from 'lucide-react';
 
@@ -38,6 +39,7 @@ export const Sidebar: React.FC<{ isOpen: boolean; onClose?: () => void; onCloseM
     { title: 'Functions', path: '/bookings', icon: <CalendarCheck size={18} />, permission: 'booking.view', badge: '1 Date / Order' },
     { title: 'Inventory', path: '/inventory', icon: <ClipboardList size={18} />, permission: ['masters.menu.view'], badge: 'Daily Ledger' },
     { title: 'Staff & Salary', path: '/staff', icon: <Users size={18} />, permission: 'dashboard.view', badge: 'ઉપાડ અને પગાર' },
+    { title: 'Attendance', path: '/attendance', icon: <UserCheck size={18} />, permission: 'dashboard.view', badge: 'હાજરી પત્રક' },
     { title: 'Menu Bar', path: '/masters', icon: <Database size={18} />, permission: ['masters.menu.view'] },
     { title: 'User Roles Matrix', path: '/users-roles', icon: <UserCog size={18} />, permission: 'users.view' },
     { title: 'Notifications', path: '/notifications', icon: <Bell size={18} />, permission: 'notification.view' },

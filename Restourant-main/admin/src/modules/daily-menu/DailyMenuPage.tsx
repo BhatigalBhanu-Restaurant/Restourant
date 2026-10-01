@@ -131,6 +131,7 @@ export const DailyMenuPage: React.FC = () => {
 
   // Poster Generation UI State: Support Royal Maroon, Peacock Green & Desi Kathiyawadi, default price 250
   const [posterTheme, setPosterTheme] = useState<'royal_maroon' | 'peacock_green' | 'desi_kathiyawadi'>('royal_maroon');
+  const [posterMealPeriod, setPosterMealPeriod] = useState<MealPeriod>('LUNCH');
   const [posterPrice, setPosterPrice] = useState<number>(250);
   const [posterCustomDate, setPosterCustomDate] = useState<string>('');
   const [posterDataUrl, setPosterDataUrl] = useState<string | null>(null);
@@ -327,10 +328,11 @@ export const DailyMenuPage: React.FC = () => {
     return groups;
   }, [selectedDishes, categories]);
 
-  // Meal timing switcher: when clicked, reset category filter
+  // Meal timing switcher: when clicked, reset category filter and sync poster meal period
   const handleMealTimingSwitch = (timing: MealPeriod) => {
     setSelectedMealPeriod(timing);
     setSelectedCategoryId('ALL');
+    setPosterMealPeriod(timing);
     setPosterDataUrl(null);
   };
 
@@ -520,11 +522,12 @@ export const DailyMenuPage: React.FC = () => {
     setPosterLoading(true);
     setPosterError(null);
     try {
-      const currentItemIds = Array.from(new Set([...lunchItemIds, ...dinnerItemIds]));
+      const currentItemIds = posterMealPeriod === 'LUNCH' ? lunchItemIds : dinnerItemIds;
       const res: any = await apiClient.post(`/daily-menu/${selectedDay}/poster`, {
         price: posterPrice,
         theme: posterTheme,
         format: POSTER_FORMAT,
+        mealPeriod: posterMealPeriod,
         itemIds: currentItemIds,
         date: posterCustomDate || undefined
       });
@@ -548,11 +551,12 @@ export const DailyMenuPage: React.FC = () => {
     setPosterLoading(true);
     setPosterError(null);
     try {
-      const currentItemIds = Array.from(new Set([...lunchItemIds, ...dinnerItemIds]));
+      const currentItemIds = posterMealPeriod === 'LUNCH' ? lunchItemIds : dinnerItemIds;
       const res: any = await apiClient.post(`/daily-menu/${selectedDay}/poster/save`, {
         price: posterPrice,
         theme: posterTheme,
         format: POSTER_FORMAT,
+        mealPeriod: posterMealPeriod,
         itemIds: currentItemIds,
         date: posterCustomDate || undefined,
         previewDataUrl: posterDataUrl
@@ -1254,6 +1258,47 @@ export const DailyMenuPage: React.FC = () => {
               {/* LEFT: Controls */}
               <div className="col-12 col-lg-5">
                 <div className="d-flex flex-column gap-3">
+                  {/* Poster Meal Period Selector */}
+                  <div>
+                    <label className="form-label small fw-bold mb-1">પોસ્ટર સમય (Meal Timing):</label>
+                    <div className="d-flex bg-light p-1 rounded-3 border" role="group">
+                      <button
+                        type="button"
+                        className={`btn btn-sm w-50 py-1.5 fw-bold rounded-2 transition-all ${
+                          posterMealPeriod === 'LUNCH'
+                            ? 'btn-white bg-white text-primary shadow-xs'
+                            : 'text-muted border-0 bg-transparent'
+                        }`}
+                        onClick={() => {
+                          setPosterMealPeriod('LUNCH');
+                          setPosterDataUrl(null);
+                        }}
+                      >
+                        <span>☀️ બપોર (Lunch)</span>
+                        <span className={`badge ms-1.5 rounded-pill ${posterMealPeriod === 'LUNCH' ? 'bg-primary text-white' : 'bg-secondary-subtle text-muted'}`}>
+                          {lunchItemIds.length}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn btn-sm w-50 py-1.5 fw-bold rounded-2 transition-all ${
+                          posterMealPeriod === 'DINNER'
+                            ? 'btn-white bg-white text-dark shadow-xs'
+                            : 'text-muted border-0 bg-transparent'
+                        }`}
+                        onClick={() => {
+                          setPosterMealPeriod('DINNER');
+                          setPosterDataUrl(null);
+                        }}
+                      >
+                        <span>🌙 સાંજ (Dinner)</span>
+                        <span className={`badge ms-1.5 rounded-pill ${posterMealPeriod === 'DINNER' ? 'bg-dark text-white' : 'bg-secondary-subtle text-muted'}`}>
+                          {dinnerItemIds.length}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
+
                   {/* Theme Selector */}
                   <div>
                     <label className="form-label small fw-bold mb-1">પોસ્ટર થીમ સિલેક્શન (Poster Theme):</label>

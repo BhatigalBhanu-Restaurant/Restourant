@@ -577,6 +577,10 @@ export const BookingPage: React.FC = () => {
         bookingPeriod: formData.timeSlot.includes('Lunch') ? 'LUNCH' : 'DINNER',
         functionType: formData.functionType,
         acceptedBy: formData.acceptedBy,
+        advanceAmount: Number(formData.advanceAmount || 0),
+        estimatedTotal: Number(formData.estimatedTotal || 0),
+        paymentMode: formData.paymentMode || 'Cash',
+        referenceId: formData.referenceId || '',
         notes: formData.notes.trim(),
         selectedMenu: dishNames,
         selectedMenuIds: activeItemIds,
@@ -1596,75 +1600,76 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                   </div>
                 </div>
 
-                {/* Payment collection is handled outside this booking module. */}
-                <div className="d-none">
-                <div className="row g-2">
-                  <div className="col-6">
-                    <label className="form-label small fw-semibold text-secondary mb-1">
-                      Advance Paid (એડવાન્સ ડિપોઝીટ ₹) <span className="text-danger">*</span>
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="500"
-                      className="form-control form-control-sm border rounded-3 p-2"
-                      placeholder="5000"
-                      required
-                      value={formData.advanceAmount}
-                      onChange={e => setFormData({ ...formData, advanceAmount: Number(e.target.value) })}
-                      style={{ borderColor: '#E8DCCF', fontSize: '0.9rem', fontWeight: 600, color: '#198754' }}
-                    />
+                {/* Advance Deposit & Payment Mode */}
+                <div className="rounded-3 p-2.5 mb-2" style={{ backgroundColor: '#FCF9F5', border: '1px solid #EADBCE' }}>
+                  <div className="row g-2">
+                    <div className="col-12 col-sm-6">
+                      <label className="form-label small fw-semibold text-dark mb-1 d-flex align-items-center justify-content-between">
+                        <span>Advance Paid (એડવાન્સ ડિપોઝીટ ₹)</span>
+                        <span className="badge bg-success-subtle text-success border border-success-subtle py-0.5 px-1.5" style={{ fontSize: '0.7rem' }}>જમા રકમ</span>
+                      </label>
+                      <div className="input-group input-group-sm">
+                        <span className="input-group-text bg-white text-success fw-bold border-end-0">₹</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="500"
+                          className="form-control form-control-sm border border-start-0 rounded-end-3 p-2"
+                          placeholder="દા.ત. 5000"
+                          value={formData.advanceAmount || ''}
+                          onChange={e => setFormData({ ...formData, advanceAmount: Math.max(0, Number(e.target.value) || 0) })}
+                          style={{ borderColor: '#E8DCCF', fontSize: '0.9rem', fontWeight: 600, color: '#198754' }}
+                        />
+                      </div>
+                    </div>
+                    <div className="col-12 col-sm-6">
+                      <label className="form-label small fw-semibold text-secondary mb-1">
+                        Advance Payment Mode (ચૂકવણી મોડ)
+                      </label>
+                      <select
+                        className="form-select form-select-sm border rounded-3 p-2"
+                        value={formData.paymentMode}
+                        onChange={e => setFormData({ ...formData, paymentMode: e.target.value })}
+                        style={{ borderColor: '#E8DCCF', fontSize: '0.85rem' }}
+                      >
+                        <option value="Cash">Cash (રોકડ)</option>
+                        <option value="UPI (GPay / PhonePe / Paytm / QR)">UPI (GPay / PhonePe / Paytm)</option>
+                        <option value="Card (Debit / Credit)">Card (કાર્ડ)</option>
+                        <option value="Bank Transfer / RTGS / NEFT">Bank Transfer / NEFT</option>
+                      </select>
+                    </div>
+                    <div className="col-12 col-sm-6">
+                      <label className="form-label small fw-semibold text-secondary mb-1">
+                        Estimated Budget (અંદાજિત રકમ ₹)
+                      </label>
+                      <div className="input-group input-group-sm">
+                        <span className="input-group-text bg-white text-muted border-end-0">₹</span>
+                        <input
+                          type="number"
+                          min="0"
+                          step="1000"
+                          className="form-control form-control-sm border border-start-0 rounded-end-3 p-2"
+                          placeholder="દા.ત. 25000"
+                          value={formData.estimatedTotal || ''}
+                          onChange={e => setFormData({ ...formData, estimatedTotal: Math.max(0, Number(e.target.value) || 0) })}
+                          style={{ borderColor: '#E8DCCF', fontSize: '0.85rem' }}
+                        />
+                      </div>
+                    </div>
+                    <div className="col-12 col-sm-6">
+                      <label className="form-label small fw-semibold text-secondary mb-1">
+                        UPI / Txn Ref ID (જો હોય તો)
+                      </label>
+                      <input
+                        type="text"
+                        className="form-control form-control-sm border rounded-3 p-2"
+                        placeholder="દા.ત. UPI-123456"
+                        value={formData.referenceId}
+                        onChange={e => setFormData({ ...formData, referenceId: e.target.value })}
+                        style={{ borderColor: '#E8DCCF', fontSize: '0.85rem' }}
+                      />
+                    </div>
                   </div>
-                  <div className="col-6">
-                    <label className="form-label small fw-semibold text-secondary mb-1">
-                      Estimated Budget (અંદાજિત રકમ ₹)
-                    </label>
-                    <input
-                      type="number"
-                      min="0"
-                      step="1000"
-                      className="form-control form-control-sm border rounded-3 p-2"
-                      placeholder="25000"
-                      value={formData.estimatedTotal}
-                      onChange={e => setFormData({ ...formData, estimatedTotal: Number(e.target.value) })}
-                      style={{ borderColor: '#E8DCCF', fontSize: '0.9rem' }}
-                    />
-                  </div>
-                </div>
-
-                {/* 7. Payment Mode & Reference ID */}
-                <div className="row g-2">
-                  <div className="col-12 col-sm-6">
-                    <label className="form-label small fw-semibold text-secondary mb-1 d-flex align-items-center gap-1">
-                      <CreditCard size={12} /> Advance Mode
-                    </label>
-                    <select
-                      className="form-select form-select-sm border rounded-3 p-2"
-                      value={formData.paymentMode}
-                      onChange={e => setFormData({ ...formData, paymentMode: e.target.value })}
-                      style={{ borderColor: '#E8DCCF', fontSize: '0.85rem' }}
-                    >
-                      <option value="Cash">Cash (રોકડ)</option>
-                      <option value="UPI (GPay / PhonePe / Paytm / QR)">UPI (GPay / PhonePe / Paytm)</option>
-                      <option value="Card (Debit / Credit)">Card (કાર્ડ)</option>
-                      <option value="Bank Transfer / RTGS / NEFT">Bank Transfer / NEFT</option>
-                    </select>
-                  </div>
-                  <div className="col-12 col-sm-6">
-                    <label className="form-label small fw-semibold text-secondary mb-1">
-                      UPI / Txn Ref ID
-                    </label>
-                    <input
-                      type="text"
-                      className="form-control form-control-sm border rounded-3 p-2"
-                      placeholder="e.g. UPI-123456"
-                      value={formData.referenceId}
-                      onChange={e => setFormData({ ...formData, referenceId: e.target.value })}
-                      style={{ borderColor: '#E8DCCF', fontSize: '0.85rem' }}
-                    />
-                  </div>
-                </div>
-
                 </div>
                 {/* 8. Function Type & Manager */}
                 <div className="row g-2">

@@ -18,6 +18,7 @@ const NotificationsPage = lazy(() => import('./modules/notifications/Notificatio
 const StoreSettingsPage = lazy(() => import('./modules/settings/StoreSettingsPage').then(m => ({ default: m.StoreSettingsPage })));
 const SystemControlPage = lazy(() => import('./modules/audit/AuditPage').then(m => ({ default: m.SystemControlPage })));
 const StaffPage = lazy(() => import('./modules/staff/StaffPage').then(m => ({ default: m.StaffPage })));
+const AttendancePage = lazy(() => import('./modules/attendance/AttendancePage').then(m => ({ default: m.AttendancePage })));
 
 // Ultra-lightweight page loading fallback
 const PageFallback: React.FC = () => (
@@ -74,6 +75,7 @@ export const App: React.FC = () => {
                     <Route path="functions" element={<BookingPage />} />
                     <Route path="inventory" element={<InventoryPage />} />
                     <Route path="staff" element={<StaffPage />} />
+                    <Route path="attendance" element={<AttendancePage />} />
                     <Route path="users-roles" element={<UsersRolesPage />} />
                     <Route path="notifications" element={<NotificationsPage />} />
                     <Route path="settings" element={<StoreSettingsPage />} />

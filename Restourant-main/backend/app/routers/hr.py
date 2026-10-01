@@ -59,6 +59,31 @@ async def get_attendance(date: Optional[str] = None, current_user: Dict[str, Any
     records = await HRService.get_attendance(date)
     return ApiResponse.success(data=records)
 
+@router.get("/attendance/monthly")
+async def get_monthly_attendance(month: Optional[str] = None, current_user: Dict[str, Any] = Depends(get_current_user)):
+    data = await HRService.get_monthly_attendance(month)
+    return ApiResponse.success(data=data)
+
+@router.post("/attendance/mark")
+async def mark_attendance(body: Dict[str, Any], current_user: Dict[str, Any] = Depends(get_current_user)):
+    emp_id = body.get("employeeId")
+    date = body.get("date")
+    status = body.get("status", "PRESENT")
+    if not emp_id or not date:
+        raise HTTPException(status_code=400, detail={"success": False, "message": "employeeId and date are required."})
+    res = await HRService.mark_attendance(emp_id, date, status, current_user.get("userId"))
+    return ApiResponse.success(data=res, message=res.get("message"))
+
+@router.post("/attendance/bulk-mark")
+async def bulk_mark_attendance(body: Dict[str, Any], current_user: Dict[str, Any] = Depends(get_current_user)):
+    date = body.get("date")
+    status = body.get("status", "PRESENT")
+    employee_ids = body.get("employeeIds")
+    if not date:
+        raise HTTPException(status_code=400, detail={"success": False, "message": "date is required."})
+    res = await HRService.bulk_mark_attendance(date, status, employee_ids, current_user.get("userId"))
+    return ApiResponse.success(data=res, message=res.get("message"))
+
 @router.post("/attendance/punch")
 async def punch_attendance(body: Dict[str, Any], current_user: Dict[str, Any] = Depends(get_current_user)):
     emp_id = body.get("employeeId")

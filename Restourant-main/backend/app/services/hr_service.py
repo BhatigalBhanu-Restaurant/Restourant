@@ -1,4 +1,5 @@
 import uuid
+import calendar
 from datetime import datetime, timezone
 from typing import Optional, List, Dict, Any
 from fastapi import HTTPException
@@ -231,6 +232,156 @@ class HRService:
         db = get_db()
         target_date = date or datetime.now(timezone.utc).strftime("%Y-%m-%d")
         return list(db.attendance_records.find({"date": target_date}, {"_id": 0}))
+
+    @staticmethod
+    async def get_monthly_attendance(month_str: Optional[str] = None) -> Dict[str, Any]:
+        db = get_db()
+        now_utc = datetime.now(timezone.utc)
+        if not month_str:
+            month_str = now_utc.strftime("%Y-%m")
+        try:
+            year, month = map(int, month_str.split("-"))
+        except Exception:
+            year, month = now_utc.year, now_utc.month
+            month_str = f"{year:04d}-{month:02d}"
+
+        _, days_in_month = calendar.monthrange(year, month)
+
+        # 1. Fetch all employees (sorted by employeeCode)
+        employees = list(db.employees.find({}, {"_id": 0}).sort("employeeCode", 1))
+
+        # 2. Fetch all attendance records for this month
+        records = list(db.attendance_records.find({"date": {"$regex": f"^{month_str}-"}}, {"_id": 0}))
+        
+        # Build attendance map: { employeeId: { "2026-10-01": "PRESENT", ... } }
+        attendance_map: Dict[str, Dict[str, str]] = {}
+        for r in records:
+            emp_id = r.get("employeeId")
+            date_val = r.get("date")
+            status_val = r.get("status", "PRESENT")
+            if emp_id and date_val:
+                attendance_map.setdefault(emp_id, {})[date_val] = status_val
+
+        # 3. Calculate summary per employee
+        today_str = now_utc.strftime("%Y-%m-%d")
+        today_present_count = 0
+        today_absent_count = 0
+        total_present_aggregate = 0
+        total_slots_aggregate = 0
+
+        for emp in employees:
+            emp_id = emp.get("id")
+            emp_records = attendance_map.get(emp_id, {})
+            p_cnt = 0
+            hd_cnt = 0
+            a_cnt = 0
+            wo_cnt = 0
+            pl_cnt = 0
+
+            for day_num in range(1, days_in_month + 1):
+                day_date_str = f"{month_str}-{day_num:02d}"
+                st = emp_records.get(day_date_str)
+                if st == "PRESENT":
+                    p_cnt += 1
+                elif st == "HALF_DAY":
+                    hd_cnt += 1
+                elif st == "ABSENT":
+                    a_cnt += 1
+                elif st == "WEEK_OFF":
+                    wo_cnt += 1
+                elif st in ("PAID_LEAVE", "LEAVE"):
+                    pl_cnt += 1
+
+            # Count today's stats if current month
+            if today_str.startswith(month_str):
+                today_st = emp_records.get(today_str)
+                if today_st in ("PRESENT", "HALF_DAY"):
+                    today_present_count += 1
+                elif today_st == "ABSENT":
+                    today_absent_count += 1
+
+            effective_days = p_cnt + (0.5 * hd_cnt) + pl_cnt
+            emp["attendanceSummary"] = {
+                "present": p_cnt,
+                "halfDay": hd_cnt,
+                "absent": a_cnt,
+                "weekOff": wo_cnt,
+                "paidLeave": pl_cnt,
+                "effectiveWorkingDays": effective_days
+            }
+            total_present_aggregate += effective_days
+            total_slots_aggregate += days_in_month
+
+        avg_attendance_pct = round((total_present_aggregate / max(1, total_slots_aggregate)) * 100, 1)
+
+        return {
+            "month": month_str,
+            "year": year,
+            "monthNum": month,
+            "daysInMonth": days_in_month,
+            "today": today_str,
+            "employees": employees,
+            "attendanceMap": attendance_map,
+            "stats": {
+                "totalStaff": len(employees),
+                "todayPresent": today_present_count,
+                "todayAbsent": today_absent_count,
+                "avgAttendancePct": avg_attendance_pct
+            }
+        }
+
+    @staticmethod
+    async def mark_attendance(employee_id: str, date: str, status: str, user_id: Optional[str] = None) -> Dict[str, Any]:
+        db = get_db()
+        status_upper = status.upper().strip()
+        if status_upper in ("NONE", "CLEAR", ""):
+            db.attendance_records.delete_one({"employeeId": employee_id, "date": date})
+            return {"success": True, "message": "Attendance cleared"}
+
+        emp = db.employees.find_one({"id": employee_id})
+        emp_name = f"{emp.get('firstName', '')} {emp.get('lastName', '')}".strip() if emp else "Staff"
+        now = datetime.now(timezone.utc)
+
+        doc = {
+            "employeeId": employee_id,
+            "employeeName": emp_name,
+            "date": date,
+            "status": status_upper,
+            "updatedAt": now
+        }
+        db.attendance_records.update_one(
+            {"employeeId": employee_id, "date": date},
+            {"$set": doc, "$setOnInsert": {"id": f"att_{uuid.uuid4().hex[:8]}", "createdAt": now}},
+            upsert=True
+        )
+        return {"success": True, "message": f"{emp_name} marked as {status_upper} on {date}"}
+
+    @staticmethod
+    async def bulk_mark_attendance(date: str, status: str = "PRESENT", employee_ids: Optional[List[str]] = None, user_id: Optional[str] = None) -> Dict[str, Any]:
+        db = get_db()
+        status_upper = (status or "PRESENT").upper().strip()
+        now = datetime.now(timezone.utc)
+        
+        query = {}
+        if employee_ids and len(employee_ids) > 0:
+            query = {"id": {"$in": employee_ids}}
+        
+        employees = list(db.employees.find(query, {"id": 1, "firstName": 1, "lastName": 1}))
+        count = 0
+        for emp in employees:
+            emp_id = emp["id"]
+            emp_name = f"{emp.get('firstName', '')} {emp.get('lastName', '')}".strip()
+            db.attendance_records.update_one(
+                {"employeeId": emp_id, "date": date},
+                {
+                    "$set": {"status": status_upper, "employeeName": emp_name, "updatedAt": now},
+                    "$setOnInsert": {"id": f"att_{uuid.uuid4().hex[:8]}", "createdAt": now}
+                },
+                upsert=True
+            )
+            count += 1
+
+        return {"success": True, "count": count, "message": f"Marked {count} staff as {status_upper} for {date}"}
 
     @staticmethod
     async def punch_in(employee_id: str, user_id: Optional[str] = None) -> Dict[str, Any]:
