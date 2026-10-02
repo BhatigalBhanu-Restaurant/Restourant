@@ -2211,7 +2211,7 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                   <th style={{ fontSize: '0.82rem' }}>Catering Menu</th>
                   <th style={{ fontSize: '0.82rem' }} className="text-end">Booking period</th>
                   <th style={{ fontSize: '0.82rem' }} className="text-center">Status</th>
-                  <th style={{ fontSize: '0.82rem' }} className="text-end">Actions</th>
+                  <th style={{ fontSize: '0.82rem', minWidth: '320px' }} className="text-end text-nowrap">Actions</th>
                 </tr>
               </thead>
               <tbody>
@@ -2273,79 +2273,110 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                            b.status === 'CANCELLED' ? 'CANCELLED' : b.status}
                         </span>
                       </td>
-                      <td className="text-end">
-                        <div className="d-flex gap-1 justify-content-end">
-                          <button onClick={() => setViewingLockedMenuBooking(b)} className="btn btn-outline-warning btn-sm p-1 text-dark" title="View Catering Menu"><Utensils size={14} /></button>
+                      <td className="text-end text-nowrap" style={{ whiteSpace: 'nowrap', minWidth: '320px' }}>
+                        <div className="d-inline-flex align-items-center gap-1.5 justify-content-end flex-nowrap" style={{ whiteSpace: 'nowrap' }}>
                           <button
+                            type="button"
+                            onClick={() => setViewingLockedMenuBooking(b)}
+                            className="btn btn-outline-warning btn-sm d-inline-flex align-items-center justify-content-center text-dark px-2 shadow-xs"
+                            style={{ height: '32px', minWidth: '32px', whiteSpace: 'nowrap' }}
+                            title="View Catering Menu (વાનગીઓનું મેનુ જુઓ)"
+                          >
+                            <Utensils size={14} />
+                          </button>
+
+                          <button
+                            type="button"
                             onClick={() => handleWhatsAppShare(b)}
-                            className="btn btn-outline-success btn-sm p-1 px-2 d-flex align-items-center gap-1 shadow-xs fw-semibold"
-                            style={{ color: '#25D366', borderColor: '#25D366' }}
-                            title={b.status === 'COMPLETED' || b.status === 'CHECKED_OUT' ? 'Send WhatsApp Bill Receipt to customer' : 'Send WhatsApp Confirmation to customer'}
+                            className="btn btn-outline-success btn-sm d-inline-flex align-items-center gap-1 px-2.5 shadow-xs fw-semibold"
+                            style={{ color: '#25D366', borderColor: '#25D366', height: '32px', whiteSpace: 'nowrap' }}
+                            title={b.status === 'COMPLETED' || b.status === 'CHECKED_OUT' ? 'Send WhatsApp Bill Receipt' : 'Send WhatsApp Confirmation'}
                           >
                             <MessageCircle size={14} />
-                            <span className="small d-none d-xxl-inline">{b.status === 'COMPLETED' || b.status === 'CHECKED_OUT' ? 'WhatsApp Bill' : 'WhatsApp'}</span>
+                            <span style={{ fontSize: '0.8rem', whiteSpace: 'nowrap' }}>
+                              {b.status === 'COMPLETED' || b.status === 'CHECKED_OUT' ? 'Bill' : 'WhatsApp'}
+                            </span>
                           </button>
+
                           {b.status !== 'CANCELLED' && b.status !== 'COMPLETED' && b.status !== 'CHECKED_OUT' && (
-                            <button onClick={() => openBookingEditor(b)} className="btn btn-outline-secondary btn-sm p-1" title="Edit booking"><Pencil size={14} /></button>
+                            <button
+                              type="button"
+                              onClick={() => openBookingEditor(b)}
+                              className="btn btn-outline-secondary btn-sm d-inline-flex align-items-center justify-content-center px-2 shadow-xs"
+                              style={{ height: '32px', minWidth: '32px', whiteSpace: 'nowrap' }}
+                              title="Edit booking (ફંક્શન વિગત સુધારો)"
+                            >
+                              <Pencil size={14} />
+                            </button>
                           )}
 
                           {/* 1. Check In Action */}
                           {(b.status === 'CONFIRMED' || b.status === 'PENDING') && (
                             <button
+                              type="button"
                               onClick={() => handleCheckIn(b)}
-                              className="btn btn-outline-success btn-sm p-1 px-2.5 d-flex align-items-center gap-1 shadow-xs fw-bold"
+                              className="btn btn-outline-success btn-sm d-inline-flex align-items-center gap-1 px-2.5 shadow-xs fw-bold"
+                              style={{ height: '32px', whiteSpace: 'nowrap', fontSize: '0.8rem' }}
                               title="Check In guests for this function"
                             >
                               <LogIn size={13} />
-                              <span className="small">Check In</span>
+                              <span style={{ whiteSpace: 'nowrap' }}>Check In</span>
                             </button>
                           )}
 
                           {/* 2. Check Out Action */}
                           {b.status === 'CHECKED_IN' && (
                             <button
+                              type="button"
                               onClick={() => openCheckOutModal(b)}
-                              className="btn btn-primary btn-sm p-1 px-2.5 d-flex align-items-center gap-1 shadow-sm fw-bold"
+                              className="btn btn-primary btn-sm d-inline-flex align-items-center gap-1 px-2.5 shadow-sm fw-bold"
+                              style={{ height: '32px', whiteSpace: 'nowrap', fontSize: '0.8rem' }}
                               title="Check Out and Generate Bill"
                             >
                               <LogOut size={13} />
-                              <span className="small">Check Out</span>
+                              <span style={{ whiteSpace: 'nowrap' }}>Check Out</span>
                             </button>
                           )}
 
                           {/* 3. Bill Action */}
                           {(b.status === 'COMPLETED' || b.status === 'CHECKED_OUT') && (
                             <button
+                              type="button"
                               onClick={() => openBillModal(b)}
-                              className="btn btn-outline-dark btn-sm p-1 px-2.5 d-flex align-items-center gap-1 shadow-xs fw-bold"
+                              className="btn btn-outline-dark btn-sm d-inline-flex align-items-center gap-1 px-2.5 shadow-xs fw-bold"
+                              style={{ height: '32px', whiteSpace: 'nowrap', fontSize: '0.8rem' }}
                               title="View & Print Bill"
                             >
                               <Receipt size={13} />
-                              <span className="small">Bill</span>
+                              <span style={{ whiteSpace: 'nowrap' }}>Bill</span>
                             </button>
                           )}
 
                           {/* Cancel Function */}
                           {b.status !== 'CANCELLED' && b.status !== 'COMPLETED' && b.status !== 'CHECKED_OUT' && (
                             <button
+                              type="button"
                               onClick={() => handleCancelBooking(b)}
-                              className="btn btn-outline-danger btn-sm p-1 px-2 d-flex align-items-center gap-1"
+                              className="btn btn-outline-danger btn-sm d-inline-flex align-items-center gap-1 px-2.5 shadow-xs"
+                              style={{ height: '32px', whiteSpace: 'nowrap', fontSize: '0.8rem' }}
                               title="Cancel function reservation"
                             >
                               <XCircle size={13} />
-                              <span className="small">Cancel</span>
+                              <span style={{ whiteSpace: 'nowrap' }}>Cancel</span>
                             </button>
                           )}
 
                           {/* Delete Function (for cancelled bookings) */}
                           {b.status === 'CANCELLED' && (
                             <button
+                              type="button"
                               onClick={() => handleDeleteBooking(b)}
-                              className="btn btn-danger btn-sm p-1 px-2 d-flex align-items-center gap-1 shadow-xs text-white"
+                              className="btn btn-danger btn-sm d-inline-flex align-items-center gap-1 px-2.5 shadow-xs text-white"
+                              style={{ height: '32px', whiteSpace: 'nowrap', fontSize: '0.8rem' }}
                               title="Permanently delete this cancelled booking"
                             >
                               <Trash2 size={13} />
-                              <span className="small">Delete</span>
+                              <span style={{ whiteSpace: 'nowrap' }}>Delete</span>
                             </button>
                           )}
                         </div>

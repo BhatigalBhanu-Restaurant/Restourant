@@ -103,14 +103,14 @@ export const DashboardPage: React.FC = () => {
               </div>
             </div>
           </div>
-          <div className="d-flex gap-2 w-100 w-md-auto">
+          <div className="d-flex align-items-center gap-2 ms-auto justify-content-end">
             {can('booking.view') && (
-              <Link to="/bookings" className="btn btn-primary btn-sm d-flex align-items-center gap-1.5 fw-semibold px-3">
+              <Link to="/bookings" className="btn btn-primary btn-sm d-flex align-items-center gap-1.5 fw-semibold px-3 py-1.5 shadow-xs text-nowrap">
                 <CalendarCheck size={15} /> Function Locker
               </Link>
             )}
             {can('daily_menu.view') && (
-              <Link to="/daily-menu" className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1.5 px-3">
+              <Link to="/daily-menu" className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1.5 px-3 py-1.5 shadow-xs text-nowrap">
                 <Calendar size={15} /> Daily Menu
               </Link>
             )}
