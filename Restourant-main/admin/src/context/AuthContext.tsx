@@ -18,8 +18,22 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
-  const [user, setUser] = useState<User | null>(null);
-  const [effectivePermissions, setEffectivePermissions] = useState<PermissionDetail[]>([]);
+  const [user, setUser] = useState<User | null>(() => {
+    try {
+      const raw = sessionStorage.getItem('bhatigal_cached_user');
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  });
+  const [effectivePermissions, setEffectivePermissions] = useState<PermissionDetail[]>(() => {
+    try {
+      const raw = sessionStorage.getItem('bhatigal_cached_perms');
+      return raw ? JSON.parse(raw) : [];
+    } catch {
+      return [];
+    }
+  });
   // Use sessionStorage so exiting browser/tab automatically logs out
   const [token, setToken] = useState<string | null>(() => {
     try {
@@ -28,7 +42,12 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     } catch {}
     return sessionStorage.getItem('access_token');
   });
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  // If token and cached user already exist, start with isLoading = false for 0ms instantaneous render!
+  const [isLoading, setIsLoading] = useState<boolean>(() => {
+    const hasToken = typeof window !== 'undefined' && !!sessionStorage.getItem('access_token');
+    const hasCachedUser = typeof window !== 'undefined' && !!sessionStorage.getItem('bhatigal_cached_user');
+    return hasToken ? !hasCachedUser : false;
+  });
 
   const fetchProfile = async () => {
     try {
@@ -36,6 +55,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       if (res.success && res.data) {
         setUser(res.data.user);
         setEffectivePermissions(res.data.effectivePermissions || []);
+        try {
+          sessionStorage.setItem('bhatigal_cached_user', JSON.stringify(res.data.user));
+          sessionStorage.setItem('bhatigal_cached_perms', JSON.stringify(res.data.effectivePermissions || []));
+        } catch {}
         // Trigger background preloading of all modules immediately
         preloadAllModulesData();
       }
@@ -45,6 +68,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       setEffectivePermissions([]);
       sessionStorage.removeItem('access_token');
       sessionStorage.removeItem('refresh_token');
+      sessionStorage.removeItem('bhatigal_cached_user');
+      sessionStorage.removeItem('bhatigal_cached_perms');
       try {
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
@@ -71,6 +96,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         sessionStorage.setItem('access_token', res.data.accessToken);
         sessionStorage.setItem('refresh_token', res.data.refreshToken);
         try {
+          sessionStorage.setItem('bhatigal_cached_user', JSON.stringify(res.data.user));
+          sessionStorage.setItem('bhatigal_cached_perms', JSON.stringify(res.data.effectivePermissions || []));
           localStorage.removeItem('access_token');
           localStorage.removeItem('refresh_token');
         } catch {}
@@ -88,6 +115,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
   const logout = () => {
     sessionStorage.removeItem('access_token');
     sessionStorage.removeItem('refresh_token');
+    sessionStorage.removeItem('bhatigal_cached_user');
+    sessionStorage.removeItem('bhatigal_cached_perms');
     try {
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');

@@ -81,9 +81,51 @@ const DAY_NAME_GUJARATI: Record<string, string> = {
   'SATURDAY': 'શનિવાર (Saturday)'
 };
 
+const STORAGE_KEY_BOOKINGS = 'bhatigal_cached_bookings';
+const STORAGE_KEY_CATEGORIES = 'bhatigal_cached_categories';
+const STORAGE_KEY_ITEMS = 'bhatigal_cached_menu_items';
+const STORAGE_KEY_DAILY_MENUS = 'bhatigal_cached_daily_menus';
+const STORAGE_KEY_MANAGERS = 'bhatigal_cached_function_managers';
+const STORAGE_KEY_TYPES = 'bhatigal_cached_function_types';
+
+const getCachedStorage = <T,>(key: string, fallback: T): T => {
+  if (typeof window === 'undefined') return fallback;
+  try {
+    const raw = localStorage.getItem(key);
+    if (!raw) return fallback;
+    const parsed = JSON.parse(raw);
+    return parsed !== null && parsed !== undefined ? parsed : fallback;
+  } catch {
+    return fallback;
+  }
+};
+
 export const BookingPage: React.FC = () => {
   const { socket } = useSocket();
   const { user } = useAuth();
+
+  // Cached initial values for 0ms instantaneous UI render on mobile & web
+  const initialBookings = useMemo(() => getCachedStorage<Booking[]>(STORAGE_KEY_BOOKINGS, []), []);
+  const initialCats = useMemo(() => getCachedStorage<MenuCategory[]>(STORAGE_KEY_CATEGORIES, []), []);
+  const initialItems = useMemo(() => getCachedStorage<MenuItem[]>(STORAGE_KEY_ITEMS, []), []);
+  const initialDaily = useMemo(() => getCachedStorage<DailyMenu[]>(STORAGE_KEY_DAILY_MENUS, []), []);
+  const initialManagers = useMemo(() => getCachedStorage<string[]>(STORAGE_KEY_MANAGERS, [
+    'Bhanubhai Patel',
+    'Rameshbhai Patel'
+  ]), []);
+  const initialTypes = useMemo(() => getCachedStorage<string[]>(STORAGE_KEY_TYPES, [
+    'Family Dinner & Gathering',
+    'Wedding / Reception',
+    'Ring Ceremony / Sagai',
+    'Birthday Party',
+    'Corporate Event & Dinner',
+    'Babri / Mundan Sanskar',
+    'Traditional Feast / Rasoi',
+    'Other Celebration'
+  ]), []);
+
+  // Mobile segmented view state: on mobile screens, toggle between 'calendar' and 'form'
+  const [mobileViewTab, setMobileViewTab] = useState<'calendar' | 'form'>('calendar');
 
   // Current real date & system clock in Indian Standard Time format
   const todayStr = useMemo(() => getLocalDateStr(new Date()), []);
@@ -96,20 +138,18 @@ export const BookingPage: React.FC = () => {
   // Selected date for locking form (YYYY-MM-DD)
   const [selectedDate, setSelectedDate] = useState<string>(todayStr);
 
-  // Bookings state
-  const [bookings, setBookings] = useState<Booking[]>([]);
+  // Bookings state - 0ms instant initialization!
+  const [bookings, setBookings] = useState<Booking[]>(initialBookings);
   const [loading, setLoading] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [searchTerm, setSearchTerm] = useState('');
   const [statusFilter, setStatusFilter] = useState('ACTIVE');
   const [venueFilter, setVenueFilter] = useState('ALL');
 
-  // =========================================================================
-  // DAILY MENU FORMAT CATERING DISHES (EXACT SAME FORMAT AS DAILY MENU PAGE)
-  // =========================================================================
-  const [categories, setCategories] = useState<MenuCategory[]>([]);
-  const [allMenuItems, setAllMenuItems] = useState<MenuItem[]>([]);
-  const [dailyMenus, setDailyMenus] = useState<DailyMenu[]>([]);
+  // Master Data - 0ms instant initialization!
+  const [categories, setCategories] = useState<MenuCategory[]>(initialCats);
+  const [allMenuItems, setAllMenuItems] = useState<MenuItem[]>(initialItems);
+  const [dailyMenus, setDailyMenus] = useState<DailyMenu[]>(initialDaily);
   
   // Active item IDs selected for this function (same as activeItemIds in DailyMenuPage)
   const [activeItemIds, setActiveItemIds] = useState<string[]>([]);
@@ -122,22 +162,10 @@ export const BookingPage: React.FC = () => {
   const [isMenuModalOpen, setIsMenuModalOpen] = useState<boolean>(false);
 
   // Staff / Employees list for Manager assignment
-  const [staffList, setStaffList] = useState<string[]>([
-    'Bhanubhai Patel',
-    'Rameshbhai Patel'
-  ]);
+  const [staffList, setStaffList] = useState<string[]>(initialManagers);
 
   // Function Types list for Event Type selection
-  const [functionTypesList, setFunctionTypesList] = useState<string[]>([
-    'Family Dinner & Gathering',
-    'Wedding / Reception',
-    'Ring Ceremony / Sagai',
-    'Birthday Party',
-    'Corporate Event & Dinner',
-    'Babri / Mundan Sanskar',
-    'Traditional Feast / Rasoi',
-    'Other Celebration'
-  ]);
+  const [functionTypesList, setFunctionTypesList] = useState<string[]>(initialTypes);
 
   // Form Data for Lock Function Date
   const [formData, setFormData] = useState({
@@ -272,6 +300,7 @@ export const BookingPage: React.FC = () => {
         // Managers: If configured in settings, use them!
         if (customManagers.length > 0) {
           setStaffList(customManagers);
+          try { localStorage.setItem(STORAGE_KEY_MANAGERS, JSON.stringify(customManagers)); } catch (_) {}
           const chosenMgr = (defaultMgr && customManagers.includes(defaultMgr)) ? defaultMgr : customManagers[0];
           setFormData(prev => ({
             ...prev,
@@ -288,6 +317,7 @@ export const BookingPage: React.FC = () => {
           const merged = Array.from(new Set([...staffNames, 'Bhanubhai Patel', 'Rameshbhai Patel'])).filter(Boolean);
           if (merged.length > 0) {
             setStaffList(merged);
+            try { localStorage.setItem(STORAGE_KEY_MANAGERS, JSON.stringify(merged)); } catch (_) {}
             setFormData(prev => ({ ...prev, acceptedBy: prev.acceptedBy || merged[0] }));
           }
         }
@@ -295,6 +325,7 @@ export const BookingPage: React.FC = () => {
         // Function Types: If configured in settings, use them!
         if (customTypes.length > 0) {
           setFunctionTypesList(customTypes);
+          try { localStorage.setItem(STORAGE_KEY_TYPES, JSON.stringify(customTypes)); } catch (_) {}
           const chosenType = (defaultType && customTypes.includes(defaultType)) ? defaultType : customTypes[0];
           setFormData(prev => ({
             ...prev,
@@ -319,12 +350,16 @@ export const BookingPage: React.FC = () => {
         ]);
         if (catRes?.success && Array.isArray(catRes.data)) {
           setCategories(catRes.data);
+          try { localStorage.setItem(STORAGE_KEY_CATEGORIES, JSON.stringify(catRes.data)); } catch (_) {}
         }
         if (itemRes?.success && Array.isArray(itemRes.data)) {
           setAllMenuItems(itemRes.data);
+          try { localStorage.setItem(STORAGE_KEY_ITEMS, JSON.stringify(itemRes.data)); } catch (_) {}
         }
         if (dailyRes?.success && dailyRes.data) {
-          setDailyMenus(dailyRes.data.menus || []);
+          const menus = dailyRes.data.menus || [];
+          setDailyMenus(menus);
+          try { localStorage.setItem(STORAGE_KEY_DAILY_MENUS, JSON.stringify(menus)); } catch (_) {}
         }
       } catch (err) {
         console.error('Failed to load menu master data:', err);
@@ -472,8 +507,11 @@ export const BookingPage: React.FC = () => {
       const config = forceFresh ? { forceFresh: true } : undefined;
       
       const res: any = await apiClient.get(`/bookings?month=${monthStr}`, config);
-      if (res.success) {
-        setBookings(res.data || []);
+      if (res.success && Array.isArray(res.data)) {
+        setBookings(res.data);
+        try {
+          localStorage.setItem(STORAGE_KEY_BOOKINGS, JSON.stringify(res.data));
+        } catch (_) {}
       }
     } catch (err) {
       console.error('Failed to load function bookings:', err);
@@ -483,12 +521,12 @@ export const BookingPage: React.FC = () => {
   };
 
   useEffect(() => {
-    loadBookings(false, true);
+    loadBookings(false, false);
   }, [currentDate]);
 
-  useAutoRefresh(() => loadBookings(false, true), {
+  useAutoRefresh(() => loadBookings(false, false), {
     entities: ['bookings'],
-    intervalMs: 4000,
+    intervalMs: 8000,
     refreshOnFocus: true
   });
 
@@ -1233,10 +1271,34 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
         </div>
       )}
 
+      {/* Mobile Tab Switcher: Toggle between Calendar & Booking Form */}
+      <div className="d-lg-none bg-white p-1.5 rounded-3 border mb-1 d-flex gap-1 shadow-xs">
+        <button
+          type="button"
+          onClick={() => setMobileViewTab('calendar')}
+          className={`btn btn-sm flex-fill fw-bold py-2 rounded-2 d-flex align-items-center justify-content-center gap-1.5 transition-all ${
+            mobileViewTab === 'calendar' ? 'btn-primary shadow-xs' : 'btn-light text-secondary'
+          }`}
+        >
+          <CalendarIcon size={16} />
+          <span>📅 કેલેન્ડર (Calendar)</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setMobileViewTab('form')}
+          className={`btn btn-sm flex-fill fw-bold py-2 rounded-2 d-flex align-items-center justify-content-center gap-1.5 transition-all ${
+            mobileViewTab === 'form' ? 'btn-primary shadow-xs' : 'btn-light text-secondary'
+          }`}
+        >
+          <CalendarPlus size={16} />
+          <span>➕ નવું બુકિંગ (Book)</span>
+        </button>
+      </div>
+
       {/* 2. MAIN SPLIT: FUNCTION BOOKING FORM (LEFT) & REAL CALENDAR (RIGHT) */}
       <div className="row g-3">
         {/* LEFT CARD: FUNCTION BOOKING FORM */}
-        <div className="col-12 col-lg-5">
+        <div className={`col-12 col-lg-5 ${mobileViewTab === 'calendar' ? 'd-none d-lg-block' : 'd-block'}`}>
           <div 
             className="card h-100 shadow-sm border bg-white" 
             style={{ 
@@ -1646,7 +1708,7 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
         </div>
 
         {/* RIGHT CARD: INTERACTIVE CALENDAR VIEW */}
-        <div className="col-12 col-lg-7">
+        <div className={`col-12 col-lg-7 ${mobileViewTab === 'form' ? 'd-none d-lg-block' : 'd-block'}`}>
           <div 
             className="card h-100 shadow-sm border bg-white" 
             style={{ 
@@ -2046,7 +2108,7 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
 
           <div className="d-flex align-items-center gap-2 flex-wrap">
             {/* Search */}
-            <div className="input-group input-group-sm" style={{ width: 220 }}>
+            <div className="input-group input-group-sm flex-fill" style={{ minWidth: 180, maxWidth: 300 }}>
               <span className="input-group-text bg-light border-end-0">
                 <Search size={13} className="text-muted" />
               </span>
@@ -2061,8 +2123,8 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
 
             {/* Status Filter */}
             <select
-              className="form-select form-select-sm"
-              style={{ width: 180 }}
+              className="form-select form-select-sm flex-fill"
+              style={{ minWidth: 160 }}
               value={statusFilter}
               onChange={e => setStatusFilter(e.target.value)}
             >
@@ -2137,7 +2199,7 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
             </div>
           )}
 
-          <div className="table-responsive">
+          <div className="table-responsive d-none d-md-block">
             <table className="table table-hover align-middle mb-0">
               <thead className="table-light">
                 <tr>
@@ -2293,6 +2355,181 @@ ${discount > 0 ? `• ડિસ્કાઉન્ટ (Discount): *₹${Number(di
                 )}
               </tbody>
             </table>
+          </div>
+
+          {/* Responsive Mobile Cards View (Phones & Small Screens) */}
+          <div className="d-block d-md-none p-3 d-flex flex-column gap-3">
+            {filteredBookings.length === 0 ? (
+              <div className="text-center p-4 text-muted small bg-light rounded-3">
+                {loading ? 'Loading functions...' : 'No functions found matching filters.'}
+              </div>
+            ) : (
+              filteredBookings.map(b => (
+                <div key={b.id || b.bookingNumber} className="card border shadow-xs rounded-3 overflow-hidden">
+                  {/* Card Header: Booking #, Meal period badge, and Status */}
+                  <div className="card-header bg-white py-2 px-3 border-bottom d-flex justify-content-between align-items-center flex-wrap gap-1">
+                    <div className="d-flex align-items-center gap-1.5">
+                      <span className="badge bg-dark font-monospace" style={{ fontSize: '0.75rem' }}>{b.bookingNumber}</span>
+                      <span className={`badge ${b.timeSlot?.includes('બપોરે') ? 'bg-warning text-dark' : 'bg-primary text-white'}`} style={{ fontSize: '0.7rem' }}>
+                        {b.timeSlot || 'Evening'}
+                      </span>
+                    </div>
+                    <span className={`badge ${
+                      b.status === 'CONFIRMED' ? 'bg-warning-subtle text-dark border border-warning-subtle fw-bold' :
+                      b.status === 'CHECKED_IN' ? 'bg-info-subtle text-info border border-info-subtle fw-bold' :
+                      b.status === 'COMPLETED' || b.status === 'CHECKED_OUT' ? 'bg-success-subtle text-success border border-success-subtle fw-bold' :
+                      b.status === 'CANCELLED' ? 'bg-danger-subtle text-danger border border-danger-subtle fw-bold' :
+                      'bg-secondary-subtle text-secondary border border-secondary-subtle fw-bold'
+                    }`} style={{ fontSize: '0.72rem' }}>
+                      {b.status === 'CONFIRMED' ? 'CONFIRMED' :
+                       b.status === 'CHECKED_IN' ? 'CHECKED IN' :
+                       (b.status === 'COMPLETED' || b.status === 'CHECKED_OUT') ? 'COMPLETED' :
+                       b.status === 'CANCELLED' ? 'CANCELLED' : b.status}
+                    </span>
+                  </div>
+
+                  {/* Card Body: Host Name, Phone, Date, Guests, Event Type */}
+                  <div className="card-body p-3 d-flex flex-column gap-2 bg-white">
+                    <div className="d-flex justify-content-between align-items-start">
+                      <div>
+                        <h6 className="fw-bold mb-0 text-dark">{b.customerName}</h6>
+                        <a href={`tel:${b.customerPhone}`} className="text-primary small text-decoration-none fw-semibold">
+                          📞 {b.customerPhone}
+                        </a>
+                      </div>
+                      <div className="text-end">
+                        <span className="badge bg-light text-dark border fw-bold" style={{ fontSize: '0.82rem' }}>
+                          👥 {b.guestCount} મહેમાન
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="d-flex flex-wrap align-items-center gap-2 small text-muted border-top pt-2">
+                      <div>📅 <strong className="text-dark">{b.bookingDate}</strong></div>
+                      {b.bookingTime && <div>⏰ {b.bookingTime}</div>}
+                      <span className="badge bg-light text-secondary border ms-auto" style={{ fontSize: '0.7rem' }}>
+                        {b.functionType || 'Family Gathering'}
+                      </span>
+                    </div>
+
+                    {/* Dishes list if any */}
+                    {b.selectedMenu && b.selectedMenu.length > 0 ? (
+                      <div className="p-2 bg-light rounded-2 border small">
+                        <div className="fw-semibold text-secondary mb-1" style={{ fontSize: '0.72rem' }}>
+                          🍽️ પસંદ કરેલ મેનુ ({b.selectedMenu.length} વાનગીઓ):
+                        </div>
+                        <div className="d-flex flex-wrap gap-1">
+                          {b.selectedMenu.slice(0, 6).map((item, idx) => (
+                            <span key={idx} className="badge bg-white text-dark border" style={{ fontSize: '0.68rem' }}>
+                              {item}
+                            </span>
+                          ))}
+                          {b.selectedMenu.length > 6 && (
+                            <span className="badge bg-secondary text-white" style={{ fontSize: '0.68rem' }}>
+                              +{b.selectedMenu.length - 6} વધુ
+                            </span>
+                          )}
+                        </div>
+                      </div>
+                    ) : null}
+
+                    {/* Action Buttons Row */}
+                    <div className="d-flex flex-wrap gap-1.5 pt-2 border-top">
+                      <button
+                        type="button"
+                        onClick={() => setViewingLockedMenuBooking(b)}
+                        className="btn btn-outline-warning btn-sm p-1.5 px-2 text-dark flex-fill d-flex align-items-center justify-content-center gap-1 shadow-xs fw-semibold"
+                        style={{ fontSize: '0.78rem' }}
+                      >
+                        <Utensils size={13} />
+                        <span>મેનુ</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => handleWhatsAppShare(b)}
+                        className="btn btn-outline-success btn-sm p-1.5 px-2 flex-fill d-flex align-items-center justify-content-center gap-1 shadow-xs fw-semibold"
+                        style={{ color: '#25D366', borderColor: '#25D366', fontSize: '0.78rem' }}
+                      >
+                        <MessageCircle size={13} />
+                        <span>WhatsApp</span>
+                      </button>
+
+                      {b.status !== 'CANCELLED' && b.status !== 'COMPLETED' && b.status !== 'CHECKED_OUT' && (
+                        <button
+                          type="button"
+                          onClick={() => openBookingEditor(b)}
+                          className="btn btn-outline-secondary btn-sm p-1.5 px-2 shadow-xs"
+                          title="Edit booking"
+                        >
+                          <Pencil size={13} />
+                        </button>
+                      )}
+
+                      {(b.status === 'CONFIRMED' || b.status === 'PENDING') && (
+                        <button
+                          type="button"
+                          onClick={() => handleCheckIn(b)}
+                          className="btn btn-outline-success btn-sm p-1.5 px-2.5 d-flex align-items-center justify-content-center gap-1 shadow-xs fw-bold flex-fill"
+                          style={{ fontSize: '0.78rem' }}
+                        >
+                          <LogIn size={13} />
+                          <span>Check In</span>
+                        </button>
+                      )}
+
+                      {b.status === 'CHECKED_IN' && (
+                        <button
+                          type="button"
+                          onClick={() => openCheckOutModal(b)}
+                          className="btn btn-primary btn-sm p-1.5 px-2.5 d-flex align-items-center justify-content-center gap-1 shadow-sm fw-bold flex-fill"
+                          style={{ fontSize: '0.78rem' }}
+                        >
+                          <LogOut size={13} />
+                          <span>Check Out</span>
+                        </button>
+                      )}
+
+                      {(b.status === 'COMPLETED' || b.status === 'CHECKED_OUT') && (
+                        <button
+                          type="button"
+                          onClick={() => openBillModal(b)}
+                          className="btn btn-outline-dark btn-sm p-1.5 px-2.5 d-flex align-items-center justify-content-center gap-1 shadow-xs fw-bold flex-fill"
+                          style={{ fontSize: '0.78rem' }}
+                        >
+                          <Receipt size={13} />
+                          <span>Bill</span>
+                        </button>
+                      )}
+
+                      {b.status !== 'CANCELLED' && b.status !== 'COMPLETED' && b.status !== 'CHECKED_OUT' && (
+                        <button
+                          type="button"
+                          onClick={() => handleCancelBooking(b)}
+                          className="btn btn-outline-danger btn-sm p-1.5 px-2 d-flex align-items-center justify-content-center gap-1"
+                          style={{ fontSize: '0.78rem' }}
+                        >
+                          <XCircle size={13} />
+                          <span>Cancel</span>
+                        </button>
+                      )}
+
+                      {b.status === 'CANCELLED' && (
+                        <button
+                          type="button"
+                          onClick={() => handleDeleteBooking(b)}
+                          className="btn btn-danger btn-sm p-1.5 px-2 d-flex align-items-center justify-content-center gap-1 text-white shadow-xs"
+                          style={{ fontSize: '0.78rem' }}
+                        >
+                          <Trash2 size={13} />
+                          <span>Delete</span>
+                        </button>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
           </div>
         </div>
       </div>

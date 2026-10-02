@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import { Eye, EyeOff, ArrowRight, User, Lock, AlertCircle } from 'lucide-react';
+import { getBackendOrigin } from '../../api/client';
 
 export const LoginPage: React.FC = () => {
   const { login } = useAuth();
@@ -12,6 +13,13 @@ export const LoginPage: React.FC = () => {
   const [showPassword, setShowPassword] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [connectingMsg, setConnectingMsg] = useState(false);
+
+  // Proactively ping backend immediately on mount to wake up sleeping server (e.g. Render cold start)
+  useEffect(() => {
+    const origin = getBackendOrigin();
+    fetch(`${origin}/api/health`, { method: 'GET', mode: 'cors' }).catch(() => {});
+  }, []);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -30,12 +38,21 @@ export const LoginPage: React.FC = () => {
     }
 
     setLoading(true);
+    const timer = setTimeout(() => {
+      setConnectingMsg(true);
+    }, 2000);
+
     try {
       await login(trimmedId, trimmedPass);
+      clearTimeout(timer);
       navigate('/');
     } catch (err: any) {
+      clearTimeout(timer);
+      setConnectingMsg(false);
       setError(err.message || 'Invalid User ID or Password. Please check your credentials.');
     } finally {
+      clearTimeout(timer);
+      setConnectingMsg(false);
       setLoading(false);
     }
   };
@@ -227,7 +244,7 @@ export const LoginPage: React.FC = () => {
               {loading ? (
                 <>
                   <span className="spinner-border spinner-border-sm" role="status" />
-                  <span>Signing in...</span>
+                  <span>{connectingMsg ? 'કનેક્ટ થઈ રહ્યું છે... (Connecting...)' : 'Signing in...'}</span>
                 </>
               ) : (
                 <>

@@ -17,9 +17,20 @@ import { Link } from 'react-router-dom';
 import { appCache } from '../../api/cache';
 import { useAutoRefresh } from '../../hooks/useAutoRefresh';
 
+const STORAGE_KEY_METRICS = 'bhatigal_cached_metrics';
+
 export const DashboardPage: React.FC = () => {
   const { can } = usePermission();
-  const cachedMetrics = appCache.get('/dashboard/metrics')?.data || appCache.get('/dashboard/metrics');
+  const cachedMetrics = (() => {
+    const memory = appCache.get('/dashboard/metrics')?.data || appCache.get('/dashboard/metrics');
+    if (memory) return memory;
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY_METRICS);
+      return raw ? JSON.parse(raw) : null;
+    } catch {
+      return null;
+    }
+  })();
   const [metrics, setMetrics] = useState<any>(() => cachedMetrics || null);
   const [loading, setLoading] = useState(!cachedMetrics);
 
@@ -29,6 +40,9 @@ export const DashboardPage: React.FC = () => {
       const res: any = await apiClient.get('/dashboard/metrics', config);
       if (res.success && res.data) {
         setMetrics(res.data);
+        try {
+          localStorage.setItem(STORAGE_KEY_METRICS, JSON.stringify(res.data));
+        } catch {}
       }
     } catch (err) {
       console.error('Failed to load dashboard metrics:', err);
@@ -38,11 +52,11 @@ export const DashboardPage: React.FC = () => {
   };
 
   useEffect(() => {
-    fetchMetrics(true);
+    fetchMetrics(false);
   }, []);
 
-  useAutoRefresh(() => fetchMetrics(true), {
-    intervalMs: 5000,
+  useAutoRefresh(() => fetchMetrics(false), {
+    intervalMs: 10000,
     refreshOnFocus: true
   });
 
