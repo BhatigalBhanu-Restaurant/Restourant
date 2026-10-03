@@ -1423,8 +1423,17 @@ export const StaffPage: React.FC = () => {
                       className="cursor-pointer py-2"
                       onClick={() => photoFileInputRef.current?.click()}
                     >
-                      <div className="p-2 rounded-circle bg-primary bg-opacity-10 text-primary d-inline-flex mb-2">
-                        <Camera size={26} />
+                      <div
+                        className="rounded-circle d-inline-flex mb-2 align-items-center justify-content-center"
+                        style={{
+                          width: '46px',
+                          height: '46px',
+                          backgroundColor: '#ecfdf5',
+                          color: '#059669',
+                          border: '1px solid #a7f3d0'
+                        }}
+                      >
+                        <Upload size={24} />
                       </div>
                       <div className="fw-semibold text-dark small">પાસપોર્ટ સાઇઝ ફોટો અપલોડ કરો</div>
                       <div className="text-muted" style={{ fontSize: '0.72rem' }}>JPG, PNG (કાર્ડ પર દેખાશે)</div>
@@ -1479,8 +1488,17 @@ export const StaffPage: React.FC = () => {
                       className="cursor-pointer py-2"
                       onClick={() => aadharFileInputRef.current?.click()}
                     >
-                      <div className="p-2 rounded-circle bg-success bg-opacity-10 text-success d-inline-flex mb-2">
-                        <Upload size={26} />
+                      <div
+                        className="rounded-circle d-inline-flex mb-2 align-items-center justify-content-center"
+                        style={{
+                          width: '46px',
+                          height: '46px',
+                          backgroundColor: '#ecfdf5',
+                          color: '#059669',
+                          border: '1px solid #a7f3d0'
+                        }}
+                      >
+                        <Upload size={24} />
                       </div>
                       <div className="fw-semibold text-dark small">આધાર કાર્ડનો ફોટો અપલોડ કરો</div>
                       <div className="text-muted" style={{ fontSize: '0.72rem' }}>JPG, PNG અથવા WebP</div>

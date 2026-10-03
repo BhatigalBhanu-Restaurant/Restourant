@@ -103,22 +103,14 @@ export const DashboardPage: React.FC = () => {
               </div>
             </div>
           </div>
-          <div className="d-flex align-items-center gap-2 ms-auto justify-content-end" style={{ marginLeft: 'auto' }}>
+          <div className="d-flex gap-2 w-100 w-md-auto">
             {can('booking.view') && (
-              <Link
-                to="/bookings"
-                className="btn btn-primary btn-sm d-inline-flex align-items-center gap-1.5 fw-semibold px-3 py-1.5 shadow-xs text-nowrap"
-                style={{ whiteSpace: 'nowrap' }}
-              >
+              <Link to="/bookings" className="btn btn-primary btn-sm d-flex align-items-center gap-1.5 fw-semibold px-3">
                 <CalendarCheck size={15} /> Function Locker
               </Link>
             )}
             {can('daily_menu.view') && (
-              <Link
-                to="/daily-menu"
-                className="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1.5 px-3 py-1.5 shadow-xs text-nowrap"
-                style={{ whiteSpace: 'nowrap' }}
-              >
+              <Link to="/daily-menu" className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1.5 px-3">
                 <Calendar size={15} /> Daily Menu
               </Link>
             )}
