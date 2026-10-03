@@ -38,10 +38,11 @@ async def lifespan(app: FastAPI):
     try:
         ensure_indexes()
         db = get_db()
-        # Auto-seed ONLY if database is brand new (0 users)
+        # Auto-seed if database is brand new or superadmin is missing
         user_count = db.users.count_documents({})
-        if user_count == 0:
-            logger.info("Database appears uninitialized (0 users). Running auto-seed...")
+        superadmin = db.users.find_one({"username": "superadmin"})
+        if user_count == 0 or not superadmin:
+            logger.info("Database appears uninitialized or missing superadmin. Running auto-seed...")
             run_database_seeds()
             logger.info("Auto-seeding complete.")
         else:
