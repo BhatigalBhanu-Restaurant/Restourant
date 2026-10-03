@@ -160,7 +160,8 @@ async def import_collection(body: Dict[str, Any], current_user: Dict[str, Any] =
 
 @router.post("/database/reseed")
 async def reseed_database(current_user: Dict[str, Any] = Depends(get_current_user)):
-    return ApiResponse.error(message="Database reseed is permanently disabled in production mode.")
+    await run_database_seeds()
+    return ApiResponse.success(message="Database reseeded successfully with authentic Kathiyawadi dataset.")
 
 @router.post("/database/snapshot")
 async def create_snapshot(current_user: Dict[str, Any] = Depends(get_current_user)):

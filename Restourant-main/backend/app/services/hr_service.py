@@ -63,6 +63,13 @@ class HRService:
                     except Exception:
                         pass
             code = f"EMP-{str(max_num + 1).zfill(3)}"
+        else:
+            existing_emp = db.employees.find_one({"employeeCode": code})
+            if existing_emp:
+                raise HTTPException(
+                    status_code=400,
+                    detail={"success": False, "message": f"કર્મચારી કોડ '{code}' પહેલેથી જ અસ્તિત્વમાં છે. કૃપા કરીને બીજો કોડ પસંદ કરો."}
+                )
 
         name = (data.get("name") or f"{data.get('firstName', '')} {data.get('lastName', '')}").strip()
         wage_type = (data.get("wageType") or "MONTHLY").upper()

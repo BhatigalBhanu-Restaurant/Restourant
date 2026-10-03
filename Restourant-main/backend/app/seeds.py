@@ -6,7 +6,108 @@ from .utils.security import hash_password
 from .constants.permissions import ALL_PERMISSIONS, DEFAULT_ROLES
 from .utils.logger import logger
 
-DEFAULT_USERS = []
+DEFAULT_USERS = [
+  {
+    "id": "usr_superadmin",
+    "username": "superadmin",
+    "email": "superadmin@erp.com",
+    "pass": "Admin@12345",
+    "firstName": "Super",
+    "lastName": "Administrator",
+    "phone": "9999999991",
+    "roleId": "role_super_admin"
+  },
+  {
+    "id": "usr_manager",
+    "username": "manager",
+    "email": "manager@erp.com",
+    "pass": "Manager@12345",
+    "firstName": "Restaurant",
+    "lastName": "Manager",
+    "phone": "9999999993",
+    "roleId": "role_manager"
+  },
+  {
+    "id": "usr_cashier",
+    "username": "cashier",
+    "email": "cashier@erp.com",
+    "pass": "Cashier@12345",
+    "firstName": "Head",
+    "lastName": "Cashier",
+    "phone": "9999999994",
+    "roleId": "role_cashier"
+  },
+  {
+    "id": "usr_waiter",
+    "username": "waiter",
+    "email": "waiter@erp.com",
+    "pass": "Waiter@12345",
+    "firstName": "Lead",
+    "lastName": "Server",
+    "phone": "9999999995",
+    "roleId": "role_waiter"
+  },
+  {
+    "id": "usr_chef",
+    "username": "chef",
+    "email": "chef@erp.com",
+    "pass": "Chef@12345",
+    "firstName": "Executive",
+    "lastName": "Chef",
+    "phone": "9999999996",
+    "roleId": "role_kitchen"
+  },
+  {
+    "id": "usr_inventory",
+    "username": "inventory",
+    "email": "inventory@erp.com",
+    "pass": "Inventory@12345",
+    "firstName": "Stores",
+    "lastName": "Incharge",
+    "phone": "9999999997",
+    "roleId": "role_inventory"
+  },
+  {
+    "id": "usr_purchase",
+    "username": "purchase",
+    "email": "purchase@erp.com",
+    "pass": "Purchase@12345",
+    "firstName": "Procurement",
+    "lastName": "Officer",
+    "phone": "9999999988",
+    "roleId": "role_purchase"
+  },
+  {
+    "id": "usr_accountant",
+    "username": "accountant",
+    "email": "accountant@erp.com",
+    "pass": "Accountant@12345",
+    "firstName": "Chief",
+    "lastName": "Accountant",
+    "phone": "9999999998",
+    "roleId": "role_accountant"
+  },
+  {
+    "id": "usr_hr",
+    "username": "hr",
+    "email": "hr@erp.com",
+    "pass": "Hr@12345",
+    "firstName": "HR",
+    "lastName": "Specialist",
+    "phone": "9999999999",
+    "roleId": "role_hr"
+  },
+  {
+    "id": "usr_receptionist",
+    "username": "receptionist",
+    "email": "reception@erp.com",
+    "pass": "Receptionist@12345",
+    "firstName": "Hostess",
+    "lastName": "Receptionist",
+    "phone": "9999999990",
+    "roleId": "role_receptionist"
+  }
+]
 DEPARTMENTS = [
   {
     "id": "dept_mgmt",
@@ -1269,25 +1370,130 @@ def run_database_seeds():
     if role_ops:
         db.roles.bulk_write(role_ops)
 
-    # 1. Seed Permissions (required for system ACL)
-    logger.info(f"[MongoDB Seed] Synchronizing {len(ALL_PERMISSIONS)} permissions...")
-    perm_ops = [
-        UpdateOne({"id": p["id"]}, {"$set": p}, upsert=True)
-        for p in ALL_PERMISSIONS
-    ]
-    if perm_ops:
-        db.permissions.bulk_write(perm_ops)
+    # 3. Seed Demo Users
+    logger.info("[MongoDB Seed] Seeding demo users with hashed credentials...")
+    user_ops = []
+    for u in DEFAULT_USERS:
+        pwd_hash = hash_password(u["pass"])
+        doc = {
+            "id": u["id"],
+            "username": u["username"],
+            "email": u["email"],
+            "passwordHash": pwd_hash,
+            "firstName": u["firstName"],
+            "lastName": u["lastName"],
+            "phone": u.get("phone", ""),
+            "roleId": u["roleId"],
+            "status": "ACTIVE",
+            "failedLoginAttempts": 0,
+            "createdAt": datetime.now(timezone.utc),
+            "updatedAt": datetime.now(timezone.utc)
+        }
+        user_ops.append(
+            UpdateOne({"$or": [{"id": u["id"]}, {"username": u["username"]}]}, {"$set": doc}, upsert=True)
+        )
+    if user_ops:
+        db.users.bulk_write(user_ops)
 
-    # 2. Seed Roles (required for system ACL)
-    logger.info(f"[MongoDB Seed] Seeding {len(DEFAULT_ROLES)} role definitions...")
-    role_ops = [
-        UpdateOne({"id": r["id"]}, {"$set": r}, upsert=True)
-        for r in DEFAULT_ROLES
-    ]
-    if role_ops:
-        db.roles.bulk_write(role_ops)
+    # 4. Departments & Designations
+    if DEPARTMENTS:
+        db.departments.bulk_write([
+            UpdateOne({"id": d["id"]}, {"$set": d}, upsert=True) for d in DEPARTMENTS
+        ])
+    if DESIGNATIONS:
+        db.designations.bulk_write([
+            UpdateOne({"id": d["id"]}, {"$set": d}, upsert=True) for d in DESIGNATIONS
+        ])
 
-    logger.info("[MongoDB Seed] Production safe: Permissions and roles synchronized. No dummy business data seeded.")
+    # 5. Units
+    if UNITS:
+        db.units.bulk_write([
+            UpdateOne({"id": u["id"]}, {"$set": u}, upsert=True) for u in UNITS
+        ])
+
+    # 6. Taxes
+    if TAXES:
+        db.taxes.bulk_write([
+            UpdateOne({"id": t["id"]}, {"$set": t}, upsert=True) for t in TAXES
+        ])
+
+    # 7. Categories & Menu Items
+    if CATEGORIES:
+        db.menu_categories.bulk_write([
+            UpdateOne({"id": c["id"]}, {"$set": c}, upsert=True) for c in CATEGORIES
+        ])
+    if MENU_ITEMS:
+        db.menu_items.bulk_write([
+            UpdateOne({"id": m["id"]}, {"$set": m}, upsert=True) for m in MENU_ITEMS
+        ])
+
+    # 8. Floor Zones & Tables
+    if DEFAULT_FLOOR_ZONES:
+        db.floor_zones.bulk_write([
+            UpdateOne({"code": z["code"]}, {"$set": z}, upsert=True) for z in DEFAULT_FLOOR_ZONES
+        ])
+    if TABLES:
+        db.dining_tables.bulk_write([
+            UpdateOne({"id": tbl["id"]}, {"$set": tbl}, upsert=True) for tbl in TABLES
+        ])
+
+    # 9. Inventory Items & Recipes
+    if INVENTORY_ITEMS:
+        db.inventory_items.bulk_write([
+            UpdateOne({"id": inv["id"]}, {"$set": inv}, upsert=True) for inv in INVENTORY_ITEMS
+        ])
+    if RECIPES:
+        db.recipes.bulk_write([
+            UpdateOne({"id": r["id"]}, {"$set": r}, upsert=True) for r in RECIPES
+        ])
+
+    # 10. Suppliers & Customers
+    if SUPPLIERS:
+        db.suppliers.bulk_write([
+            UpdateOne({"id": s["id"]}, {"$set": s}, upsert=True) for s in SUPPLIERS
+        ])
+    if CUSTOMERS:
+        db.customers.bulk_write([
+            UpdateOne({"id": c["id"]}, {"$set": c}, upsert=True) for c in CUSTOMERS
+        ])
+
+    # 11. Chart of Accounts
+    if CHART_OF_ACCOUNTS:
+        db.chart_of_accounts.bulk_write([
+            UpdateOne({"id": a["id"]}, {"$set": a}, upsert=True) for a in CHART_OF_ACCOUNTS
+        ])
+
+    # 12. Employees & Salary Structures
+    if EMPLOYEES:
+        db.employees.bulk_write([
+            UpdateOne({"id": e["id"]}, {"$set": e}, upsert=True) for e in EMPLOYEES
+        ])
+        sal_ops = []
+        for e in EMPLOYEES:
+            base = e.get("baseSalary", 30000)
+            sal_doc = {
+                "id": str(uuid.uuid4()),
+                "employeeId": e["id"],
+                "baseSalary": base * 0.5,
+                "hra": base * 0.2,
+                "conveyance": 2000,
+                "medicalAllowance": 1500,
+                "specialAllowance": base * 0.15,
+                "providentFund": base * 0.06,
+                "professionalTax": 200,
+                "tds": 0
+            }
+            sal_ops.append(UpdateOne({"employeeId": e["id"]}, {"$set": sal_doc}, upsert=True))
+        if sal_ops:
+            db.salary_structures.bulk_write(sal_ops)
+
+    # 13. System Settings
+    if SYSTEM_SETTINGS:
+        db.system_settings.bulk_write([
+            UpdateOne({"key": s["key"]}, {"$set": s}, upsert=True) for s in SYSTEM_SETTINGS
+        ])
+
+    logger.info("[MongoDB Seed] All database collections and default records seeded successfully.")
 
 if __name__ == '__main__':
     run_database_seeds()
