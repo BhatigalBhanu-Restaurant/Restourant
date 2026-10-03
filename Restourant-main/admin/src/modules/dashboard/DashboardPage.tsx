@@ -94,23 +94,31 @@ export const DashboardPage: React.FC = () => {
               />
             </div>
             <div>
-              <div className="d-flex align-items-center gap-2">
-                <h4 className="fw-bold mb-0 text-dark">Bhatigal Bhanu ERP</h4>
+              <div className="d-flex align-items-center gap-2 flex-nowrap">
+                <h4 className="fw-bold mb-0 text-dark text-nowrap" style={{ whiteSpace: 'nowrap' }}>Bhatigal Bhanu ERP</h4>
                 <span className="badge bg-success-subtle text-success border border-success-subtle fw-semibold">Live</span>
               </div>
-              <div className="text-muted small mt-0.5">
+              <div className="text-muted small mt-0.5 text-nowrap" style={{ whiteSpace: 'nowrap' }}>
                 {new Date().toLocaleDateString('en-IN', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
               </div>
             </div>
           </div>
-          <div className="d-flex gap-2 w-100 w-md-auto">
+          <div className="d-flex align-items-center gap-2 ms-auto justify-content-end flex-wrap" style={{ marginLeft: 'auto' }}>
             {can('booking.view') && (
-              <Link to="/bookings" className="btn btn-primary btn-sm d-flex align-items-center gap-1.5 fw-semibold px-3">
+              <Link
+                to="/bookings"
+                className="btn btn-primary btn-sm d-inline-flex align-items-center gap-1.5 fw-semibold px-3 py-1.5 shadow-xs text-nowrap"
+                style={{ whiteSpace: 'nowrap' }}
+              >
                 <CalendarCheck size={15} /> Function Locker
               </Link>
             )}
             {can('daily_menu.view') && (
-              <Link to="/daily-menu" className="btn btn-outline-secondary btn-sm d-flex align-items-center gap-1.5 px-3">
+              <Link
+                to="/daily-menu"
+                className="btn btn-outline-secondary btn-sm d-inline-flex align-items-center gap-1.5 px-3 py-1.5 shadow-xs text-nowrap"
+                style={{ whiteSpace: 'nowrap' }}
+              >
                 <Calendar size={15} /> Daily Menu
               </Link>
             )}
