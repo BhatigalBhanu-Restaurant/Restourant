@@ -1270,11 +1270,13 @@ export const StaffPage: React.FC = () => {
               <div className="row g-2">
                 <div className="col-6">
                   <div
-                    className={`card p-3 rounded-3 cursor-pointer border ${
-                      formData.wageType === 'MONTHLY'
-                        ? 'border-primary bg-primary bg-opacity-10 text-primary fw-bold'
-                        : 'bg-light text-muted'
-                    }`}
+                    className="card p-3 rounded-3 cursor-pointer border"
+                    style={{
+                      borderColor: formData.wageType === 'MONTHLY' ? '#2563eb' : '#dee2e6',
+                      backgroundColor: formData.wageType === 'MONTHLY' ? '#eff6ff' : '#f8f9fa',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
                     onClick={() => setFormData({ ...formData, wageType: 'MONTHLY' })}
                   >
                     <div className="d-flex align-items-center gap-2">
@@ -1284,9 +1286,10 @@ export const StaffPage: React.FC = () => {
                         checked={formData.wageType === 'MONTHLY'}
                         onChange={() => setFormData({ ...formData, wageType: 'MONTHLY' })}
                         className="form-check-input mt-0"
+                        style={{ accentColor: '#2563eb' }}
                       />
                       <div>
-                        <div className="text-dark fw-bold">માસિક પગાર (Monthly)</div>
+                        <div style={{ color: formData.wageType === 'MONTHLY' ? '#1d4ed8' : '#212529', fontWeight: 600 }}>માસિક પગાર (Monthly)</div>
                         <div className="small text-muted fw-normal">દર મહિને નક્કી કરેલ પગાર</div>
                       </div>
                     </div>
@@ -1295,11 +1298,13 @@ export const StaffPage: React.FC = () => {
 
                 <div className="col-6">
                   <div
-                    className={`card p-3 rounded-3 cursor-pointer border ${
-                      formData.wageType === 'DAILY'
-                        ? 'border-warning bg-warning bg-opacity-10 text-dark fw-bold'
-                        : 'bg-light text-muted'
-                    }`}
+                    className="card p-3 rounded-3 cursor-pointer border"
+                    style={{
+                      borderColor: formData.wageType === 'DAILY' ? '#d97706' : '#dee2e6',
+                      backgroundColor: formData.wageType === 'DAILY' ? '#fffbeb' : '#f8f9fa',
+                      cursor: 'pointer',
+                      transition: 'all 0.15s ease'
+                    }}
                     onClick={() => setFormData({ ...formData, wageType: 'DAILY' })}
                   >
                     <div className="d-flex align-items-center gap-2">
@@ -1309,9 +1314,10 @@ export const StaffPage: React.FC = () => {
                         checked={formData.wageType === 'DAILY'}
                         onChange={() => setFormData({ ...formData, wageType: 'DAILY' })}
                         className="form-check-input mt-0"
+                        style={{ accentColor: '#d97706' }}
                       />
                       <div>
-                        <div className="text-dark fw-bold">રોજદાર / દૈનિક (Daily)</div>
+                        <div style={{ color: formData.wageType === 'DAILY' ? '#b45309' : '#212529', fontWeight: 600 }}>રોજદાર / દૈનિક (Daily)</div>
                         <div className="small text-muted fw-normal">દર દિવસના હિસાબે ચુકવણી</div>
                       </div>
                     </div>

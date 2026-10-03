@@ -90,13 +90,6 @@ interface MonthlyData {
   availableMonths: string[];
 }
 
-const getCachedStorage = <T,>(key: string, fallback: T): T => {
-  try { const s = localStorage.getItem(key); if (s) return JSON.parse(s) as T; } catch {}
-  return fallback;
-};
-const STORAGE_KEY_INV_DAILY_PREFIX = 'bhatigal_cached_inv_daily_';
-const STORAGE_KEY_INV_MONTHLY_PREFIX = 'bhatigal_cached_inv_monthly_';
-
 const todayStr = () => new Date().toISOString().slice(0, 10);
 const currentMonthStr = () => new Date().toISOString().slice(0, 7);
 const money = (amount: number) => `₹${Number(amount || 0).toLocaleString('en-IN', { maximumFractionDigits: 2 })}`;
@@ -168,7 +161,7 @@ export const InventoryPage: React.FC = () => {
   const [monthlySearch, setMonthlySearch] = useState('');
 
   // UI / Action states
-  const [loading, setLoading] = useState(() => !localStorage.getItem(STORAGE_KEY_INV_DAILY_PREFIX + todayStr()));
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState<{ text: string; type: 'success' | 'danger' | 'info' } | null>(null);
   const [showSaveConfirm, setShowSaveConfirm] = useState(false);
@@ -195,7 +188,6 @@ export const InventoryPage: React.FC = () => {
         if (Array.isArray(res.data.allAvailableDates)) {
           setAllAvailableDates(res.data.allAvailableDates);
         }
-        try { localStorage.setItem(STORAGE_KEY_INV_DAILY_PREFIX + targetDate, JSON.stringify(res.data)); } catch {}
       }
     } catch (error: any) {
       setMessage({ text: error.message || 'દૈનિક હિસાબ લોડ થઈ શક્યો નથી.', type: 'danger' });
@@ -210,7 +202,6 @@ export const InventoryPage: React.FC = () => {
       const res: any = await apiClient.get(`/inventory/monthly-ledger?month=${targetMonth}`, { forceFresh: true });
       if (res.success && res.data) {
         setMonthlyData(res.data);
-        try { localStorage.setItem(STORAGE_KEY_INV_MONTHLY_PREFIX + targetMonth, JSON.stringify(res.data)); } catch {}
       }
     } catch (error: any) {
       setMessage({ text: error.message || 'માસિક હિસાબ લોડ થઈ શક્યો નથી.', type: 'danger' });
