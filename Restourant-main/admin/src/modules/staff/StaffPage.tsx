@@ -52,12 +52,18 @@ const COMMON_ROLES = [
 
 const QUICK_UPAD_AMOUNTS = [500, 1000, 2000, 3000, 5000, 10000];
 
+const getCachedStorage = <T,>(key: string, fallback: T): T => {
+  try { const s = localStorage.getItem(key); if (s) return JSON.parse(s) as T; } catch {}
+  return fallback;
+};
+const STORAGE_KEY_STAFF = 'bhatigal_cached_staff';
+
 export const StaffPage: React.FC = () => {
   const { addToast } = useNotification();
 
   // State
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [employees, setEmployees] = useState<Employee[]>(() => getCachedStorage<Employee[]>(STORAGE_KEY_STAFF, []));
+  const [loading, setLoading] = useState(() => !localStorage.getItem(STORAGE_KEY_STAFF));
   const [searchQuery, setSearchQuery] = useState('');
   const [filterType, setFilterType] = useState<'ALL' | 'MONTHLY' | 'DAILY' | 'PENDING_UPAD' | 'ACTIVE'>('ALL');
   const [viewMode, setViewMode] = useState<'GRID' | 'TABLE'>('GRID');
@@ -136,6 +142,7 @@ export const StaffPage: React.FC = () => {
       const res: any = await apiClient.get('/hr/employees');
       if (res && res.data) {
         setEmployees(res.data);
+        try { localStorage.setItem(STORAGE_KEY_STAFF, JSON.stringify(res.data)); } catch {}
       }
     } catch (err: any) {
       console.error('Failed to load employees:', err);

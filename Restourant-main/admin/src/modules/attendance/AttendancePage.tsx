@@ -57,6 +57,12 @@ interface MonthlyAttendanceData {
   };
 }
 
+const getCachedStorage = <T,>(key: string, fallback: T): T => {
+  try { const s = localStorage.getItem(key); if (s) return JSON.parse(s) as T; } catch {}
+  return fallback;
+};
+const STORAGE_KEY_ATTENDANCE_PREFIX = 'bhatigal_cached_attendance_';
+
 const MONTH_NAMES_GUJ = [
   'જાન્યુઆરી (January)',
   'ફેબ્રુઆરી (February)',
@@ -89,8 +95,10 @@ export const AttendancePage: React.FC = () => {
   const currentMonthStr = `${todayDateObj.getFullYear()}-${String(todayDateObj.getMonth() + 1).padStart(2, '0')}`;
 
   const [selectedMonth, setSelectedMonth] = useState<string>(currentMonthStr);
-  const [data, setData] = useState<MonthlyAttendanceData | null>(null);
-  const [loading, setLoading] = useState<boolean>(true);
+  const [data, setData] = useState<MonthlyAttendanceData | null>(() =>
+    getCachedStorage<MonthlyAttendanceData | null>(STORAGE_KEY_ATTENDANCE_PREFIX + currentMonthStr, null)
+  );
+  const [loading, setLoading] = useState<boolean>(() => !localStorage.getItem(STORAGE_KEY_ATTENDANCE_PREFIX + currentMonthStr));
   const [searchQuery, setSearchQuery] = useState<string>('');
   const [savingCell, setSavingCell] = useState<string | null>(null);
 
