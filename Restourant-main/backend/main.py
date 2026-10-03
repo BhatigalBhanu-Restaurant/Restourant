@@ -10,7 +10,6 @@ import socketio
 from .app.config import settings
 from .app.database import get_db, ensure_indexes
 from .app.sockets import sio
-from .app.seeds import run_database_seeds
 from .app.utils.logger import logger
 from .app.middleware.system_guard import SystemStatusGuardMiddleware
 
@@ -38,15 +37,8 @@ async def lifespan(app: FastAPI):
     try:
         ensure_indexes()
         db = get_db()
-        # Auto-seed if database is brand new or superadmin is missing
         user_count = db.users.count_documents({})
-        superadmin = db.users.find_one({"username": "superadmin"})
-        if user_count == 0 or not superadmin:
-            logger.info("Database appears uninitialized or missing superadmin. Running auto-seed...")
-            run_database_seeds()
-            logger.info("Auto-seeding complete.")
-        else:
-            logger.info(f"Database connected. Found {user_count} registered users.")
+        logger.info(f"Database connected in PRODUCTION mode. Found {user_count} registered users. Auto-seed permanently disabled.")
     except Exception as e:
         logger.error(f"Startup initialization error: {e}")
     yield
