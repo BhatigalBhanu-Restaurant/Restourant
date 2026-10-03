@@ -14,16 +14,6 @@ class HRService:
         # Compute live hisab totals for each employee from employee_ledger
         for emp in employees:
             emp_id = emp.get("id")
-            # Ensure name, status, and wageType are always present for frontend compatibility
-            if not emp.get("name"):
-                first = emp.get("firstName", "")
-                last = emp.get("lastName", "")
-                emp["name"] = f"{first} {last}".strip() or emp.get("employeeCode", "કર્મચારી")
-            if not emp.get("status"):
-                emp["status"] = "ACTIVE"
-            if not emp.get("wageType"):
-                emp["wageType"] = "MONTHLY"
-
             txs = list(db.employee_ledger.find({"employeeId": emp_id}))
             total_upad = sum(float(t.get("amount", 0)) for t in txs if t.get("type") == "UPAD")
             upad_deductions = sum(float(t.get("deductionAmount", 0)) for t in txs if t.get("type") == "SALARY_PAYMENT")

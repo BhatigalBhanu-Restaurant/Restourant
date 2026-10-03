@@ -52,49 +52,8 @@ const COMMON_ROLES = [
 
 const QUICK_UPAD_AMOUNTS = [500, 1000, 2000, 3000, 5000, 10000];
 
-const normalizeEmployee = (e: any): Employee => {
-  if (!e || typeof e !== 'object') {
-    return {
-      id: '',
-      employeeCode: '',
-      name: 'કર્મચારી',
-      phone: '',
-      baseSalary: 0,
-      status: 'ACTIVE'
-    } as Employee;
-  }
-  const firstName = e.firstName || '';
-  const lastName = e.lastName || '';
-  const fullName = e.name || `${firstName} ${lastName}`.trim() || e.employeeCode || 'કર્મચારી';
-  return {
-    ...e,
-    id: e.id || '',
-    employeeCode: e.employeeCode || '',
-    name: fullName,
-    firstName: e.firstName || fullName,
-    lastName: e.lastName || '',
-    phone: e.phone || '',
-    designationTitle: e.designationTitle || 'સ્ટાફ',
-    wageType: e.wageType || 'MONTHLY',
-    baseSalary: Number(e.baseSalary || 0),
-    dailyRate: Number(e.dailyRate || 0),
-    outstandingUpad: Number(e.outstandingUpad || 0),
-    totalSalaryPaid: Number(e.totalSalaryPaid || 0),
-    status: e.status || 'ACTIVE'
-  };
-};
-
 const getCachedStorage = <T,>(key: string, fallback: T): T => {
-  try {
-    const s = localStorage.getItem(key);
-    if (s) {
-      const parsed = JSON.parse(s);
-      if (Array.isArray(fallback)) {
-        return (Array.isArray(parsed) ? parsed.map(normalizeEmployee) : fallback) as T;
-      }
-      return parsed as T;
-    }
-  } catch {}
+  try { const s = localStorage.getItem(key); if (s) return JSON.parse(s) as T; } catch {}
   return fallback;
 };
 const STORAGE_KEY_STAFF = 'bhatigal_cached_staff';
@@ -181,10 +140,10 @@ export const StaffPage: React.FC = () => {
     try {
       setLoading(true);
       const res: any = await apiClient.get('/hr/employees');
-      const rawList = Array.isArray(res) ? res : (Array.isArray(res?.data) ? res.data : []);
-      const normalized = rawList.map(normalizeEmployee);
-      setEmployees(normalized);
-      try { localStorage.setItem(STORAGE_KEY_STAFF, JSON.stringify(normalized)); } catch {}
+      if (res && res.data) {
+        setEmployees(res.data);
+        try { localStorage.setItem(STORAGE_KEY_STAFF, JSON.stringify(res.data)); } catch {}
+      }
     } catch (err: any) {
       console.error('Failed to load employees:', err);
       addToast('ભૂલ', 'કર્મચારી ડેટા લોડ કરવામાં નિષ્ફળ રહ્યા.', 'danger');
@@ -199,23 +158,22 @@ export const StaffPage: React.FC = () => {
 
   // Compute Summary KPI Stats
   const stats = useMemo(() => {
-    const list = Array.isArray(employees) ? employees : [];
-    const totalStaff = list.length;
-    const activeStaff = list.filter(e => (e.status || 'ACTIVE') === 'ACTIVE').length;
-    const monthlyStaff = list.filter(e => (e.wageType || 'MONTHLY') === 'MONTHLY' && (e.status || 'ACTIVE') === 'ACTIVE').length;
-    const dailyStaff = list.filter(e => e.wageType === 'DAILY' && (e.status || 'ACTIVE') === 'ACTIVE').length;
+    const totalStaff = employees.length;
+    const activeStaff = employees.filter(e => e.status === 'ACTIVE').length;
+    const monthlyStaff = employees.filter(e => e.wageType === 'MONTHLY' && e.status === 'ACTIVE').length;
+    const dailyStaff = employees.filter(e => e.wageType === 'DAILY' && e.status === 'ACTIVE').length;
 
-    const totalMonthlyBudget = list
-      .filter(e => (e.status || 'ACTIVE') === 'ACTIVE' && (e.wageType || 'MONTHLY') === 'MONTHLY')
-      .reduce((sum, e) => sum + (Number(e.baseSalary) || 0), 0);
+    const totalMonthlyBudget = employees
+      .filter(e => e.status === 'ACTIVE' && e.wageType === 'MONTHLY')
+      .reduce((sum, e) => sum + (e.baseSalary || 0), 0);
 
-    const totalOutstandingUpad = list
-      .reduce((sum, e) => sum + (Number(e.outstandingUpad) || 0), 0);
+    const totalOutstandingUpad = employees
+      .reduce((sum, e) => sum + (e.outstandingUpad || 0), 0);
 
-    const totalSalaryPaid = list
-      .reduce((sum, e) => sum + (Number(e.totalSalaryPaid) || 0), 0);
+    const totalSalaryPaid = employees
+      .reduce((sum, e) => sum + (e.totalSalaryPaid || 0), 0);
 
-    const pendingUpadCount = list.filter(e => (Number(e.outstandingUpad) || 0) > 0).length;
+    const pendingUpadCount = employees.filter(e => (e.outstandingUpad || 0) > 0).length;
 
     return {
       totalStaff,
@@ -231,29 +189,20 @@ export const StaffPage: React.FC = () => {
 
   // Filtered employees list
   const filteredEmployees = useMemo(() => {
-    const list = Array.isArray(employees) ? employees : [];
-    return list.filter(emp => {
-      if (!emp) return false;
-      const empStatus = emp.status || 'ACTIVE';
-      const empWage = emp.wageType || 'MONTHLY';
-      const empName = (emp.name || `${emp.firstName || ''} ${emp.lastName || ''}`.trim() || emp.employeeCode || '').toLowerCase();
-      const empCode = (emp.employeeCode || '').toLowerCase();
-      const empPhone = emp.phone || '';
-      const empRole = (emp.designationTitle || '').toLowerCase();
-
+    return employees.filter(emp => {
       // Filter tab
-      if (filterType === 'MONTHLY' && empWage !== 'MONTHLY') return false;
-      if (filterType === 'DAILY' && empWage !== 'DAILY') return false;
-      if (filterType === 'PENDING_UPAD' && (Number(emp.outstandingUpad) || 0) <= 0) return false;
-      if (filterType === 'ACTIVE' && empStatus !== 'ACTIVE') return false;
+      if (filterType === 'MONTHLY' && emp.wageType !== 'MONTHLY') return false;
+      if (filterType === 'DAILY' && emp.wageType !== 'DAILY') return false;
+      if (filterType === 'PENDING_UPAD' && (!emp.outstandingUpad || emp.outstandingUpad <= 0)) return false;
+      if (filterType === 'ACTIVE' && emp.status !== 'ACTIVE') return false;
 
       // Search query
       if (searchQuery.trim()) {
         const q = searchQuery.toLowerCase().trim();
-        const matchName = empName.includes(q);
-        const matchCode = empCode.includes(q);
-        const matchPhone = empPhone.includes(q);
-        const matchRole = empRole.includes(q);
+        const matchName = emp.name.toLowerCase().includes(q);
+        const matchCode = emp.employeeCode.toLowerCase().includes(q);
+        const matchPhone = (emp.phone || '').includes(q);
+        const matchRole = (emp.designationTitle || '').toLowerCase().includes(q);
         return matchName || matchCode || matchPhone || matchRole;
       }
       return true;
@@ -857,7 +806,7 @@ export const StaffPage: React.FC = () => {
                               className="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center fw-bold shadow-sm flex-shrink-0"
                               style={{ width: '48px', height: '48px', fontSize: '1.1rem' }}
                             >
-                              {(emp.name || emp.firstName || 'ક').charAt(0)}
+                              {emp.name.charAt(0)}
                             </div>
                           )}
 
@@ -1100,7 +1049,7 @@ export const StaffPage: React.FC = () => {
                               className="rounded-circle bg-primary bg-opacity-10 text-primary d-flex align-items-center justify-content-center fw-bold flex-shrink-0"
                               style={{ width: '36px', height: '36px', fontSize: '0.85rem' }}
                             >
-                              {(emp.name || emp.firstName || 'ક').charAt(0)}
+                              {emp.name.charAt(0)}
                             </div>
                           )}
                           <div>
