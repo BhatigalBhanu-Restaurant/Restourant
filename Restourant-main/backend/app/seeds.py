@@ -9,7 +9,7 @@ from .utils.logger import logger
 DEFAULT_USERS = [
   {
     "id": "usr_superadmin",
-    "username": "admin",
+    "username": "superadmin",
     "email": "superadmin@erp.com",
     "pass": "Admin@123",
     "firstName": "Super",
@@ -1833,22 +1833,28 @@ def run_database_seeds():
     user_ops = []
     for u in DEFAULT_USERS:
         pwd_hash = hash_password(u["pass"])
-        doc = {
+        set_doc = {
             "id": u["id"],
             "username": u["username"],
             "email": u["email"],
-            "passwordHash": pwd_hash,
             "firstName": u["firstName"],
             "lastName": u["lastName"],
             "phone": u.get("phone", ""),
             "roleId": u["roleId"],
             "status": "ACTIVE",
-            "failedLoginAttempts": 0,
-            "createdAt": datetime.now(timezone.utc),
             "updatedAt": datetime.now(timezone.utc)
         }
+        set_on_insert = {
+            "passwordHash": pwd_hash,
+            "failedLoginAttempts": 0,
+            "createdAt": datetime.now(timezone.utc)
+        }
         user_ops.append(
-            UpdateOne({"$or": [{"id": u["id"]}, {"username": u["username"]}]}, {"$set": doc}, upsert=True)
+            UpdateOne(
+                {"$or": [{"id": u["id"]}, {"username": u["username"]}]},
+                {"$set": set_doc, "$setOnInsert": set_on_insert},
+                upsert=True
+            )
         )
     if user_ops:
         db.users.bulk_write(user_ops)

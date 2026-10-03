@@ -33,25 +33,6 @@ class AuthService:
         if not user:
             user = db.users.find_one({"$or": [{"username": trimmed}, {"email": trimmed}]})
 
-        # Auto-provision superadmin fallback if missing
-        if not user and trimmed.lower() == "superadmin" and password == "Admin@12345":
-            pwd_hash = hash_password("Admin@12345")
-            user = {
-                "id": "usr_superadmin",
-                "username": "superadmin",
-                "email": "superadmin@erp.com",
-                "passwordHash": pwd_hash,
-                "firstName": "Super",
-                "lastName": "Administrator",
-                "phone": "9999999991",
-                "roleId": "role_super_admin",
-                "status": "ACTIVE",
-                "failedLoginAttempts": 0,
-                "createdAt": datetime.now(timezone.utc),
-                "updatedAt": datetime.now(timezone.utc)
-            }
-            db.users.update_one({"id": "usr_superadmin"}, {"$set": user}, upsert=True)
-
         if not user:
             raise HTTPException(status_code=401, detail={"success": False, "message": "Invalid username or password.", "code": "UNAUTHORIZED"})
 
@@ -68,12 +49,6 @@ class AuthService:
 
         stored_hash = user.get("passwordHash") or user.get("password") or user.get("pass") or ""
         is_match = verify_password(password, stored_hash)
-
-        # Fallback for default superadmin
-        if not is_match and user.get("username") == "superadmin" and password == "Admin@12345":
-            is_match = True
-            stored_hash = hash_password("Admin@12345")
-            db.users.update_one({"id": user["id"]}, {"$set": {"passwordHash": stored_hash}})
 
         if not is_match:
             failed = user.get("failedLoginAttempts", 0) + 1
