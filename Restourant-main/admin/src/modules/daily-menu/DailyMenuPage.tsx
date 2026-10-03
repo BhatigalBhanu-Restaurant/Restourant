@@ -1258,6 +1258,46 @@ export const DailyMenuPage: React.FC = () => {
               {/* LEFT: Controls */}
               <div className="col-12 col-lg-5">
                 <div className="d-flex flex-column gap-3">
+                  {/* Poster Meal Period Selector */}
+                  <div>
+                    <label className="form-label small fw-bold mb-1">પોસ્ટર સમય (Meal Timing):</label>
+                    <div className="d-flex bg-light p-1 rounded-3 border" role="group">
+                      <button
+                        type="button"
+                        className={`btn btn-sm w-50 py-1.5 fw-bold rounded-2 transition-all ${
+                          posterMealPeriod === 'LUNCH'
+                            ? 'btn-white bg-white text-primary shadow-xs'
+                            : 'text-muted border-0 bg-transparent'
+                        }`}
+                        onClick={() => {
+                          setPosterMealPeriod('LUNCH');
+                          setPosterDataUrl(null);
+                        }}
+                      >
+                        <span>☀️ બપોર (Lunch)</span>
+                        <span className={`badge ms-1.5 rounded-pill ${posterMealPeriod === 'LUNCH' ? 'bg-primary text-white' : 'bg-secondary-subtle text-muted'}`}>
+                          {lunchItemIds.length}
+                        </span>
+                      </button>
+                      <button
+                        type="button"
+                        className={`btn btn-sm w-50 py-1.5 fw-bold rounded-2 transition-all ${
+                          posterMealPeriod === 'DINNER'
+                            ? 'btn-white bg-white text-dark shadow-xs'
+                            : 'text-muted border-0 bg-transparent'
+                        }`}
+                        onClick={() => {
+                          setPosterMealPeriod('DINNER');
+                          setPosterDataUrl(null);
+                        }}
+                      >
+                        <span>🌙 સાંજ (Dinner)</span>
+                        <span className={`badge ms-1.5 rounded-pill ${posterMealPeriod === 'DINNER' ? 'bg-dark text-white' : 'bg-secondary-subtle text-muted'}`}>
+                          {dinnerItemIds.length}
+                        </span>
+                      </button>
+                    </div>
+                  </div>
 
                   {/* Theme Selector */}
                   <div>

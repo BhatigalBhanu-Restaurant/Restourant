@@ -260,466 +260,8 @@ TAXES = [
     "type": "PERCENTAGE"
   }
 ]
-CATEGORIES = [
-  {
-    "id": "cat_kathiyawadi",
-    "name": "Kathiyawadi Curries",
-    "code": "KATHI",
-    "displayOrder": 1
-  },
-  {
-    "id": "cat_rotla",
-    "name": "Rotla & Traditional Breads",
-    "code": "ROTLA",
-    "displayOrder": 2
-  },
-  {
-    "id": "cat_thali",
-    "name": "Special Thali & Combos",
-    "code": "THALI",
-    "displayOrder": 3
-  },
-  {
-    "id": "cat_farsan",
-    "name": "Farsan & Starters",
-    "code": "FARSAN",
-    "displayOrder": 4
-  },
-  {
-    "id": "cat_mithai",
-    "name": "Traditional Sweets & Desserts",
-    "code": "SWEETS",
-    "displayOrder": 5
-  },
-  {
-    "id": "cat_chaas_bev",
-    "name": "Beverages & Chaas",
-    "code": "BEV",
-    "displayOrder": 6
-  }
-]
-MENU_ITEMS = [
-  {
-    "id": "item_ringna_olo",
-    "categoryId": "cat_kathiyawadi",
-    "name": "Ringna No Olo with White Butter",
-    "code": "KATHI-01",
-    "price": 220,
-    "costPrice": 75,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 15,
-    "displayOrder": 1
-  },
-  {
-    "id": "item_kaju_gathiya",
-    "categoryId": "cat_kathiyawadi",
-    "name": "Kaju Gathiya Nu Shaak",
-    "code": "KATHI-02",
-    "price": 240,
-    "costPrice": 90,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 12,
-    "displayOrder": 2
-  },
-  {
-    "id": "item_sev_tameta",
-    "categoryId": "cat_kathiyawadi",
-    "name": "Kathiyawadi Sev Tameta Nu Shaak",
-    "code": "KATHI-03",
-    "price": 180,
-    "costPrice": 55,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 10,
-    "displayOrder": 3
-  },
-  {
-    "id": "item_lasaniya_bataka",
-    "categoryId": "cat_kathiyawadi",
-    "name": "Lasaniya Bataka Spiced Curry",
-    "code": "KATHI-04",
-    "price": 170,
-    "costPrice": 50,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 12,
-    "displayOrder": 4
-  },
-  {
-    "id": "item_bharela_bhinda",
-    "categoryId": "cat_kathiyawadi",
-    "name": "Kathiyawadi Bharela Bhinda",
-    "code": "KATHI-05",
-    "price": 190,
-    "costPrice": 65,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 14,
-    "displayOrder": 5
-  },
-  {
-    "id": "item_dahi_tikhari",
-    "categoryId": "cat_kathiyawadi",
-    "name": "Rajwadi Dahi Tikhari",
-    "code": "KATHI-06",
-    "price": 160,
-    "costPrice": 45,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 8,
-    "displayOrder": 6
-  },
-  {
-    "id": "item_sev_dungri",
-    "categoryId": "cat_kathiyawadi",
-    "name": "Sev Dungri Nu Shaak",
-    "code": "KATHI-07",
-    "price": 175,
-    "costPrice": 55,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 10,
-    "displayOrder": 7
-  },
-  {
-    "id": "item_sukhi_bhaji",
-    "categoryId": "cat_kathiyawadi",
-    "name": "Sukhi Bhaji (Batata Vagharela)",
-    "code": "KATHI-08",
-    "price": 150,
-    "costPrice": 40,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 8,
-    "displayOrder": 8
-  },
-  {
-    "id": "item_bharela_ringna",
-    "categoryId": "cat_kathiyawadi",
-    "name": "Bharela Ringna Bataka",
-    "code": "KATHI-09",
-    "price": 195,
-    "costPrice": 60,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 15,
-    "displayOrder": 9
-  },
-  {
-    "id": "item_bajri_rotlo",
-    "categoryId": "cat_rotla",
-    "name": "Deshi Bajri No Rotlo (with Ghee & Makhan)",
-    "code": "ROT-01",
-    "price": 60,
-    "costPrice": 18,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 8,
-    "displayOrder": 10
-  },
-  {
-    "id": "item_jowar_rotlo",
-    "categoryId": "cat_rotla",
-    "name": "Jowar No Rotlo with Ghee",
-    "code": "ROT-02",
-    "price": 60,
-    "costPrice": 18,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 8,
-    "displayOrder": 11
-  },
-  {
-    "id": "item_phulka_roti",
-    "categoryId": "cat_rotla",
-    "name": "Hot Phulka Roti with Ghee (3 Pcs)",
-    "code": "ROT-03",
-    "price": 45,
-    "costPrice": 12,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 6,
-    "displayOrder": 12
-  },
-  {
-    "id": "item_thepla",
-    "categoryId": "cat_rotla",
-    "name": "Deshi Masala Methi Thepla (2 Pcs)",
-    "code": "ROT-04",
-    "price": 50,
-    "costPrice": 15,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 8,
-    "displayOrder": 13
-  },
-  {
-    "id": "item_puri_basket",
-    "categoryId": "cat_rotla",
-    "name": "Puri Basket (4 Pcs)",
-    "code": "ROT-05",
-    "price": 40,
-    "costPrice": 12,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 5,
-    "displayOrder": 14
-  },
-  {
-    "id": "item_garlic_paratha",
-    "categoryId": "cat_rotla",
-    "name": "Garlic Butter Paratha",
-    "code": "ROT-06",
-    "price": 65,
-    "costPrice": 20,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 8,
-    "displayOrder": 15
-  },
-  {
-    "id": "item_bhatigal_thali",
-    "categoryId": "cat_thali",
-    "name": "Bhatigal Rajwadi Special Thali (Unlimited)",
-    "code": "THALI-01",
-    "price": 350,
-    "costPrice": 125,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 5,
-    "displayOrder": 16
-  },
-  {
-    "id": "item_executive_thali",
-    "categoryId": "cat_thali",
-    "name": "Kathiyawadi Executive Thali",
-    "code": "THALI-02",
-    "price": 260,
-    "costPrice": 90,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 5,
-    "displayOrder": 17
-  },
-  {
-    "id": "item_khichdi_kadhi",
-    "categoryId": "cat_thali",
-    "name": "Vaghareli Khichdi & Kathiyawadi Kadhi Bowl",
-    "code": "THALI-03",
-    "price": 190,
-    "costPrice": 55,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 10,
-    "displayOrder": 18
-  },
-  {
-    "id": "item_dal_dhokli",
-    "categoryId": "cat_thali",
-    "name": "Dal Dhokli Traditional Bowl",
-    "code": "THALI-04",
-    "price": 180,
-    "costPrice": 50,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 12,
-    "displayOrder": 19
-  },
-  {
-    "id": "item_nylon_khaman",
-    "categoryId": "cat_farsan",
-    "name": "Surti Nylon Khaman Plate",
-    "code": "FARSAN-01",
-    "price": 120,
-    "costPrice": 35,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 5,
-    "displayOrder": 20
-  },
-  {
-    "id": "item_patra",
-    "categoryId": "cat_farsan",
-    "name": "Steamed Patra with Mustard Tadka",
-    "code": "FARSAN-02",
-    "price": 130,
-    "costPrice": 40,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 8,
-    "displayOrder": 21
-  },
-  {
-    "id": "item_bharela_marcha",
-    "categoryId": "cat_farsan",
-    "name": "Fried Bharela Marcha Sambharo",
-    "code": "FARSAN-03",
-    "price": 90,
-    "costPrice": 25,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 6,
-    "displayOrder": 22
-  },
-  {
-    "id": "item_vanela_gathiya",
-    "categoryId": "cat_farsan",
-    "name": "Live Vanela Gathiya Plate",
-    "code": "FARSAN-04",
-    "price": 110,
-    "costPrice": 30,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 6,
-    "displayOrder": 23
-  },
-  {
-    "id": "item_methi_gota",
-    "categoryId": "cat_farsan",
-    "name": "Methi Na Gota Plate (6 Pcs)",
-    "code": "FARSAN-05",
-    "price": 100,
-    "costPrice": 28,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 8,
-    "displayOrder": 24
-  },
-  {
-    "id": "item_khandvi",
-    "categoryId": "cat_farsan",
-    "name": "Khandvi Rolls Plate",
-    "code": "FARSAN-06",
-    "price": 125,
-    "costPrice": 35,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 5,
-    "displayOrder": 25
-  },
-  {
-    "id": "item_churma_ladoo",
-    "categoryId": "cat_mithai",
-    "name": "Deshi Ghee Churma Ladoo",
-    "code": "SWEET-01",
-    "price": 120,
-    "costPrice": 40,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 5,
-    "displayOrder": 26
-  },
-  {
-    "id": "item_shrikhand",
-    "categoryId": "cat_mithai",
-    "name": "Kesar Pista Shrikhand / Matho",
-    "code": "SWEET-02",
-    "price": 110,
-    "costPrice": 35,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 4,
-    "displayOrder": 27
-  },
-  {
-    "id": "item_mohanthal",
-    "categoryId": "cat_mithai",
-    "name": "Kathiyawadi Deshi Mohanthal",
-    "code": "SWEET-03",
-    "price": 130,
-    "costPrice": 42,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 5,
-    "displayOrder": 28
-  },
-  {
-    "id": "item_jalebi",
-    "categoryId": "cat_mithai",
-    "name": "Garam Deshi Ghee Jalebi (150g)",
-    "code": "SWEET-04",
-    "price": 110,
-    "costPrice": 32,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 8,
-    "displayOrder": 29
-  },
-  {
-    "id": "item_malpua",
-    "categoryId": "cat_mithai",
-    "name": "Malpua with Rabdi (2 Pcs)",
-    "code": "SWEET-05",
-    "price": 140,
-    "costPrice": 45,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 10,
-    "displayOrder": 30
-  },
-  {
-    "id": "item_valona_chaas",
-    "categoryId": "cat_chaas_bev",
-    "name": "Deshi Valona Masala Chaas",
-    "code": "BEV-01",
-    "price": 40,
-    "costPrice": 12,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 3,
-    "displayOrder": 31
-  },
-  {
-    "id": "item_gol_makhan",
-    "categoryId": "cat_chaas_bev",
-    "name": "Deshi Gol & White Makhan Bowl",
-    "code": "BEV-02",
-    "price": 50,
-    "costPrice": 15,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 3,
-    "displayOrder": 32
-  },
-  {
-    "id": "item_rajwadi_chai",
-    "categoryId": "cat_chaas_bev",
-    "name": "Rajwadi Masala Kadak Chai",
-    "code": "BEV-03",
-    "price": 35,
-    "costPrice": 10,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 5,
-    "displayOrder": 33
-  },
-  {
-    "id": "item_lemon_soda",
-    "categoryId": "cat_chaas_bev",
-    "name": "Fresh Lemon Mint Soda",
-    "code": "BEV-04",
-    "price": 60,
-    "costPrice": 15,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 4,
-    "displayOrder": 34
-  },
-  {
-    "id": "item_kesar_milk",
-    "categoryId": "cat_chaas_bev",
-    "name": "Kesar Badam Milk (Cold)",
-    "code": "BEV-05",
-    "price": 80,
-    "costPrice": 25,
-    "taxId": "tax_gst_5",
-    "isVeg": True,
-    "preparationTimeMinutes": 3,
-    "displayOrder": 35
-  }
-]
+CATEGORIES = []
+MENU_ITEMS = []
 DEFAULT_FLOOR_ZONES = [
   {
     "id": "zone_main_hall",
@@ -1221,7 +763,83 @@ CHART_OF_ACCOUNTS = [
     "currentBalance": 0.0
   }
 ]
-EMPLOYEES = []
+EMPLOYEES = [
+  {
+    "id": "emp_001",
+    "employeeCode": "EMP-001",
+    "firstName": "Rameshbhai",
+    "lastName": "Patel",
+    "email": "ramesh.p@bhatigalbhanu.com",
+    "phone": "9879001100",
+    "departmentId": "dept_mgmt",
+    "departmentName": "Management",
+    "designationId": "desig_gm",
+    "designationTitle": "General Manager",
+    "userId": "usr_manager",
+    "joiningDate": "2025-01-15",
+    "baseSalary": 65000
+  },
+  {
+    "id": "emp_002",
+    "employeeCode": "EMP-002",
+    "firstName": "Dineshbhai",
+    "lastName": "Maharaj",
+    "email": "dinesh.m@bhatigalbhanu.com",
+    "phone": "9879001101",
+    "departmentId": "dept_kitchen",
+    "departmentName": "Kitchen & Culinary",
+    "designationId": "desig_head_chef",
+    "designationTitle": "Head Maharaj / Chef",
+    "userId": "usr_chef",
+    "joiningDate": "2025-01-15",
+    "baseSalary": 55000
+  },
+  {
+    "id": "emp_003",
+    "employeeCode": "EMP-003",
+    "firstName": "Pareshbhai",
+    "lastName": "Vora",
+    "email": "paresh.v@bhatigalbhanu.com",
+    "phone": "9879001102",
+    "departmentId": "dept_accounts",
+    "departmentName": "Accounts & Finance",
+    "designationId": "desig_cashier",
+    "designationTitle": "Head Cashier",
+    "userId": "usr_cashier",
+    "joiningDate": "2025-02-01",
+    "baseSalary": 32000
+  },
+  {
+    "id": "emp_004",
+    "employeeCode": "EMP-004",
+    "firstName": "Kishorbhai",
+    "lastName": "Chavda",
+    "email": "kishor.c@bhatigalbhanu.com",
+    "phone": "9879001103",
+    "departmentId": "dept_service",
+    "departmentName": "Service & Front of House",
+    "designationId": "desig_waiter",
+    "designationTitle": "Head Captain",
+    "userId": "usr_waiter",
+    "joiningDate": "2025-02-10",
+    "baseSalary": 26000
+  },
+  {
+    "id": "emp_005",
+    "employeeCode": "EMP-005",
+    "firstName": "Mukeshbhai",
+    "lastName": "Gohil",
+    "email": "mukesh.g@bhatigalbhanu.com",
+    "phone": "9879001104",
+    "departmentId": "dept_inventory",
+    "departmentName": "Inventory & Stores",
+    "designationId": "desig_inv_mgr",
+    "designationTitle": "Bhandar Incharge",
+    "userId": "usr_inventory",
+    "joiningDate": "2025-02-15",
+    "baseSalary": 38000
+  }
+]
 SYSTEM_SETTINGS = [
   {
     "key": "floor_zones_seeded_v1",
