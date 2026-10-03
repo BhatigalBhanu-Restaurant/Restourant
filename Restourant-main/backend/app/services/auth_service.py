@@ -69,12 +69,6 @@ class AuthService:
         stored_hash = user.get("passwordHash") or user.get("password") or user.get("pass") or ""
         is_match = verify_password(password, stored_hash)
 
-        # Fallback for default superadmin
-        if not is_match and user.get("username") == "superadmin" and password == "Admin@12345":
-            is_match = True
-            stored_hash = hash_password("Admin@12345")
-            db.users.update_one({"id": user["id"]}, {"$set": {"passwordHash": stored_hash}})
-
         if not is_match:
             failed = user.get("failedLoginAttempts", 0) + 1
             update_data = {"failedLoginAttempts": failed}
