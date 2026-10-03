@@ -123,6 +123,7 @@ export const AttendancePage: React.FC = () => {
       const res: any = await apiClient.get(`/hr/attendance/monthly?month=${monthToFetch}`);
       const payload = res?.data || res;
       setData(payload);
+      try { localStorage.setItem(STORAGE_KEY_ATTENDANCE_PREFIX + monthToFetch, JSON.stringify(payload)); } catch {}
     } catch (err: any) {
       console.error('Failed to load attendance:', err);
       addToast(err?.response?.data?.message || 'હાજરી ડેટા લોડ કરવામાં ભૂલ આવી.', 'error');
