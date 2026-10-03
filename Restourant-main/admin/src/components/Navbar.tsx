@@ -122,16 +122,14 @@ export const Navbar: React.FC<{ onToggleSidebar: () => void }> = ({ onToggleSide
         </div>
 
         {/* Real-time connection badge */}
-        <div className="d-none d-md-flex align-items-center gap-1 small">
+        <div className="d-none d-md-flex align-items-center gap-1 small text-white-50">
           {isConnected ? (
-            <span className="badge bg-success-subtle text-success d-flex align-items-center gap-1 border border-success-subtle fw-semibold">
-              <span className="rounded-circle bg-success d-inline-block" style={{ width: 6, height: 6 }} />
+            <span className="badge bg-success-subtle text-success d-flex align-items-center gap-1 border border-success-subtle">
               <Wifi size={12} /> Live Sync
             </span>
           ) : (
-            <span className="badge bg-warning-subtle text-warning d-flex align-items-center gap-1 border border-warning-subtle fw-medium">
-              <span className="spinner-border spinner-border-sm text-warning" style={{ width: 8, height: 8 }} />
-              Connecting...
+            <span className="badge bg-danger-subtle text-danger d-flex align-items-center gap-1 border border-danger-subtle">
+              <WifiOff size={12} /> Offline
             </span>
           )}
         </div>
