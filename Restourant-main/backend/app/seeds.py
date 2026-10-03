@@ -9,9 +9,9 @@ from .utils.logger import logger
 DEFAULT_USERS = [
   {
     "id": "usr_superadmin",
-    "username": "superadmin",
+    "username": "admin",
     "email": "superadmin@erp.com",
-    "pass": "Admin@12345",
+    "pass": "Admin@123",
     "firstName": "Super",
     "lastName": "Administrator",
     "phone": "9999999991",
