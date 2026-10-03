@@ -90,17 +90,9 @@ async def update_user(user_id: str, body: Dict[str, Any], current_user: Dict[str
     }
     if body.get("password"):
         update_data["passwordHash"] = hash_password(body["password"])
-        db.users.update_one(
-            {"$or": [{"id": user_id}, {"username": user_id}]},
-            {"$set": update_data, "$unset": {"password": "", "pass": ""}}
-        )
-    else:
-        db.users.update_one(
-            {"$or": [{"id": user_id}, {"username": user_id}]},
-            {"$set": update_data}
-        )
 
-    updated = db.users.find_one({"$or": [{"id": user_id}, {"username": user_id}]}, {"_id": 0, "passwordHash": 0})
+    db.users.update_one({"id": user_id}, {"$set": update_data})
+    updated = db.users.find_one({"id": user_id}, {"_id": 0, "passwordHash": 0})
     return ApiResponse.success(data=updated, message="User updated successfully")
 
 @router.delete("/users/{user_id}")
