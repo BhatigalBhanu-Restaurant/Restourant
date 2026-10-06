@@ -32,13 +32,12 @@ from .app.routers import (
 )
 from .app.routers import calendar as calendar_router
 
-@asynccontextmanager
-async def lifespan(app: FastAPI):
-    logger.info("Initializing Restaurant ERP Backend Services...")
+import asyncio
+
+def _bg_startup_init():
     try:
         ensure_indexes()
         db = get_db()
-        # Auto-seed if database is brand new or superadmin is missing
         user_count = db.users.count_documents({})
         superadmin = db.users.find_one({"username": "superadmin"})
         if user_count == 0 or not superadmin:
@@ -48,7 +47,13 @@ async def lifespan(app: FastAPI):
         else:
             logger.info(f"Database connected. Found {user_count} registered users.")
     except Exception as e:
-        logger.error(f"Startup initialization error: {e}")
+        logger.error(f"Startup background initialization error: {e}")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    logger.info("Initializing Restaurant ERP Backend Services...")
+    # Run DB indexes and init asynchronously in background thread so app boots instantly (<200ms)
+    asyncio.create_task(asyncio.to_thread(_bg_startup_init))
     yield
     logger.info("Shutting down Restaurant ERP Backend Services...")
 

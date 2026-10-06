@@ -39,8 +39,8 @@ export async function preloadAllModulesData(force = false): Promise<void> {
           appCache.set(endpoint, res);
         }
       } catch {}
-      // Small 50ms pause between requests to prevent backend queue bottleneck
-      await new Promise(r => setTimeout(r, 50));
+      // Pause between requests to prevent backend queue bottleneck
+      await new Promise(r => setTimeout(r, 200));
     }
   } catch {
     // Silent

@@ -7,7 +7,10 @@ from ..constants.permissions import ALL_PERMISSIONS
 
 security = HTTPBearer(auto_error=False)
 
+_cached_permissions: Optional[List[Dict[str, Any]]] = None
+
 async def calculate_effective_permissions(user_id: str, role_id: str, username: Optional[str] = None) -> Dict[str, Dict[str, Any]]:
+    global _cached_permissions
     db = get_db()
     result = {}
 
@@ -22,9 +25,15 @@ async def calculate_effective_permissions(user_id: str, role_id: str, username: 
 
     role_perms = set(role.get("permissions", [])) if role else set()
 
-    # Fetch all permission definitions from DB, fallback to constant
-    db_perms = list(db.permissions.find({}, {"_id": 0, "id": 1}))
-    perm_list = db_perms if db_perms else ALL_PERMISSIONS
+    # Use cached permissions if available to avoid repeated DB latency
+    if _cached_permissions is None:
+        try:
+            db_perms = list(db.permissions.find({}, {"_id": 0, "id": 1}))
+            _cached_permissions = db_perms if db_perms else ALL_PERMISSIONS
+        except Exception:
+            _cached_permissions = ALL_PERMISSIONS
+
+    perm_list = _cached_permissions or ALL_PERMISSIONS
 
     for p in perm_list:
         perm_id = p["id"]

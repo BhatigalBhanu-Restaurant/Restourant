@@ -11,101 +11,21 @@ DEFAULT_USERS = [
     "id": "usr_superadmin",
     "username": "superadmin",
     "email": "superadmin@erp.com",
-    "pass": "Admin@12345",
+    "pass": "Admin@123",
     "firstName": "Super",
     "lastName": "Administrator",
     "phone": "9999999991",
     "roleId": "role_super_admin"
   },
   {
-    "id": "usr_manager",
-    "username": "manager",
-    "email": "manager@erp.com",
-    "pass": "Manager@12345",
+    "id": "usr_owner",
+    "username": "owner",
+    "email": "bhatigalbhanu@gmail.com",
+    "pass": "owner123",
     "firstName": "Restaurant",
-    "lastName": "Manager",
-    "phone": "9999999993",
-    "roleId": "role_manager"
-  },
-  {
-    "id": "usr_cashier",
-    "username": "cashier",
-    "email": "cashier@erp.com",
-    "pass": "Cashier@12345",
-    "firstName": "Head",
-    "lastName": "Cashier",
-    "phone": "9999999994",
-    "roleId": "role_cashier"
-  },
-  {
-    "id": "usr_waiter",
-    "username": "waiter",
-    "email": "waiter@erp.com",
-    "pass": "Waiter@12345",
-    "firstName": "Lead",
-    "lastName": "Server",
-    "phone": "9999999995",
-    "roleId": "role_waiter"
-  },
-  {
-    "id": "usr_chef",
-    "username": "chef",
-    "email": "chef@erp.com",
-    "pass": "Chef@12345",
-    "firstName": "Executive",
-    "lastName": "Chef",
-    "phone": "9999999996",
-    "roleId": "role_kitchen"
-  },
-  {
-    "id": "usr_inventory",
-    "username": "inventory",
-    "email": "inventory@erp.com",
-    "pass": "Inventory@12345",
-    "firstName": "Stores",
-    "lastName": "Incharge",
-    "phone": "9999999997",
-    "roleId": "role_inventory"
-  },
-  {
-    "id": "usr_purchase",
-    "username": "purchase",
-    "email": "purchase@erp.com",
-    "pass": "Purchase@12345",
-    "firstName": "Procurement",
-    "lastName": "Officer",
-    "phone": "9999999988",
-    "roleId": "role_purchase"
-  },
-  {
-    "id": "usr_accountant",
-    "username": "accountant",
-    "email": "accountant@erp.com",
-    "pass": "Accountant@12345",
-    "firstName": "Chief",
-    "lastName": "Accountant",
-    "phone": "9999999998",
-    "roleId": "role_accountant"
-  },
-  {
-    "id": "usr_hr",
-    "username": "hr",
-    "email": "hr@erp.com",
-    "pass": "Hr@12345",
-    "firstName": "HR",
-    "lastName": "Specialist",
-    "phone": "9999999999",
-    "roleId": "role_hr"
-  },
-  {
-    "id": "usr_receptionist",
-    "username": "receptionist",
-    "email": "reception@erp.com",
-    "pass": "Receptionist@12345",
-    "firstName": "Hostess",
-    "lastName": "Receptionist",
-    "phone": "9999999990",
-    "roleId": "role_receptionist"
+    "lastName": "Owner",
+    "phone": "9999999992",
+    "roleId": "restaurant_owner"
   }
 ]
 DEPARTMENTS = [

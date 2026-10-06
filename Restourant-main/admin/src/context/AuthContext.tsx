@@ -49,6 +49,8 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     return hasToken ? !hasCachedUser : false;
   });
 
+  const isLoggingInRef = React.useRef(false);
+
   const fetchProfile = async () => {
     try {
       const res: any = await apiClient.get('/auth/profile');
@@ -59,8 +61,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
           sessionStorage.setItem('bhatigal_cached_user', JSON.stringify(res.data.user));
           sessionStorage.setItem('bhatigal_cached_perms', JSON.stringify(res.data.effectivePermissions || []));
         } catch {}
-        // Trigger background preloading of all modules immediately
-        preloadAllModulesData();
+        // Trigger gentle background preloading after short delay
+        setTimeout(() => {
+          preloadAllModulesData(false);
+        }, 1500);
       }
     } catch (err) {
       console.error('Failed to load profile:', err);
@@ -82,6 +86,10 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   useEffect(() => {
     if (token) {
+      if (isLoggingInRef.current) {
+        // Skip redundant fetchProfile immediately after login: profile is already loaded!
+        return;
+      }
       fetchProfile();
     } else {
       setIsLoading(false);
@@ -90,6 +98,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
 
   const login = async (username: string, pass: string) => {
     setIsLoading(true);
+    isLoggingInRef.current = true;
     try {
       const res: any = await apiClient.post('/auth/login', { username, password: pass });
       if (res.success && res.data) {
@@ -104,11 +113,18 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
         setToken(res.data.accessToken);
         setUser(res.data.user);
         setEffectivePermissions(res.data.effectivePermissions || []);
-        // Trigger immediate background preloader
-        preloadAllModulesData(true);
+        setIsLoading(false);
+
+        // Defer preloader until after the user is comfortably on dashboard
+        setTimeout(() => {
+          preloadAllModulesData(false);
+        }, 1200);
       }
     } finally {
       setIsLoading(false);
+      setTimeout(() => {
+        isLoggingInRef.current = false;
+      }, 500);
     }
   };
 
