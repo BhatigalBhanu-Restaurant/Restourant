@@ -135,6 +135,7 @@ async def health_check():
     return {
         "success": True,
         "status": "HEALTHY",
+        "version": "2.0.1-perf",
         "service": "Kathiyawadi Restaurant ERP Backend",
         "stack": "FastAPI + Python Socket.IO + PyMongo",
         "docs": "/docs"
